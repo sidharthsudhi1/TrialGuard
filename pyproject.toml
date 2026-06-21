@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "trialguard"
+version = "0.1.0"
+description = "Self-verifying multi-agent clinical-trial eligibility intelligence"
+requires-python = ">=3.12"
+dependencies = [
+    # Orchestration
+    "langgraph>=0.2",
+    "langchain>=0.3",
+    "langchain-community>=0.3",
+    "langchain-groq>=0.2",
+
+    # Embeddings
+    "sentence-transformers>=3.0",
+
+    # Retrieval
+    "rank-bm25>=0.2",
+
+    # Vector store
+    "psycopg2-binary>=2.9",
+    "pgvector>=0.3",
+
+    # Config & secrets
+    "pydantic-settings>=2.4",
+    "python-dotenv>=1.0",
+
+    # HTTP
+    "httpx>=0.27",
+
+    # Tracing
+    "langfuse>=2.0",
+
+    # Data wrangling
+    "pandas>=2.2",
+
+    # CLI / display
+    "rich>=13.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.6",
+    "mypy>=1.11",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
