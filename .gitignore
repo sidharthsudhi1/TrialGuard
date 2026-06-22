@@ -44,3 +44,9 @@ trace_cache/
 
 # Build
 *.so
+
+# Local phase docs and skills
+PHASE*.md
+CLAUDE.md
+.agents/
+skills-lock.json
