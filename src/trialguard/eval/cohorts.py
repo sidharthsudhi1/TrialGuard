@@ -1,11 +1,14 @@
 """Download and parse SIGIR 2016 + TREC CT 2021/2022 gold eval cohorts.
 
 Source: https://github.com/ncbi-nlp/TrialGPT (dataset/)
-Labels: irrelevant=0, excluded=1, eligible=2
+
+qrels format (TSV): query-id  corpus-id  score
+Scores: 0=irrelevant, 1=excluded, 2=eligible
 """
 
 from __future__ import annotations
 
+import csv
 import json
 from pathlib import Path
 
@@ -16,18 +19,15 @@ EVAL_DIR = Path("data/eval")
 COHORTS = {
     "sigir": {
         "queries": "https://raw.githubusercontent.com/ncbi-nlp/TrialGPT/main/dataset/sigir/queries.jsonl",
-        "id2queries": "https://raw.githubusercontent.com/ncbi-nlp/TrialGPT/main/dataset/sigir/id2queries.json",
-        "retrieved": "https://raw.githubusercontent.com/ncbi-nlp/TrialGPT/main/dataset/sigir/retrieved_trials.json",
+        "qrels": "https://raw.githubusercontent.com/ncbi-nlp/TrialGPT/main/dataset/sigir/qrels/test.tsv",
     },
     "trec_2021": {
         "queries": "https://raw.githubusercontent.com/ncbi-nlp/TrialGPT/main/dataset/trec_2021/queries.jsonl",
-        "id2queries": "https://raw.githubusercontent.com/ncbi-nlp/TrialGPT/main/dataset/trec_2021/id2queries.json",
-        "retrieved": "https://raw.githubusercontent.com/ncbi-nlp/TrialGPT/main/dataset/trec_2021/retrieved_trials.json",
+        "qrels": "https://raw.githubusercontent.com/ncbi-nlp/TrialGPT/main/dataset/trec_2021/qrels/test.tsv",
     },
     "trec_2022": {
         "queries": "https://raw.githubusercontent.com/ncbi-nlp/TrialGPT/main/dataset/trec_2022/queries.jsonl",
-        "id2queries": "https://raw.githubusercontent.com/ncbi-nlp/TrialGPT/main/dataset/trec_2022/id2queries.json",
-        "retrieved": "https://raw.githubusercontent.com/ncbi-nlp/TrialGPT/main/dataset/trec_2022/retrieved_trials.json",
+        "qrels": "https://raw.githubusercontent.com/ncbi-nlp/TrialGPT/main/dataset/trec_2022/qrels/test.tsv",
     },
 }
 
@@ -48,13 +48,13 @@ def download_cohorts() -> None:
         cohort_dir = EVAL_DIR / cohort
         cohort_dir.mkdir(exist_ok=True)
         for name, url in urls.items():
-            ext = "jsonl" if url.endswith(".jsonl") else "json"
+            ext = url.rsplit(".", 1)[-1]
             _download(url, cohort_dir / f"{name}.{ext}")
     print("All cohort files downloaded.")
 
 
 def load_patients(cohort: str) -> list[dict]:
-    """Return list of patient dicts with id, description, cohort."""
+    """Return list of patient dicts: patient_id, description, cohort."""
     path = EVAL_DIR / cohort / "queries.jsonl"
     patients = []
     with open(path) as f:
@@ -75,22 +75,19 @@ def load_patients(cohort: str) -> list[dict]:
 def load_labels(cohort: str) -> list[dict]:
     """Return list of label dicts: patient_id, nct_id, label, cohort.
 
-    retrieved_trials.json format (TrialGPT):
-      { patient_id: { nct_id: score, ... }, ... }
+    qrels TSV columns: query-id  corpus-id  score
     Scores: 0=irrelevant, 1=excluded, 2=eligible
     """
-    path = EVAL_DIR / cohort / "retrieved_trials.json"
-    with open(path) as f:
-        data = json.load(f)
-
-    score_map = {0: "irrelevant", 1: "excluded", 2: "eligible"}
+    path = EVAL_DIR / cohort / "qrels.tsv"
+    score_map = {"0": "irrelevant", "1": "excluded", "2": "eligible"}
     labels = []
-    for patient_id, trials in data.items():
-        for nct_id, score in trials.items():
+    with open(path) as f:
+        reader = csv.DictReader(f, delimiter="\t")
+        for row in reader:
             labels.append({
-                "patient_id": str(patient_id),
-                "nct_id": nct_id,
+                "patient_id": row["query-id"],
+                "nct_id": row["corpus-id"],
                 "cohort": cohort,
-                "label": score_map.get(int(score), "irrelevant"),
+                "label": score_map.get(str(row["score"]).strip(), "irrelevant"),
             })
     return labels
