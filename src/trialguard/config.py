@@ -8,10 +8,11 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_model: str = "llama-3.1-70b-versatile"
 
-    # Tracing
+    # Tracing — SDK v3 reads LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY, LANGFUSE_BASE_URL
     langfuse_public_key: str = ""
     langfuse_secret_key: str = ""
-    langfuse_host: str = "https://cloud.langfuse.com"
+    langfuse_host: str = "https://cloud.langfuse.com"       # legacy alias
+    langfuse_base_url: str = "https://cloud.langfuse.com"   # SDK v3 canonical
     tracing_enabled: bool = True
 
     # Vector store
