@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS trials (
 
 CREATE INDEX IF NOT EXISTS trials_embedding_idx
     ON trials USING ivfflat (embedding vector_cosine_ops)
-    WITH (lists = 100);
+    WITH (lists = 55);
 
 CREATE TABLE IF NOT EXISTS eval_patients (
     patient_id   TEXT,
