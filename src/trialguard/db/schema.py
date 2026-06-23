@@ -23,8 +23,11 @@ CREATE TABLE IF NOT EXISTS trials (
     last_updated        TEXT,
     embedding           VECTOR(384),
     metadata            JSONB,
+    source              TEXT DEFAULT 'ctgov_live',
     ingested_at         TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS trials_source_idx ON trials(source);
 
 CREATE INDEX IF NOT EXISTS trials_embedding_idx
     ON trials USING ivfflat (embedding vector_cosine_ops)

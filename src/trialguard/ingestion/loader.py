@@ -13,12 +13,12 @@ INSERT INTO trials (
     nct_id, title, status, phase, conditions, interventions,
     eligibility_raw, inclusion_criteria, exclusion_criteria,
     min_age, max_age, sex, healthy_volunteers, last_updated,
-    embedding, metadata
+    embedding, metadata, source
 ) VALUES (
     %(nct_id)s, %(title)s, %(status)s, %(phase)s, %(conditions)s, %(interventions)s,
     %(eligibility_raw)s, %(inclusion_criteria)s, %(exclusion_criteria)s,
     %(min_age)s, %(max_age)s, %(sex)s, %(healthy_volunteers)s, %(last_updated)s,
-    %(embedding)s::vector, %(metadata)s::jsonb
+    %(embedding)s::vector, %(metadata)s::jsonb, %(source)s
 )
 ON CONFLICT (nct_id) DO UPDATE SET
     title               = EXCLUDED.title,
@@ -36,11 +36,12 @@ ON CONFLICT (nct_id) DO UPDATE SET
     last_updated        = EXCLUDED.last_updated,
     embedding           = EXCLUDED.embedding,
     metadata            = EXCLUDED.metadata,
+    source              = EXCLUDED.source,
     ingested_at         = NOW();
 """
 
 
-def upsert_trials(trials: list[dict]) -> int:
+def upsert_trials(trials: list[dict], source: str = "ctgov_live") -> int:
     """Upsert a batch of enriched trial dicts. Returns count inserted/updated."""
     rows = []
     for t in trials:
@@ -64,6 +65,7 @@ def upsert_trials(trials: list[dict]) -> int:
                 k: v for k, v in t.items()
                 if k not in ("embedding",)
             }),
+            "source": t.get("source", source),
         })
 
     with get_conn() as conn, conn.cursor() as cur:
