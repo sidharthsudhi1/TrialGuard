@@ -132,23 +132,21 @@ def _ingest_trials(trials: list[dict], source: str) -> None:
     console.print(f"  [green]{source} done: {total} trials.[/green]")
 
 
-def load_all_eval_corpora() -> None:
-    console.print("[bold]Loading TrialGPT eval corpora into trials table...[/bold]")
+def download_trec_files() -> None:
+    """Download TREC 2021/2022 corpus JSONL files for file-based eval index.
 
-    # TREC 2021 + 2022
+    Files are NOT loaded into pgvector (Neon free tier storage limit).
+    FileIndex (eval/file_index.py) reads them directly for eval.
+    """
+    console.print("[bold]Downloading TREC corpus files for file-based eval...[/bold]")
     for source, url in TREC_SOURCES.items():
         dest = EVAL_DIR / source / f"{source}_corpus.jsonl"
         dest.parent.mkdir(parents=True, exist_ok=True)
         _download_stream(url, dest)
-        console.print(f"  Parsing {source}...")
-        trials = _parse_trec_jsonl(dest, source)
-        console.print(f"  {source}: {len(trials)} trials parsed.")
-        _ingest_trials(trials, source)
+        console.print(f"  {source}: ready at {dest}")
+    console.print("[bold green]TREC files ready.[/bold green]")
 
-    # SIGIR
-    console.print("  Parsing SIGIR corpus from retrieved.json...")
-    sigir_trials = _parse_sigir_corpus()
-    console.print(f"  SIGIR: {len(sigir_trials)} unique trials parsed.")
-    _ingest_trials(sigir_trials, "sigir")
 
-    console.print("[bold green]All eval corpora loaded.[/bold green]")
+def load_all_eval_corpora() -> None:
+    """Alias kept for CLI compatibility. Downloads TREC files only."""
+    download_trec_files()

@@ -55,7 +55,7 @@ def evaluate_cohort(
 ) -> dict:
     """Run retriever over all patients in cohort, return aggregated metrics.
 
-    retriever_fn(patient_description, source) -> list[(nct_id, score)]
+    retriever_fn(patient_description, source) -> (list[(nct_id, score)], latency_dict)
     """
     from trialguard.eval.cohorts import load_labels, load_patients
 

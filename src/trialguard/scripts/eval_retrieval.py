@@ -19,11 +19,18 @@ console = Console()
 REPORT_DIR = Path("data/reports")
 
 
-def retriever_fn(source: str):
-    from trialguard.retrieval.pipeline import retrieve
+def retriever_fn(source: str, top_k: int):
+    from trialguard.eval.file_index import get_index
+    import time
+
+    idx = get_index(source)
 
     def _fn(patient_description: str, _source: str):
-        return retrieve(patient_description, top_k=10, source=source)
+        t0 = time.perf_counter()
+        results = idx.search(patient_description, top_k=top_k)
+        total_ms = (time.perf_counter() - t0) * 1000
+        latency = {"total_ms": round(total_ms, 1)}
+        return results, latency
 
     return _fn
 
@@ -38,7 +45,7 @@ def run(cohorts: list[str], top_k: int) -> None:
         console.print(f"\n[bold]Evaluating {cohort}...[/bold]")
         results = evaluate_cohort(
             cohort=cohort,
-            retriever_fn=retriever_fn(cohort),
+            retriever_fn=retriever_fn(cohort, top_k),
             k=top_k,
         )
         all_results.append(results)
