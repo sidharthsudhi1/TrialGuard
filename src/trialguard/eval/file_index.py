@@ -100,7 +100,7 @@ class FileIndex:
 
         assert self._loaded, "Call build() first."
 
-        query_vec = np.array(embed_text(query), dtype=np.float32)
+        query_vec = np.array(embed_text(query, is_query=True), dtype=np.float32)
         dense_results = _cosine_search(query_vec, self._matrix, self._nct_ids, dense_pool)
 
         tokens = _tokenize(query)

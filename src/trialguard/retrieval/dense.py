@@ -21,7 +21,7 @@ def dense_search(
     source: str | None = None,
 ) -> list[tuple[str, float]]:
     """Return (nct_id, cosine_similarity) sorted descending."""
-    vec = embed_text(query_text)
+    vec = embed_text(query_text, is_query=True)
     source_clause = "AND source = %(source)s" if source else ""
     sql = SQL.format(source_clause=source_clause)
 
