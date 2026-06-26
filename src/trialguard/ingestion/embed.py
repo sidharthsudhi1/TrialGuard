@@ -22,6 +22,10 @@ _model = None
 def _get_model():
     global _model
     if _model is None:
+        import os
+        from trialguard.config import settings
+        if settings.hf_token:
+            os.environ.setdefault("HF_TOKEN", settings.hf_token)
         from sentence_transformers import SentenceTransformer
         _model = SentenceTransformer(MODEL_NAME)
     return _model
