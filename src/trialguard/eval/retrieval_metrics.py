@@ -48,6 +48,90 @@ def ndcg_at_k(
     return dcg(predictions) / ideal_dcg
 
 
+def compute_gold_coverage(cohort: str, corpus_nct_ids: set[str]) -> dict:
+    """Fraction of gold-positive NCT IDs that exist in the indexed corpus.
+
+    Returns the upper bound on achievable recall for that source scope.
+    """
+    from trialguard.eval.cohorts import load_labels
+
+    labels_list = load_labels(cohort)
+    gold_positives = {lbl["nct_id"] for lbl in labels_list if lbl["label"] == "eligible"}
+    present = gold_positives & corpus_nct_ids
+    missing = gold_positives - corpus_nct_ids
+    coverage = len(present) / len(gold_positives) if gold_positives else 0.0
+    return {
+        "total_gold": len(gold_positives),
+        "present_in_corpus": len(present),
+        "missing_count": len(missing),
+        "coverage": round(coverage, 4),
+        "missing_sample": sorted(missing)[:10],
+    }
+
+
+def evaluate_cohort_multi_k(
+    cohort: str,
+    retriever_fn,
+    k_list: list[int],
+    gold_coverage: float = 1.0,
+) -> dict:
+    """Retrieve once at max(k_list) depth, slice for recall at each k.
+
+    retriever_fn(patient_description, source) -> (list[(nct_id, score)], latency_dict)
+    gold_coverage: from compute_gold_coverage; used to compute adjusted recall.
+    """
+    from trialguard.eval.cohorts import load_labels, load_patients
+
+    patients = load_patients(cohort)
+    labels_list = load_labels(cohort)
+
+    patient_labels: dict[str, dict[str, str]] = {}
+    for lbl in labels_list:
+        pid = lbl["patient_id"]
+        if pid not in patient_labels:
+            patient_labels[pid] = {}
+        patient_labels[pid][lbl["nct_id"]] = lbl["label"]
+
+    per_k_recalls: dict[int, list[float]] = {k: [] for k in k_list}
+    mrrs: list[float] = []
+    latencies: list[float] = []
+
+    for patient in patients:
+        pid = patient["patient_id"]
+        labels = patient_labels.get(pid, {})
+        gold_positives = {nct for nct, lbl in labels.items() if lbl == "eligible"}
+
+        if not gold_positives:
+            continue
+
+        results, latency = retriever_fn(patient["description"], cohort)
+        predictions = [nct for nct, _ in results]
+
+        latencies.append(latency["total_ms"])
+        mrrs.append(mrr(predictions, gold_positives))
+        for k in k_list:
+            per_k_recalls[k].append(recall_at_k(predictions, gold_positives, k))
+
+    n = len(mrrs)
+    lat_sorted = sorted(latencies)
+
+    out: dict = {
+        "cohort": cohort,
+        "n_patients": n,
+        "mrr": round(sum(mrrs) / n, 4) if n else 0.0,
+        "latency_p50_ms": round(lat_sorted[n // 2], 1) if n else 0.0,
+        "latency_p95_ms": round(lat_sorted[int(n * 0.95)], 1) if n else 0.0,
+        "gold_coverage": gold_coverage,
+    }
+    for k in k_list:
+        raw = round(sum(per_k_recalls[k]) / n, 4) if n else 0.0
+        out[f"recall@{k}"] = raw
+        out[f"recall@{k}_adj"] = (
+            round(raw / gold_coverage, 4) if gold_coverage > 0 else None
+        )
+    return out
+
+
 def evaluate_cohort(
     cohort: str,
     retriever_fn,
