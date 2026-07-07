@@ -49,13 +49,16 @@ class FileIndex:
         self._nct_ids: list[str] = []
         self._matrix: np.ndarray | None = None
         self._bm25 = None
+        self._trial_texts: dict[str, str] = {}
         self._loaded = False
 
     def _cache_path(self) -> tuple[Path, Path]:
+        from trialguard.ingestion.embed import embed_tag
         INDEX_DIR.mkdir(parents=True, exist_ok=True)
+        tag = embed_tag()
         return (
-            INDEX_DIR / f"{self.source}_ids.json",
-            INDEX_DIR / f"{self.source}_embeddings.npy",
+            INDEX_DIR / f"{self.source}_{tag}_ids.json",
+            INDEX_DIR / f"{self.source}_{tag}_embeddings.npy",
         )
 
     def build(self, trials: list[dict]) -> None:
@@ -65,29 +68,46 @@ class FileIndex:
 
         ids_path, emb_path = self._cache_path()
 
+        # Always normalise: needed for BM25, trial_texts, and optionally embeddings.
+        normalised = [normalise_trial(t) for t in trials]
+        texts = [eligibility_text_for_embedding(t) for t in normalised]
+        nct_ids_from_trials = [t["nct_id"] for t in normalised]
+        self._trial_texts = dict(zip(nct_ids_from_trials, texts))
+
         if ids_path.exists() and emb_path.exists():
             print(f"  Loading cached index for {self.source}...")
             self._nct_ids = json.loads(ids_path.read_text())
             self._matrix = np.load(emb_path)
         else:
             print(f"  Building index for {self.source} ({len(trials)} trials)...")
-            normalised = [normalise_trial(t) for t in trials]
-            texts = [eligibility_text_for_embedding(t) for t in normalised]
-            self._nct_ids = [t["nct_id"] for t in normalised]
-
+            self._nct_ids = nct_ids_from_trials
             vecs = embed_batch(texts)
             self._matrix = np.array(vecs, dtype=np.float32)
-
             ids_path.write_text(json.dumps(self._nct_ids))
             np.save(emb_path, self._matrix)
             print(f"  Index cached: {emb_path}")
 
+        from trialguard.ingestion.embed import _index_exclusion
+        include_exc = _index_exclusion()
         tokenized = [
-            _tokenize(t.get("title", "") + " " + " ".join(t.get("inclusion_criteria", [])))
-            for t in ([normalise_trial(t) for t in trials] if trials else [{"title": "", "inclusion_criteria": []}] * len(self._nct_ids))
+            _tokenize(
+                t.get("title", "")
+                + " "
+                + " ".join(t.get("inclusion_criteria", []))
+                + (" " + " ".join(t.get("exclusion_criteria", [])) if include_exc else "")
+            )
+            for t in normalised
         ]
         self._bm25 = BM25Okapi(tokenized)
         self._loaded = True
+
+    def trial_texts(self) -> dict[str, str]:
+        assert self._loaded, "Call build() first."
+        return self._trial_texts
+
+    def corpus_ids(self) -> set[str]:
+        assert self._loaded, "Call build() first."
+        return set(self._nct_ids)
 
     def search(
         self,
@@ -95,23 +115,33 @@ class FileIndex:
         top_k: int = 10,
         dense_pool: int = 50,
         bm25_pool: int = 50,
+        use_keywords: bool = False,
     ) -> list[tuple[str, float]]:
         from trialguard.ingestion.embed import embed_text
 
         assert self._loaded, "Call build() first."
 
-        query_vec = np.array(embed_text(query, is_query=True), dtype=np.float32)
-        dense_results = _cosine_search(query_vec, self._matrix, self._nct_ids, dense_pool)
+        if use_keywords:
+            from trialguard.retrieval.query_transform import generate_keywords
+            queries = generate_keywords(query)
+        else:
+            queries = [query]
 
-        tokens = _tokenize(query)
-        bm25_scores = self._bm25.get_scores(tokens)
-        bm25_ranked = sorted(
-            zip(self._nct_ids, bm25_scores.tolist()),
-            key=lambda x: x[1],
-            reverse=True,
-        )[:bm25_pool]
+        all_rankings: list[list[tuple[str, float]]] = []
+        for q in queries:
+            query_vec = np.array(embed_text(q, is_query=True), dtype=np.float32)
+            all_rankings.append(_cosine_search(query_vec, self._matrix, self._nct_ids, dense_pool))
 
-        return rrf([dense_results, bm25_ranked], top_k=top_k)
+            tokens = _tokenize(q)
+            bm25_scores = self._bm25.get_scores(tokens)
+            bm25_ranked = sorted(
+                zip(self._nct_ids, bm25_scores.tolist()),
+                key=lambda x: x[1],
+                reverse=True,
+            )[:bm25_pool]
+            all_rankings.append(bm25_ranked)
+
+        return rrf(all_rankings, top_k=top_k)
 
 
 # ---- Source-specific loaders ----
