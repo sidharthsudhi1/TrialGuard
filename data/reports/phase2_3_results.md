@@ -66,23 +66,49 @@ Unlike SIGIR, these corpora are the complete 26,148 / 26,581 trial sets with
 
 ---
 
-## Agent faithfulness: single-pass vs verified (SIGIR, 5 patients, 20 trials)
+## Agent faithfulness
 
-| Metric | Single-pass (max_retries=0) | Verified (max_retries=2) |
+### Single-pass baseline, larger n (SIGIR, 30 patients, 106 trials, 775 criteria)
+
+| Metric | Single-pass (max_retries=0) |
+|---|---|
+| Decisive verdicts attempted | 226 |
+| Grounded verdicts | 206 |
+| Citation precision | 0.9115 |
+| Unsupported-verdict rate | 0.0885 |
+| Abstention rate | 0.7342 |
+| Trial accuracy (vs qrels) | 0.2736 |
+
+This is the robust characterization of the analyst without verification: on 226
+decisive verdicts, **8.85% cite a quote that is not verbatim in the source** —
+i.e. the single-pass hallucinated-citation rate the verifier exists to catch. It
+declines two-thirds of criteria (abstention 0.73), and its strict trial roll-up
+lands 0.27 accuracy against qrels. These are honest single-pass numbers at 5.5×
+the earlier sample.
+
+### Paired verified-vs-single-pass A/B — still underpowered / quota-bound
+
+The earlier 5-patient paired run (below) is statistically null, and the
+larger-n verified arm could not complete: the free-tier **daily token cap (TPD
+100k) was hit at 98,899 tokens** mid-run — the exact cost wall predicted in the
+improvement plan. The verified arm needs fresh retry calls; those are quota-bound,
+not code-bound, and resume when the daily budget resets.
+
+| Metric (5 patients) | Single-pass | Verified |
 |---|---|---|
-| Decisive verdicts attempted | 41 | 40 |
-| Grounded verdicts | 38 | 38 |
-| Citation precision | 0.9268 | 0.9500 |
+| Decisive verdicts | 41 | 40 |
 | Unsupported-verdict rate | 0.0732 | 0.0500 |
-| Abstention rate | 0.6911 | 0.6911 |
-| Trial accuracy (vs qrels) | 0.30 | 0.30 |
 
-**This table does NOT show verification beating single-pass.** The 7.3% → 5.0%
-gap is a difference of a **single verdict** (3/41 vs 2/40). Fisher exact
-**p = 1.000** — statistically null. Both arms grounded the same 38 verdicts.
-On this subset the analyst already cited correctly 92.7% of the time, so the
-verifier had almost nothing to catch and the retry had almost nothing to fix.
-The A/B comparison is underpowered, not evidence. Reported as-is, uninflated.
+**This 5-patient table does NOT show verification beating single-pass.** The
+7.3% → 5.0% gap is a difference of a **single verdict** (3/41 vs 2/40). Fisher
+exact **p = 1.000** — statistically null. A supportable A/B needs the larger-n
+verified arm (pending quota).
+
+**Infra hardened in the process:** the larger-n run exposed three real boundary
+bugs, now fixed: LLM output truncation at the token cap (salvage parser recovers
+complete assessment objects), 429 rate-limit crashes (client backoff +
+inter-call spacing), and no graceful degradation on the daily cap (harness now
+reports metrics over completed trials instead of crashing).
 
 **The real faithfulness proof is deterministic, not this A/B.** Verifier
 catch-rate stress test (`verify/grounding.py`): corrupt every one of 509 real,

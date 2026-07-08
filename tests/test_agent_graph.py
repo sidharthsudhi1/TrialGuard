@@ -41,3 +41,12 @@ def test_retry_capped(monkeypatch):
         state = G.assess("patient", "NCT1", ["dx"], SRC, max_retries=2)
     # exhausted retries -> unverifiable, never forced to a verdict
     assert state["assessments"][0]["verdict"] == "unverifiable"
+
+
+def test_analyst_parse_salvages_truncated_json():
+    from trialguard.agent.analyst import _parse
+    good = '{"assessments":[{"criterion":"a","verdict":"met","quote":"x"},{"criterion":"b","verdict":"not_met","quote":"y"}]}'
+    assert len(_parse(good)) == 2
+    trunc = '{"assessments":[{"criterion":"a","verdict":"met","quote":"stage IV"},{"criterion":"b","verdict":"met","quote":"z"},{"criterion":"c","verdict":"met","quote":"cut off her'
+    r = _parse(trunc)
+    assert [o["criterion"] for o in r] == ["a", "b"]
