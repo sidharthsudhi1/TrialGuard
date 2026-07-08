@@ -1,0 +1,26 @@
+{
+  "cohort": "sigir",
+  "n_patients": 5,
+  "baseline": {
+    "max_retries": 0,
+    "n_criteria": 123,
+    "decisive_attempts": 41,
+    "grounded": 38,
+    "citation_precision": 0.9268,
+    "unsupported_verdict_rate": 0.0732,
+    "abstention_rate": 0.6911,
+    "trial_accuracy": 0.3,
+    "n_trials": 20
+  },
+  "verified": {
+    "max_retries": 2,
+    "n_criteria": 123,
+    "decisive_attempts": 40,
+    "grounded": 38,
+    "citation_precision": 0.95,
+    "unsupported_verdict_rate": 0.05,
+    "abstention_rate": 0.6911,
+    "trial_accuracy": 0.3,
+    "n_trials": 20
+  }
+}

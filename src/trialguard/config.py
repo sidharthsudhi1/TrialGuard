@@ -6,7 +6,7 @@ class Settings(BaseSettings):
 
     # LLM
     groq_api_key: str = ""
-    groq_model: str = "llama-3.1-70b-versatile"
+    groq_model: str = "llama-3.3-70b-versatile"
 
     # Tracing — SDK v3 reads LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY, LANGFUSE_BASE_URL
     langfuse_public_key: str = ""

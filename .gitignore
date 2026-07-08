@@ -19,6 +19,16 @@ env/
 # Data (raw pulls can be large; only eval sets committed)
 data/raw/
 data/cache/
+data/indexes/
+# Large generated eval corpora (regenerate via load_eval_corpus)
+data/eval/**/*_corpus.jsonl
+data/eval/**/retrieved.json
+data/eval/**/retrieved_trials.json
+
+# Stray image assets
+*.jpg
+*.jpeg
+*.png
 
 # Secrets & keys
 *.pem
