@@ -78,13 +78,32 @@ def _run_arm(subset: list[dict], max_retries: int, handler=None) -> dict:
 
     decisive = grounded = abstain = total_crit = 0
     trial_correct = trial_total = 0
+    rate_limited = False
+
+    import os
+    from trialguard.agent.analyst import CACHE_DIR as ACACHE, _cache_key
+    cached_only = os.environ.get("TG_CACHED_ONLY") == "1"
 
     for p in subset:
+        if rate_limited:
+            break
         for tr in p["trials"]:
-            state = assess(
-                p["note"], tr["nct_id"], tr["criteria"], tr["source_text"],
-                max_retries=max_retries, handler=handler,
-            )
+            if cached_only:
+                cp_path = ACACHE / f"{_cache_key(p['note'], tr['nct_id'])}.json"
+                if not cp_path.exists():
+                    continue  # skip uncached trial; no fresh Groq call
+            try:
+                state = assess(
+                    p["note"], tr["nct_id"], tr["criteria"], tr["source_text"],
+                    max_retries=max_retries, handler=handler,
+                )
+            except Exception as e:
+                # Groq free-tier daily token cap (TPD) is a hard wall. Stop and
+                # report metrics over the trials that completed rather than crash.
+                if "rate_limit" in str(e) or "429" in str(e):
+                    rate_limited = True
+                    break
+                raise
             for a in state["assessments"]:
                 total_crit += 1
                 v = a.get("verdict")
@@ -113,6 +132,7 @@ def _run_arm(subset: list[dict], max_retries: int, handler=None) -> dict:
         "abstention_rate": round(abstain / total_crit, 4) if total_crit else 0.0,
         "trial_accuracy": round(trial_correct / trial_total, 4) if trial_total else 0.0,
         "n_trials": trial_total,
+        "rate_limited": rate_limited,
     }
 
 

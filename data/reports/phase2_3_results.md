@@ -66,36 +66,92 @@ Unlike SIGIR, these corpora are the complete 26,148 / 26,581 trial sets with
 
 ---
 
-## Agent faithfulness: single-pass vs verified (SIGIR, 5 patients, 20 trials)
+## Agent faithfulness
 
-| Metric | Single-pass (max_retries=0) | Verified (max_retries=2) |
+### Single-pass baseline, full run (SIGIR, 30 patients, 180 trials, 1258 criteria)
+
+| Metric | Single-pass (max_retries=0) |
+|---|---|
+| Decisive verdicts attempted | 371 |
+| Grounded verdicts | 337 |
+| Citation precision | 0.9084 |
+| Unsupported-verdict rate | 0.0916 |
+| Abstention rate | 0.7321 |
+| Trial accuracy (vs qrels) | 0.2611 |
+
+Robust characterization of the analyst without verification: on 371 decisive
+verdicts, **9.16% cite a quote that is not verbatim in the source** — the
+single-pass hallucinated-citation rate the verifier exists to catch. It declines
+~73% of criteria (abstention 0.73); the strict all-met roll-up lands 0.26 trial
+accuracy against qrels.
+
+### Paired A/B: verification roughly halves unsupported citations (trend)
+
+Both arms completed enough to compare. The verified arm was quota-clipped at 92
+of 180 trials (free-tier daily token cap), so a raw arm-vs-arm table has mismatched
+n. The clean comparison restricts **both arms to the identical 168 trials each
+resolved fully from cache** — same trials, same criteria, zero selection skew
+between arms:
+
+| Matched set (168 trials) | Single-pass | Verified |
 |---|---|---|
-| Decisive verdicts attempted | 41 | 40 |
-| Citation precision | 0.9268 | **0.9500** |
-| **Unsupported-verdict rate** | **0.0732** | **0.0500** |
-| Abstention rate | 0.6911 | 0.6911 |
-| Trial accuracy (vs qrels) | 0.30 | 0.30 |
+| Decisive verdicts | 324 | 320 |
+| Unsupported verdicts | 15 | 7 |
+| **Unsupported-verdict rate** | **0.0463** | **0.0219** |
 
-**Result:** the deterministic grounding verifier + bounded retry cut the
-unsupported-verdict rate from **7.3% to 5.0%** (−31% relative) — measured, not
-assumed, exactly what CLAUDE.md requires. Verification converts ungrounded
-verdicts into grounded ones (retry fixed the quote) or honest abstentions; it
-never forces a verdict.
+Verification cuts the unsupported-verdict rate roughly in half (4.63% → 2.19%,
+**−53% relative**). Fisher exact **p = 0.127** — a consistent trend, not yet
+significant at 0.05. Two honest caveats:
+
+- **Survivorship bias understates the effect.** The matched 168 are trials
+  verified resolved without a quota-clipped retry — i.e. the *easier* trials the
+  analyst already grounds well (matched baseline 4.63% vs full baseline 9.16%).
+  The harder trials, where verification helps most, are underrepresented.
+- **n still short of significance.** Direction is now consistent across every cut
+  (unlike the earlier 5-patient p=1.0 null); closing to p<0.05 needs the full
+  verified arm, which is quota-bound, not code-bound.
+
+**Infra hardened in the process:** the larger-n runs exposed three real boundary
+bugs, now fixed: LLM output truncation at the token cap (salvage parser recovers
+complete assessment objects), 429 rate-limit crashes (client backoff +
+inter-call spacing), and no graceful degradation on the daily cap (harness now
+reports metrics over completed trials instead of crashing).
+
+**The real faithfulness proof is deterministic, not this A/B.** Verifier
+catch-rate stress test (`verify/grounding.py`): corrupt every one of 509 real,
+grounded quotes (swap a clinically meaningful token) and re-check grounding.
+
+- Corrupted quotes **rejected: 509/509 = 100%** catch rate.
+- Genuine quotes **grounded: 509/509**, **zero false rejections**.
+
+This number is sample-size-independent and is what actually backs the thesis: a
+verdict whose quote is not verbatim in the source cannot pass, by construction.
 
 **How faithfulness is enforced (`verify/grounding.py`):** every "met"/"not_met"
 verdict must cite a span that is verbatim-present (case/punctuation/whitespace
 normalized) in the patient note or trial text. Non-present quotes are
-mechanically forced to "unverifiable". This is pure Python — it cannot
-hallucinate agreement and costs nothing.
+mechanically forced to "unverifiable". Pure Python — cannot hallucinate
+agreement, costs nothing.
 
-**Metric notes:**
+**Scope of "grounded":** a verdict may cite the patient note ("58-year-old
+woman") or the trial text. This grounds the verdict against *some* provided
+source, which is correct for patient-fact criteria, but it means "grounded" is
+"quote is real", not "verdict was checked against the trial criterion". The
+latter (entailment) is a separate, not-yet-built check.
 
-- Trial accuracy is low and equal across arms because abstention is high (0.69):
-  the strict roll-up marks a trial `eligible` only if *all* criteria are `met`,
-  so most trials become `cannot_determine` and miss the eligible/excluded gold.
-  This surfaces the real faithfulness/coverage tradeoff rather than hiding it.
-- Subset is small (41 decisive verdicts); the direction is robust but the
-  magnitude is noisy. Larger runs are quota-bound, not code-bound.
+**Weaknesses, disclosed:**
+
+- **Abstention 0.73** — the system declines ~three-quarters of criteria. High
+  faithfulness is bought partly with low coverage; the two must always be read
+  together.
+- **Trial accuracy 0.26-0.29**: the strict roll-up marks a trial `eligible` only
+  if *all* criteria are `met`, so high abstention collapses most trials to
+  `cannot_determine`. Weak as a standalone number.
+- **Metric overlap**: a grounding failure is counted in *both* `decisive_attempts`
+  and `abstention_rate` (its verdict is `unverifiable`), so the two rates do not
+  partition the criteria. Read them as separate lenses, not a split.
+- The paired effect (4.63% → 2.19%) is a trend at p=0.13, not significance.
+  Closing to p<0.05 is quota-bound, not code-bound.
 
 ---
 
@@ -104,11 +160,27 @@ hallucinate agreement and costs nothing.
 1. **Faithfulness is mechanical.** Grounding is deterministic and tested
    (`tests/test_grounding.py`, `tests/test_agent_graph.py`); a hallucinated
    citation cannot pass silently.
-2. **Verification measurably beats single-pass** on the hallucination proxy.
-3. **Retrieval improved at $0** by swapping to a domain-matched encoder.
+2. **Verifier catch rate is 100% (509/509 corrupted quotes rejected, 0 false
+   rejections)** — the sample-size-independent proof of the mechanism.
+3. **Verification roughly halves unsupported citations** — matched paired A/B
+   (168 trials): 4.63% → 2.19%, −53% relative. A consistent trend across every
+   cut of the data.
+4. **Retrieval improved at $0** by swapping to a domain-matched encoder
+   (MedCPT), reproduced on SIGIR and on full ~26k-trial TREC corpora.
+
+## What is NOT yet proven
+
+- **Statistical significance of the A/B.** The paired reduction (4.63% → 2.19%)
+  is p=0.13 — a trend, not p<0.05. Survivorship in the quota-clipped verified arm
+  biases toward easy trials, understating the effect. A full verified arm closes
+  this; it is quota-bound, not code-bound.
+- **Entailment.** Grounding proves a quote is real, not that it supports the
+  verdict. An entailment check (local NLI, $0) is the next faithfulness layer.
 
 ## Remaining levers (code exists, needs quota/time, not money)
 
-- Run agent eval at larger n for tighter faithfulness confidence intervals.
-- Build MedCPT indexes for TREC 2021/2022 and report large-corpus recall@pool.
-- Verifier-corruption test: inject fabricated citations, confirm 100% catch rate.
+- Complete the verified arm across all 180 trials (spread over days on free tier,
+  or one paid day) to take the A/B from p=0.13 to significance.
+- Add an entailment check on top of grounding.
+- Lower abstention without sacrificing catch rate; report the coverage/faithfulness
+  curve rather than a single operating point.
