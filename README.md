@@ -76,7 +76,7 @@ Full report: [`data/reports/phase2_3_results.md`](data/reports/phase2_3_results.
 
 **Faithfulness — verifier mechanism:** deterministic catch-rate stress test — **509/509 corrupted quotes rejected, 0 false rejections**. Sample-size-independent.
 
-**Faithfulness — verified vs single-pass A/B (SIGIR):** single-pass unsupported-citation rate 9.16% (n=180 trials). Matched paired comparison (168 trials): **4.63% → 2.19%, −53% relative**, Fisher p=0.13 (trend; full significance pending verified-arm completion, quota-bound).
+**Faithfulness — verified vs single-pass A/B (SIGIR, full 180-trial matched set):** unsupported-citation rate **9.16% → 3.90%, −57.4% relative**, Fisher **p=0.0044** (significant). The verification wrapper more than halves the rate at which the same LLM states a verdict backed by a citation not actually in the source.
 
 > **Note on `recall@10 ≥ 90%`:** retired as a target. It is mathematically capped at `min(10, |gold|)/|gold|` per patient — TREC patients average 60+ eligible trials (ceiling ~0.25). TrialGPT's ">90% recall" was measured at large depth. Primary retrieval metric is now **recall@pool** (recall@50/100).
 
@@ -86,7 +86,7 @@ Full report: [`data/reports/phase2_3_results.md`](data/reports/phase2_3_results.
 |---|---|---|
 | Retrieval recall@pool (50/100) | maximize; beat BGE baseline | ✅ MedCPT adopted (+34% recall@10) |
 | Verifier catch rate | 100% (deterministic) | ✅ 509/509 |
-| Hallucination rate | < single-pass baseline (measured) | 🟡 trend (−53%, p=0.13), finishing verified arm |
+| Hallucination rate | < single-pass baseline (measured) | ✅ −57% (9.16%→3.90%, p=0.0044) |
 | Correct-refusal rate ("cannot determine") | Logged per run | ✅ abstention reported jointly with accuracy |
 
 ---
@@ -98,8 +98,8 @@ Full report: [`data/reports/phase2_3_results.md`](data/reports/phase2_3_results.
 | 0 — Foundations | ✅ Done | Repo + README + env skeleton |
 | 1 — Data ingestion | ✅ Done | Queryable corpus + parsed eval cohorts |
 | 2 — Retrieval | ✅ Done | MedCPT hybrid retriever (recall/latency report) |
-| 3 — Eval harness + agent | 🟡 In progress | Self-verifying graph + faithfulness A/B (finishing verified arm) |
-| 4 — Agent tuning | ⬜ | Lower abstention, close A/B to significance |
+| 3 — Eval harness + agent | ✅ Done | Self-verifying graph + significant faithfulness A/B (−57%, p=0.0044) |
+| 4 — Agent tuning | ⬜ | Lower abstention, replicate A/B on TREC |
 | 5 — LLMOps | ⬜ | Tracing dashboards + regression gate |
 | 6 — Demo & docs | ⬜ | Live HF Spaces demo + recorded walkthrough |
 

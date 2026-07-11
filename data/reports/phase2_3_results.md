@@ -85,31 +85,28 @@ single-pass hallucinated-citation rate the verifier exists to catch. It declines
 ~73% of criteria (abstention 0.73); the strict all-met roll-up lands 0.26 trial
 accuracy against qrels.
 
-### Paired A/B: verification roughly halves unsupported citations (trend)
+### Paired A/B: verification halves unsupported citations (significant)
 
-Both arms completed enough to compare. The verified arm was quota-clipped at 92
-of 180 trials (free-tier daily token cap), so a raw arm-vs-arm table has mismatched
-n. The clean comparison restricts **both arms to the identical 168 trials each
-resolved fully from cache** — same trials, same criteria, zero selection skew
-between arms:
+Both arms ran to completion across all 180 trials (verified `rate_limited: false`).
+The comparison covers **the full matched set — same 180 trials, same criteria,
+zero selection skew between arms**:
 
-| Matched set (168 trials) | Single-pass | Verified |
+| Matched set (180 trials) | Single-pass | Verified |
 |---|---|---|
-| Decisive verdicts | 324 | 320 |
-| Unsupported verdicts | 15 | 7 |
-| **Unsupported-verdict rate** | **0.0463** | **0.0219** |
+| Decisive verdicts | 371 | 359 |
+| Unsupported verdicts | 34 | 14 |
+| **Unsupported-verdict rate** | **0.0916** | **0.0390** |
 
-Verification cuts the unsupported-verdict rate roughly in half (4.63% → 2.19%,
-**−53% relative**). Fisher exact **p = 0.127** — a consistent trend, not yet
-significant at 0.05. Two honest caveats:
+Verification cuts the unsupported-verdict rate from 9.16% to 3.90% —
+**−57.4% relative**. Fisher exact **p = 0.0044**, significant at 0.05. This is the
+core thesis result: a wrapper of deterministic grounding + bounded retry, over the
+same LLM, more than halves the rate at which the system states a verdict backed by
+a citation that is not actually in the source.
 
-- **Survivorship bias understates the effect.** The matched 168 are trials
-  verified resolved without a quota-clipped retry — i.e. the *easier* trials the
-  analyst already grounds well (matched baseline 4.63% vs full baseline 9.16%).
-  The harder trials, where verification helps most, are underrepresented.
-- **n still short of significance.** Direction is now consistent across every cut
-  (unlike the earlier 5-patient p=1.0 null); closing to p<0.05 needs the full
-  verified arm, which is quota-bound, not code-bound.
+This supersedes the earlier underpowered cuts (5-patient p=1.0; 168-trial
+quota-clipped p=0.13). With the full verified arm, the effect is both larger
+(−57% vs −53%) and significant — the survivorship bias that understated the
+partial run is gone now that the harder trials are included.
 
 **Infra hardened in the process:** the larger-n runs exposed three real boundary
 bugs, now fixed: LLM output truncation at the token cap (salvage parser recovers
@@ -150,8 +147,8 @@ latter (entailment) is a separate, not-yet-built check.
 - **Metric overlap**: a grounding failure is counted in *both* `decisive_attempts`
   and `abstention_rate` (its verdict is `unverifiable`), so the two rates do not
   partition the criteria. Read them as separate lenses, not a split.
-- The paired effect (4.63% → 2.19%) is a trend at p=0.13, not significance.
-  Closing to p<0.05 is quota-bound, not code-bound.
+- The paired effect (9.16% → 3.90%, p=0.0044) is significant but on one cohort
+  (SIGIR). Replication on TREC would strengthen external validity.
 
 ---
 
@@ -162,25 +159,22 @@ latter (entailment) is a separate, not-yet-built check.
    citation cannot pass silently.
 2. **Verifier catch rate is 100% (509/509 corrupted quotes rejected, 0 false
    rejections)** — the sample-size-independent proof of the mechanism.
-3. **Verification roughly halves unsupported citations** — matched paired A/B
-   (168 trials): 4.63% → 2.19%, −53% relative. A consistent trend across every
-   cut of the data.
+3. **Verification significantly halves unsupported citations** — full matched
+   paired A/B (180 trials): 9.16% → 3.90%, −57.4% relative, Fisher **p=0.0044**.
 4. **Retrieval improved at $0** by swapping to a domain-matched encoder
    (MedCPT), reproduced on SIGIR and on full ~26k-trial TREC corpora.
 
 ## What is NOT yet proven
 
-- **Statistical significance of the A/B.** The paired reduction (4.63% → 2.19%)
-  is p=0.13 — a trend, not p<0.05. Survivorship in the quota-clipped verified arm
-  biases toward easy trials, understating the effect. A full verified arm closes
-  this; it is quota-bound, not code-bound.
+- **External validity across cohorts.** The significant A/B is SIGIR-only.
+  Replicating on TREC (larger, unfiltered corpora) would confirm the effect
+  generalizes.
 - **Entailment.** Grounding proves a quote is real, not that it supports the
   verdict. An entailment check (local NLI, $0) is the next faithfulness layer.
 
 ## Remaining levers (code exists, needs quota/time, not money)
 
-- Complete the verified arm across all 180 trials (spread over days on free tier,
-  or one paid day) to take the A/B from p=0.13 to significance.
+- Replicate the A/B on TREC 2021/2022 for external validity.
 - Add an entailment check on top of grounding.
 - Lower abstention without sacrificing catch rate; report the coverage/faithfulness
   curve rather than a single operating point.
