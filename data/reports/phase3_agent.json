@@ -15,14 +15,14 @@
   },
   "verified": {
     "max_retries": 2,
-    "n_criteria": 671,
-    "decisive_attempts": 190,
-    "grounded": 183,
-    "citation_precision": 0.9632,
-    "unsupported_verdict_rate": 0.0368,
-    "abstention_rate": 0.7273,
-    "trial_accuracy": 0.2935,
-    "n_trials": 92,
-    "rate_limited": true
+    "n_criteria": 1250,
+    "decisive_attempts": 359,
+    "grounded": 345,
+    "citation_precision": 0.961,
+    "unsupported_verdict_rate": 0.039,
+    "abstention_rate": 0.724,
+    "trial_accuracy": 0.2667,
+    "n_trials": 180,
+    "rate_limited": false
   }
 }
