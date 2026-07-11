@@ -156,7 +156,9 @@ def main() -> None:
 
     out = run(args.cohort, args.n_patients, args.per_class)
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
-    (REPORT_DIR / "phase3_agent.json").write_text(json.dumps(out, indent=2))
+    # Per-cohort file so replication runs never clobber another cohort's result.
+    fname = "phase3_agent.json" if args.cohort == "sigir" else f"phase3_agent_{args.cohort}.json"
+    (REPORT_DIR / fname).write_text(json.dumps(out, indent=2))
     print(json.dumps(out, indent=2))
 
 
