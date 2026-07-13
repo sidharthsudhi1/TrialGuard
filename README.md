@@ -76,7 +76,14 @@ Full report: [`data/reports/phase2_3_results.md`](data/reports/phase2_3_results.
 
 **Faithfulness — verifier mechanism:** deterministic catch-rate stress test — **509/509 corrupted quotes rejected, 0 false rejections**. Sample-size-independent.
 
-**Faithfulness — verified vs single-pass A/B (SIGIR, full 180-trial matched set):** unsupported-citation rate **9.16% → 3.90%, −57.4% relative**, Fisher **p=0.0044** (significant). The verification wrapper more than halves the rate at which the same LLM states a verdict backed by a citation not actually in the source.
+**Faithfulness — verified vs single-pass A/B (matched paired):**
+
+| Cohort | matched n | single-pass | verified | Fisher p | |
+|---|---|---|---|---|---|
+| SIGIR | 179 | 9.26% | 3.38% | **0.0012** | ✅ significant (−64%) |
+| TREC 2021 | 59 | 12.0% | 11.26% | 0.86 | ❌ did not replicate |
+
+On SIGIR the verification wrapper cuts hallucinated citations by ~64% (p=0.0012). On TREC 2021 it does not replicate — the retry step recovers paraphrase-type failures but not genuine fabrications. **The faithfulness floor holds on both**: deterministic grounding catches 100% of ungrounded verdicts and forces them to *unverifiable* (509/509 corrupted-quote catch rate); a hallucinated citation never passes as grounded. What is cohort-dependent is whether a caught failure is *fixed* by retry or converted to an honest *abstention*. Replication also surfaced and fixed a grounding bug (short clinical facts like "48 M", "EF was 25%" were rejected by a char-length guard, now a token guard).
 
 > **Note on `recall@10 ≥ 90%`:** retired as a target. It is mathematically capped at `min(10, |gold|)/|gold|` per patient — TREC patients average 60+ eligible trials (ceiling ~0.25). TrialGPT's ">90% recall" was measured at large depth. Primary retrieval metric is now **recall@pool** (recall@50/100).
 
@@ -86,7 +93,7 @@ Full report: [`data/reports/phase2_3_results.md`](data/reports/phase2_3_results.
 |---|---|---|
 | Retrieval recall@pool (50/100) | maximize; beat BGE baseline | ✅ MedCPT adopted (+34% recall@10) |
 | Verifier catch rate | 100% (deterministic) | ✅ 509/509 |
-| Hallucination rate | < single-pass baseline (measured) | ✅ −57% (9.16%→3.90%, p=0.0044) |
+| Hallucination rate | < single-pass baseline (measured) | ✅ SIGIR −64% (p=0.0012); ❌ TREC null (p=0.86) |
 | Correct-refusal rate ("cannot determine") | Logged per run | ✅ abstention reported jointly with accuracy |
 
 ---

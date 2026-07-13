@@ -5,24 +5,24 @@
     "max_retries": 0,
     "n_criteria": 1258,
     "decisive_attempts": 371,
-    "grounded": 337,
-    "citation_precision": 0.9084,
-    "unsupported_verdict_rate": 0.0916,
-    "abstention_rate": 0.7321,
+    "grounded": 336,
+    "citation_precision": 0.9057,
+    "unsupported_verdict_rate": 0.0943,
+    "abstention_rate": 0.7329,
     "trial_accuracy": 0.2611,
     "n_trials": 180,
     "rate_limited": false
   },
   "verified": {
     "max_retries": 2,
-    "n_criteria": 1250,
-    "decisive_attempts": 359,
-    "grounded": 345,
-    "citation_precision": 0.961,
-    "unsupported_verdict_rate": 0.039,
-    "abstention_rate": 0.724,
-    "trial_accuracy": 0.2667,
-    "n_trials": 180,
-    "rate_limited": false
+    "n_criteria": 1038,
+    "decisive_attempts": 298,
+    "grounded": 286,
+    "citation_precision": 0.9597,
+    "unsupported_verdict_rate": 0.0403,
+    "abstention_rate": 0.7245,
+    "trial_accuracy": 0.2617,
+    "n_trials": 149,
+    "rate_limited": true
   }
 }

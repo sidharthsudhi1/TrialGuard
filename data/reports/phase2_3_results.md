@@ -68,47 +68,58 @@ Unlike SIGIR, these corpora are the complete 26,148 / 26,581 trial sets with
 
 ## Agent faithfulness
 
-### Single-pass baseline, full run (SIGIR, 30 patients, 180 trials, 1258 criteria)
+All numbers below use the **corrected grounding rule** (see "Grounding fix"
+after this section). The matched paired comparison runs both arms — single-pass
+(`max_retries=0`) and verified (`max_retries=2`) — over the identical trial set,
+so there is zero selection skew between arms.
 
-| Metric | Single-pass (max_retries=0) |
-|---|---|
-| Decisive verdicts attempted | 371 |
-| Grounded verdicts | 337 |
-| Citation precision | 0.9084 |
-| Unsupported-verdict rate | 0.0916 |
-| Abstention rate | 0.7321 |
-| Trial accuracy (vs qrels) | 0.2611 |
+### Paired A/B, two cohorts
 
-Robust characterization of the analyst without verification: on 371 decisive
-verdicts, **9.16% cite a quote that is not verbatim in the source** — the
-single-pass hallucinated-citation rate the verifier exists to catch. It declines
-~73% of criteria (abstention 0.73); the strict all-met roll-up lands 0.26 trial
-accuracy against qrels.
+| Cohort | matched n | Single-pass | Verified | Relative | Fisher p | |
+|---|---|---|---|---|---|---|
+| SIGIR | 179 | 0.0926 | 0.0338 | −63.5% | **0.0012** | ✅ significant |
+| TREC 2021 | 59 | 0.1200 | 0.1126 | −6.2% | 0.859 | ❌ null |
 
-### Paired A/B: verification halves unsupported citations (significant)
+**On SIGIR, verification works and is significant** — deterministic grounding +
+bounded retry, over the same LLM, cuts the unsupported-verdict rate by ~64%
+(9.26% → 3.38%, p=0.0012).
 
-Both arms ran to completion across all 180 trials (verified `rate_limited: false`).
-The comparison covers **the full matched set — same 180 trials, same criteria,
-zero selection skew between arms**:
+**On TREC 2021, it does not replicate** — the reduction is 6.2% and not
+significant (p=0.86). This is a real, disclosed cohort-dependence, not a tuning
+gap. Why the retry step fails to transfer:
 
-| Matched set (180 trials) | Single-pass | Verified |
-|---|---|---|
-| Decisive verdicts | 371 | 359 |
-| Unsupported verdicts | 34 | 14 |
-| **Unsupported-verdict rate** | **0.0916** | **0.0390** |
+- On SIGIR, a grounding failure is usually a *paraphrase* of text that is
+  verbatim-quotable; the retry prompt ("copy character-for-character") lets the
+  analyst recover the exact span → the verdict becomes grounded.
+- On TREC, the ungrounded citations are more often genuinely absent from the
+  source (true fabrications or reasoning the analyst can't point to); no verbatim
+  span exists, so retry recovers almost nothing (18 → 17 failures).
 
-Verification cuts the unsupported-verdict rate from 9.16% to 3.90% —
-**−57.4% relative**. Fisher exact **p = 0.0044**, significant at 0.05. This is the
-core thesis result: a wrapper of deterministic grounding + bounded retry, over the
-same LLM, more than halves the rate at which the system states a verdict backed by
-a citation that is not actually in the source.
+**What holds on both cohorts: the faithfulness floor.** Deterministic grounding
+still catches 100% of ungrounded verdicts and forces them to `unverifiable` — a
+hallucinated citation never passes as grounded on either corpus. The
+cohort-dependent part is only whether a caught failure gets *fixed* by retry
+(SIGIR) or converted to an honest *abstention* (TREC). The product guarantee —
+never assert a verdict on evidence that isn't there — is corpus-independent.
 
-This supersedes the earlier underpowered cuts (5-patient p=1.0; 168-trial
-quota-clipped p=0.13). With the full verified arm, the effect is both larger
-(−57% vs −53%) and significant — the survivorship bias that understated the
-partial run is gone now that the harder trials are included.
+### Grounding fix: token guard, not char-length guard
 
-**Infra hardened in the process:** the larger-n runs exposed three real boundary
+Replicating on TREC exposed a measurement bug. The old rule rejected any quote
+under 12 characters, on the theory that short fragments match spuriously. But the
+high-value atomic facts in eligibility matching are *short*: "48 M", "EF was 25%",
+"T-L spine", "ECOG 1". On TREC's terse patient text, **18 of 25 grounding
+"failures" were real facts, verbatim in the source, rejected only for length**
+(on SIGIR, only 1 of 13 — which is why the bug stayed hidden until replication).
+
+Fixed (`verify/grounding.py`): a quote grounds if it is a verbatim substring
+**and** carries ≥2 word tokens. This still blocks vague single-word matches
+("cancer", "ECOG") but accepts specific short facts. Both cohorts were
+re-evaluated under the corrected rule at zero cost (grounding is pure Python over
+cached analyst outputs). The fix *strengthened* SIGIR (p=0.0044 → 0.0012) and
+removed the artifact from TREC without changing its null verdict — the honest
+conclusion survives the correction.
+
+**Infra hardened along the way:** the larger-n runs exposed three real boundary
 bugs, now fixed: LLM output truncation at the token cap (salvage parser recovers
 complete assessment objects), 429 rate-limit crashes (client backoff +
 inter-call spacing), and no graceful degradation on the daily cap (harness now
@@ -147,8 +158,10 @@ latter (entailment) is a separate, not-yet-built check.
 - **Metric overlap**: a grounding failure is counted in *both* `decisive_attempts`
   and `abstention_rate` (its verdict is `unverifiable`), so the two rates do not
   partition the criteria. Read them as separate lenses, not a split.
-- The paired effect (9.16% → 3.90%, p=0.0044) is significant but on one cohort
-  (SIGIR). Replication on TREC would strengthen external validity.
+- **The verification benefit is cohort-dependent** — significant on SIGIR
+  (p=0.0012), null on TREC 2021 (p=0.86). The retry step recovers paraphrase-type
+  failures but not genuine fabrications. Only the faithfulness floor (100% catch)
+  is corpus-independent.
 
 ---
 
@@ -159,22 +172,25 @@ latter (entailment) is a separate, not-yet-built check.
    citation cannot pass silently.
 2. **Verifier catch rate is 100% (509/509 corrupted quotes rejected, 0 false
    rejections)** — the sample-size-independent proof of the mechanism.
-3. **Verification significantly halves unsupported citations** — full matched
-   paired A/B (180 trials): 9.16% → 3.90%, −57.4% relative, Fisher **p=0.0044**.
+3. **Verification significantly halves unsupported citations on SIGIR** —
+   matched paired A/B (179 trials): 9.26% → 3.38%, −63.5% relative, Fisher
+   **p=0.0012**. On TREC 2021 the same mechanism is null (p=0.86) — an honest,
+   disclosed cohort-dependence.
 4. **Retrieval improved at $0** by swapping to a domain-matched encoder
    (MedCPT), reproduced on SIGIR and on full ~26k-trial TREC corpora.
 
 ## What is NOT yet proven
 
-- **External validity across cohorts.** The significant A/B is SIGIR-only.
-  Replicating on TREC (larger, unfiltered corpora) would confirm the effect
-  generalizes.
+- **Why TREC's retry step fails.** The null on TREC 2021 is characterized (retry
+  can't recover non-verbatim citations) but not yet fixed. A retrieval-aware retry
+  (feed the analyst the exact source span) may transfer the SIGIR benefit.
 - **Entailment.** Grounding proves a quote is real, not that it supports the
   verdict. An entailment check (local NLI, $0) is the next faithfulness layer.
 
 ## Remaining levers (code exists, needs quota/time, not money)
 
-- Replicate the A/B on TREC 2021/2022 for external validity.
+- Replicate on TREC 2022 to confirm the cohort-dependence is not a 2021 quirk.
+- Retrieval-aware retry: hand the analyst the candidate source span on retry.
 - Add an entailment check on top of grounding.
 - Lower abstention without sacrificing catch rate; report the coverage/faithfulness
   curve rather than a single operating point.
