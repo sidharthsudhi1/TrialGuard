@@ -43,6 +43,37 @@ def test_retry_capped(monkeypatch):
     assert state["assessments"][0]["verdict"] == "unverifiable"
 
 
+def test_retry_is_retrieval_aware(monkeypatch):
+    # On retry the analyst must be handed the exact source span and the failed
+    # criterion, not a generic nudge.
+    G._GRAPH = None
+    seen_notes = []
+
+    def _capture(note, nct_id, criteria, handler=None):
+        seen_notes.append(note)
+        if "Retry" in note:
+            return [{"criterion": "dx", "verdict": "met", "quote": "Histologically confirmed melanoma"}]
+        return [{"criterion": "dx", "verdict": "met", "quote": "not in the source"}]
+
+    with patch.object(G, "analyze_trial", _capture):
+        G.assess("patient", "NCT1", ["dx"], SRC, max_retries=2)
+
+    retry_note = next(n for n in seen_notes if "Retry" in n)
+    assert SRC in retry_note            # the retrieved source span is injected
+    assert "dx" in retry_note           # the specific failed criterion is named
+
+
+def test_prompt_version_switches_cache_key(monkeypatch):
+    from trialguard.agent import analyst as A
+    monkeypatch.delenv("TG_PROMPT_VERSION", raising=False)
+    assert A.prompt_version() == "v1"
+    k1 = A._cache_key("note", "NCT1")
+    monkeypatch.setenv("TG_PROMPT_VERSION", "v2")
+    assert A.prompt_version() == "v2"
+    assert A._cache_key("note", "NCT1") != k1   # v2 never collides with v1 cache
+    assert "v2" in A._PROMPTS
+
+
 def test_analyst_parse_salvages_truncated_json():
     from trialguard.agent.analyst import _parse
     good = '{"assessments":[{"criterion":"a","verdict":"met","quote":"x"},{"criterion":"b","verdict":"not_met","quote":"y"}]}'

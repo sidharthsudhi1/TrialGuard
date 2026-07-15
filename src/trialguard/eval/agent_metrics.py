@@ -49,11 +49,14 @@ def _build_subset(cohort: str, n_patients: int, per_class: int) -> list[dict]:
     for pid, lab in per_patient.items():
         if pid not in patients:
             continue
-        elig = [n for n, l in lab.items() if l == "eligible" and n in corpus_ids and n in by_id]
-        excl = [n for n, l in lab.items() if l == "excluded" and n in corpus_ids and n in by_id]
+        elig = [n for n, gl in lab.items() if gl == "eligible" and n in corpus_ids and n in by_id]
+        excl = [n for n, gl in lab.items() if gl == "excluded" and n in corpus_ids and n in by_id]
         if len(elig) < per_class or len(excl) < per_class:
             continue
-        chosen = [(n, "eligible") for n in elig[:per_class]] + [(n, "excluded") for n in excl[:per_class]]
+        chosen = (
+            [(n, "eligible") for n in elig[:per_class]]
+            + [(n, "excluded") for n in excl[:per_class]]
+        )
         trials = []
         for nct, gold in chosen:
             t = by_id[nct]
@@ -67,7 +70,9 @@ def _build_subset(cohort: str, n_patients: int, per_class: int) -> list[dict]:
                 "source_text": t.get("eligibility_raw", "") or texts.get(nct, ""),
             })
         if trials:
-            subset.append({"patient_id": pid, "note": patients[pid]["description"], "trials": trials})
+            subset.append(
+                {"patient_id": pid, "note": patients[pid]["description"], "trials": trials}
+            )
         if len(subset) >= n_patients:
             break
     return subset
@@ -79,9 +84,12 @@ def _run_arm(subset: list[dict], max_retries: int, handler=None) -> dict:
     decisive = grounded = abstain = total_crit = 0
     trial_correct = trial_total = 0
     rate_limited = False
+    per_trial: dict[str, dict[str, int]] = {}
 
     import os
-    from trialguard.agent.analyst import CACHE_DIR as ACACHE, _cache_key
+
+    from trialguard.agent.analyst import CACHE_DIR as ACACHE
+    from trialguard.agent.analyst import _cache_key
     cached_only = os.environ.get("TG_CACHED_ONLY") == "1"
 
     for p in subset:
@@ -104,6 +112,7 @@ def _run_arm(subset: list[dict], max_retries: int, handler=None) -> dict:
                     rate_limited = True
                     break
                 raise
+            t_dec = t_uns = 0
             for a in state["assessments"]:
                 total_crit += 1
                 v = a.get("verdict")
@@ -112,10 +121,14 @@ def _run_arm(subset: list[dict], max_retries: int, handler=None) -> dict:
                 if v in ("met", "not_met"):
                     decisive += 1
                     grounded += 1  # grounded verdicts survive as met/not_met
+                    t_dec += 1
                 elif a.get("grounding_failure"):
                     decisive += 1  # attempted but failed grounding -> unverifiable
+                    t_dec += 1
+                    t_uns += 1
                 if v in ("cannot_determine", "unverifiable"):
                     abstain += 1
+            per_trial[tr["nct_id"]] = {"decisive": t_dec, "unsupported": t_uns}
             # trial-level accuracy vs qrels
             trial_total += 1
             if state["trial_verdict"] == tr["gold"]:
@@ -129,21 +142,78 @@ def _run_arm(subset: list[dict], max_retries: int, handler=None) -> dict:
         "grounded": grounded,
         "citation_precision": round(cp, 4),
         "unsupported_verdict_rate": round(1 - cp, 4),
+        # coverage = criteria that end as a grounded, decisive verdict. Read jointly
+        # with citation_precision: faithfulness bought with coverage is the tradeoff.
+        "coverage": round(grounded / total_crit, 4) if total_crit else 0.0,
         "abstention_rate": round(abstain / total_crit, 4) if total_crit else 0.0,
         "trial_accuracy": round(trial_correct / trial_total, 4) if trial_total else 0.0,
         "n_trials": trial_total,
         "rate_limited": rate_limited,
+        "per_trial": per_trial,
     }
 
 
+def coverage_curve(subset: list[dict], min_tokens_values=(1, 2, 3, 4)) -> list[dict]:
+    """Coverage vs citation-precision as the grounding strictness knob is swept.
+
+    Deterministic over the cached analyst outputs (no retry, no fresh Groq calls):
+    re-grounds each cached assessment at each min_tokens and recomputes the joint
+    (coverage, precision). Shows the tradeoff the single operating point hides —
+    and that the token guard (min_tokens=2) sits near the knee, not at an extreme.
+    """
+    from trialguard.agent.analyst import CACHE_DIR as ACACHE
+    from trialguard.agent.analyst import _cache_key, analyze_trial
+    from trialguard.verify.grounding import ground_assessments
+
+    cached = []
+    for p in subset:
+        for tr in p["trials"]:
+            if (ACACHE / f"{_cache_key(p['note'], tr['nct_id'])}.json").exists():
+                raw = analyze_trial(p["note"], tr["nct_id"], tr["criteria"])
+                cached.append((raw, p["note"] + "\n" + tr["source_text"]))
+
+    curve = []
+    for mt in min_tokens_values:
+        decisive = grounded = total = 0
+        for raw, source in cached:
+            for a in ground_assessments(raw, source, min_tokens=mt):
+                total += 1
+                v = a.get("verdict")
+                if v in ("met", "not_met"):
+                    decisive += 1
+                    grounded += 1
+                elif a.get("grounding_failure"):
+                    decisive += 1
+        curve.append({
+            "min_tokens": mt,
+            "coverage": round(grounded / total, 4) if total else 0.0,
+            "citation_precision": round(grounded / decisive, 4) if decisive else 0.0,
+            "n_criteria": total,
+        })
+    return curve
+
+
 def run(cohort: str, n_patients: int, per_class: int) -> dict:
+    from trialguard.eval.significance import matched_ab
     from trialguard.tracing import get_langchain_handler
     handler = get_langchain_handler(session_id=f"agent-eval-{cohort}", tags=["agent-eval"])
 
     subset = _build_subset(cohort, n_patients, per_class)
     baseline = _run_arm(subset, max_retries=0, handler=handler)
     verified = _run_arm(subset, max_retries=2, handler=handler)
-    return {"cohort": cohort, "n_patients": len(subset), "baseline": baseline, "verified": verified}
+    sig = matched_ab(baseline["per_trial"], verified["per_trial"])
+    curve = coverage_curve(subset)
+    # per_trial is bookkeeping for the matched test; drop it from the saved report.
+    baseline.pop("per_trial", None)
+    verified.pop("per_trial", None)
+    return {
+        "cohort": cohort,
+        "n_patients": len(subset),
+        "baseline": baseline,
+        "verified": verified,
+        "significance": sig,
+        "coverage_curve": curve,
+    }
 
 
 def main() -> None:
@@ -152,13 +222,14 @@ def main() -> None:
     parser.add_argument("--cohort", default="sigir")
     parser.add_argument("--n-patients", type=int, default=5)
     parser.add_argument("--per-class", type=int, default=2)
+    parser.add_argument("--tag", default="phase4",
+                        help="report filename prefix; keeps phase reports side by side")
     args = parser.parse_args()
 
     out = run(args.cohort, args.n_patients, args.per_class)
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
-    # Per-cohort file so replication runs never clobber another cohort's result.
-    fname = "phase3_agent.json" if args.cohort == "sigir" else f"phase3_agent_{args.cohort}.json"
-    (REPORT_DIR / fname).write_text(json.dumps(out, indent=2))
+    # Prefix + cohort so a run never clobbers another phase's or cohort's result.
+    (REPORT_DIR / f"{args.tag}_agent_{args.cohort}.json").write_text(json.dumps(out, indent=2))
     print(json.dumps(out, indent=2))
 
 

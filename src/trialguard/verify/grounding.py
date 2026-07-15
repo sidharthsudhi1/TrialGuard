@@ -45,6 +45,7 @@ def is_grounded(quote: str, source_text: str, min_tokens: int = 2) -> bool:
 def ground_assessments(
     assessments: list[dict],
     source_text: str,
+    min_tokens: int = 2,
 ) -> list[dict]:
     """Stamp each assessment with grounding status.
 
@@ -52,12 +53,13 @@ def ground_assessments(
       - grounded: bool
       - verdict: forced to "unverifiable" when not grounded and a claim was made
     A verdict of "cannot_determine" with no quote is left as-is (honest abstention).
+    min_tokens is the strictness knob swept by the coverage/faithfulness curve.
     """
     out = []
     for a in assessments:
         quote = a.get("quote", "") or ""
         verdict = a.get("verdict", "cannot_determine")
-        grounded = is_grounded(quote, source_text)
+        grounded = is_grounded(quote, source_text, min_tokens=min_tokens)
         result = {**a, "grounded": grounded}
         if verdict in ("met", "not_met") and not grounded:
             result["verdict"] = "unverifiable"

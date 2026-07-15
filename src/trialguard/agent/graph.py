@@ -12,11 +12,13 @@ Two arms share this graph:
 
 from __future__ import annotations
 
+import os
 from typing import TypedDict
 
 from langgraph.graph import END, StateGraph
 
-from trialguard.agent.analyst import analyze_trial
+from trialguard.agent.analyst import CACHE_DIR as ANALYST_CACHE
+from trialguard.agent.analyst import _cache_key, analyze_trial
 from trialguard.verify.grounding import ground_assessments
 
 
@@ -35,9 +37,30 @@ class State(TypedDict, total=False):
 def _analyst_node(state: State) -> State:
     attempt = state.get("retries", 0)
     note = state["patient_note"]
-    # On retry, nudge the model to fix ungrounded quotes via a distinct cache key.
+    # Retrieval-aware retry: instead of a generic "copy verbatim" nudge, hand the
+    # analyst the exact trial source span it must quote from, plus the specific
+    # criteria whose quotes failed grounding last attempt. The generic nudge only
+    # recovered paraphrase failures (SIGIR); pointing at the source span gives the
+    # model the characters to copy, the intended fix for TREC's verbatim misses.
     if attempt > 0:
-        note = f"{note}\n\n[Retry {attempt}: previous quotes were not found verbatim in the trial text. Copy quotes character-for-character.]"
+        prior = state.get("assessments", [])
+        failed = [a.get("criterion", "") for a in prior if a.get("grounding_failure")]
+        crit_list = "\n".join(f"- {c}" for c in failed)
+        span = state["source_text"].strip()
+        note = (
+            f"{note}\n\n[Retry {attempt}] These criteria need a verbatim quote that "
+            f"was not found in the source last time:\n{crit_list}\n\nCopy quotes "
+            f"character-for-character from this exact trial source text:\n"
+            f'"""\n{span}\n"""'
+        )
+        # In cached-only mode a cold retry cache must not trigger a fresh Groq call.
+        # Keep the first-attempt assessments; the bounded loop then exhausts to
+        # "unverifiable" without spending quota. Lets all cohorts regenerate the
+        # significance + curve from cache alone.
+        if os.environ.get("TG_CACHED_ONLY") == "1":
+            key = _cache_key(note, state["nct_id"])
+            if not (ANALYST_CACHE / f"{key}.json").exists():
+                return {"assessments": prior}
     raw = analyze_trial(note, state["nct_id"], state["criteria"], handler=state.get("handler"))
     # A citation is grounded if it is a verbatim span of ANY provided source:
     # the trial's eligibility text or the patient note. "met"/"not_met" verdicts

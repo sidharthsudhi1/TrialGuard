@@ -63,7 +63,9 @@ All patient profiles in demos are **synthetic**. No real patient data enters thi
 
 ## Measured results
 
-Full report: [`data/reports/phase2_3_results.md`](data/reports/phase2_3_results.md). All numbers reproduced from code, $0 (Groq free tier + local embeddings).
+Full reports: [`data/reports/phase2_3_results.md`](data/reports/phase2_3_results.md) (Phase 2/3), [`data/reports/phase4_agent.md`](data/reports/phase4_agent.md) (Phase 4). All numbers reproduced from code, $0 (Groq free tier + local embeddings).
+
+**Phase 4 (in progress):** the faithfulness A/B p-value is now computed in-harness (`eval/significance.py`) instead of by hand; abstention vs citation-precision is reported as a swept curve, not a single point (`min_tokens=2` sits at the knee, and abstention is analyst-driven, not a grounding artifact); the retry is now retrieval-aware (hands the analyst the exact source span for failed criteria); and the analyst prompt is additively versioned (v1 default preserves the Phase 3 cache, v2 targets over-abstention). Full v2 and TREC retry A/B runs are quota-paced behind the Groq daily cap — code complete, tokens are the gate.
 
 **Retrieval — MedCPT vs BGE (SIGIR, keyword-RRF, n=53):** recall@10 0.135 → **0.180 (+34%)**, MRR 0.284 → **0.345 (+21%)**. MedCPT adopted as default.
 
@@ -107,7 +109,7 @@ On SIGIR the verification wrapper cuts hallucinated citations by ~64% (p=0.0012)
 | 1 — Data ingestion | ✅ Done | Queryable corpus + parsed eval cohorts |
 | 2 — Retrieval | ✅ Done | MedCPT hybrid retriever (recall/latency report) |
 | 3 — Eval harness + agent | ✅ Done | Self-verifying graph + significant faithfulness A/B (−64%, p=0.0012) |
-| 4 — Agent tuning | ⬜ | Lower abstention, replicate A/B on TREC |
+| 4 — Agent tuning | 🔶 In progress | In-harness significance + coverage/faithfulness curve + retrieval-aware retry + additive v2 prompt (full v2/TREC A/B quota-paced) |
 | 5 — LLMOps | ⬜ | Tracing dashboards + regression gate |
 | 6 — Demo & docs | ⬜ | Live HF Spaces demo + recorded walkthrough |
 
@@ -134,8 +136,12 @@ Run the evals:
 # Retrieval sweep (MedCPT default; keyword-RRF)
 python -m trialguard.scripts.eval_retrieval --cohort sigir --use-keywords
 
-# Agent faithfulness: single-pass vs verified A/B
+# Agent faithfulness: single-pass vs verified A/B (writes phase4_agent_<cohort>.json:
+# in-harness Fisher significance + coverage/faithfulness curve)
 python -m trialguard.eval.agent_metrics --cohort sigir --n-patients 30 --per-class 3
+
+# v2 analyst prompt (targets over-abstention; additive, own cache namespace)
+TG_PROMPT_VERSION=v2 python -m trialguard.eval.agent_metrics --cohort sigir --tag phase4v2
 ```
 
 > Groq free tier is capped at ~12k tokens/min and 100k tokens/day. A full agent A/B run exceeds the daily cap; the harness caches every analyst call by `(patient, trial, prompt_version)` and degrades gracefully on rate limits, so runs resume across days without re-spending. Set `TG_ANALYST_DELAY` to space calls under the TPM window.
