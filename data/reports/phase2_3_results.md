@@ -79,14 +79,18 @@ so there is zero selection skew between arms.
 |---|---|---|---|---|---|---|
 | SIGIR | 179 | 0.0926 | 0.0338 | −63.5% | **0.0012** | ✅ significant |
 | TREC 2021 | 59 | 0.1200 | 0.1126 | −6.2% | 0.859 | ❌ null |
+| TREC 2022 | 60 | 0.1230 | 0.0940 | −23.5% | 0.537 | ❌ ns |
 
 **On SIGIR, verification works and is significant** — deterministic grounding +
 bounded retry, over the same LLM, cuts the unsupported-verdict rate by ~64%
 (9.26% → 3.38%, p=0.0012).
 
-**On TREC 2021, it does not replicate** — the reduction is 6.2% and not
-significant (p=0.86). This is a real, disclosed cohort-dependence, not a tuning
-gap. Why the retry step fails to transfer:
+**On neither TREC cohort does it reach significance.** TREC 2021 is essentially
+flat (−6.2%, p=0.86); TREC 2022 shows a larger point estimate (−23.5%) but still
+not significant at n=60 (p=0.54, failure counts 15 → 11). So the effect on TREC
+is *directional at best, much weaker than SIGIR, and unproven* — not a clean zero,
+but nowhere near SIGIR's strength. This is a real, disclosed cohort-dependence,
+not a tuning gap. Why the retry step transfers poorly to TREC:
 
 - On SIGIR, a grounding failure is usually a *paraphrase* of text that is
   verbatim-quotable; the retry prompt ("copy character-for-character") lets the
@@ -159,9 +163,9 @@ latter (entailment) is a separate, not-yet-built check.
   and `abstention_rate` (its verdict is `unverifiable`), so the two rates do not
   partition the criteria. Read them as separate lenses, not a split.
 - **The verification benefit is cohort-dependent** — significant on SIGIR
-  (p=0.0012), null on TREC 2021 (p=0.86). The retry step recovers paraphrase-type
-  failures but not genuine fabrications. Only the faithfulness floor (100% catch)
-  is corpus-independent.
+  (p=0.0012), non-significant on both TREC cohorts (2021 −6% p=0.86; 2022 −24%
+  p=0.54). The retry step recovers paraphrase-type failures but not genuine
+  fabrications. Only the faithfulness floor (100% catch) is corpus-independent.
 
 ---
 
@@ -174,22 +178,24 @@ latter (entailment) is a separate, not-yet-built check.
    rejections)** — the sample-size-independent proof of the mechanism.
 3. **Verification significantly halves unsupported citations on SIGIR** —
    matched paired A/B (179 trials): 9.26% → 3.38%, −63.5% relative, Fisher
-   **p=0.0012**. On TREC 2021 the same mechanism is null (p=0.86) — an honest,
-   disclosed cohort-dependence.
+   **p=0.0012**. On both TREC cohorts the effect is weaker and non-significant
+   (2021 p=0.86; 2022 p=0.54) — an honest, disclosed cohort-dependence.
 4. **Retrieval improved at $0** by swapping to a domain-matched encoder
    (MedCPT), reproduced on SIGIR and on full ~26k-trial TREC corpora.
 
 ## What is NOT yet proven
 
-- **Why TREC's retry step fails.** The null on TREC 2021 is characterized (retry
-  can't recover non-verbatim citations) but not yet fixed. A retrieval-aware retry
-  (feed the analyst the exact source span) may transfer the SIGIR benefit.
+- **Whether verification helps TREC at all.** TREC 2021 is flat; TREC 2022 shows
+  −24% but is underpowered (p=0.54, n=60). A larger TREC 2022 run would settle
+  whether that point estimate is real. The retry can't recover non-verbatim
+  citations; a retrieval-aware retry (feed the analyst the exact source span) may
+  transfer the SIGIR benefit.
 - **Entailment.** Grounding proves a quote is real, not that it supports the
   verdict. An entailment check (local NLI, $0) is the next faithfulness layer.
 
 ## Remaining levers (code exists, needs quota/time, not money)
 
-- Replicate on TREC 2022 to confirm the cohort-dependence is not a 2021 quirk.
+- Larger-n TREC 2022 run to resolve its −24% point estimate (currently p=0.54).
 - Retrieval-aware retry: hand the analyst the candidate source span on retry.
 - Add an entailment check on top of grounding.
 - Lower abstention without sacrificing catch rate; report the coverage/faithfulness
