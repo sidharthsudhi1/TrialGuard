@@ -106,7 +106,7 @@ On SIGIR the verification wrapper cuts hallucinated citations by ~64% (p=0.0012)
 | 0 — Foundations | ✅ Done | Repo + README + env skeleton |
 | 1 — Data ingestion | ✅ Done | Queryable corpus + parsed eval cohorts |
 | 2 — Retrieval | ✅ Done | MedCPT hybrid retriever (recall/latency report) |
-| 3 — Eval harness + agent | ✅ Done | Self-verifying graph + significant faithfulness A/B (−57%, p=0.0044) |
+| 3 — Eval harness + agent | ✅ Done | Self-verifying graph + significant faithfulness A/B (−64%, p=0.0012) |
 | 4 — Agent tuning | ⬜ | Lower abstention, replicate A/B on TREC |
 | 5 — LLMOps | ⬜ | Tracing dashboards + regression gate |
 | 6 — Demo & docs | ⬜ | Live HF Spaces demo + recorded walkthrough |
@@ -164,6 +164,7 @@ python -m trialguard.eval.agent_metrics --cohort sigir --n-patients 30 --per-cla
 | AD-7 | Groq free-tier hosted open model | Local quantised LLM, paid frontier API |
 | AD-8 | Langfuse tracing from day one | Add logging later, print statements |
 | AD-9 | Kaggle/Colab for batch jobs only | Always-on GPU, local only |
+| AD-9 (unexercised) | Notebook GPU never needed through Phase 3 — MedCPT (110M) embeds on local CPU/MPS, and the eval bottleneck was Groq token quota (disk cache), not GPU hours. `notebooks/` stays empty; revisit only if Phase 4/5 batch work exceeds local compute | — |
 | AD-10 | Gradio on HF Spaces | FastAPI + React, Streamlit, local-only |
 | AD-11 | LLM keyword extraction before retrieval | Raw patient narrative as query (semantic mismatch, recall ceiling) |
 
