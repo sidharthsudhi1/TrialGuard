@@ -37,6 +37,9 @@ dependencies = [
     # Data wrangling
     "pandas>=2.2",
 
+    # Stats (faithfulness A/B significance)
+    "scipy>=1.11",
+
     # CLI / display
     "rich>=13.0",
 ]

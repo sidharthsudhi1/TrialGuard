@@ -10,14 +10,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
 CACHE_DIR = Path("data/cache/analyst")
-PROMPT_VERSION = "v1"
 
-_SYSTEM_PROMPT = """\
+_SYSTEM_PROMPT_V1 = """\
 You are a clinical trial eligibility analyst. Given a patient summary and a
 trial's eligibility criteria, assess EACH criterion independently.
 
@@ -36,9 +36,44 @@ Rules:
 - Output JSON only: {"assessments": [{...}, ...]}. No prose.\
 """
 
+# v2 targets over-abstention: v1's "encouraged" cannot_determine drove ~0.73
+# abstention. v2 asks the analyst to first look for supporting text before
+# abstaining, WITHOUT weakening the verbatim-quote requirement — the faithfulness
+# floor is unchanged, only the effort to find real evidence is raised.
+_SYSTEM_PROMPT_V2 = """\
+You are a clinical trial eligibility analyst. Given a patient summary and a
+trial's eligibility criteria, assess EACH criterion independently.
+
+For each criterion output:
+- "criterion": the criterion text, verbatim.
+- "verdict": one of "met", "not_met", "cannot_determine".
+- "quote": a VERBATIM span copied exactly from the trial or patient text that
+  justifies your verdict. Copy characters exactly — do not paraphrase.
+- "rationale": one short sentence.
+
+Rules:
+- Before answering "cannot_determine", scan BOTH the patient summary and the
+  criterion text for a specific fact (age, sex, stage, biomarker, prior therapy,
+  lab value) that decides the criterion. Short facts count: "48 M", "ECOG 1".
+- Use "met" or "not_met" whenever such a fact exists and you can quote it
+  verbatim. Reserve "cannot_determine" for criteria whose evidence is genuinely
+  absent from both texts — never as a default to avoid committing.
+- A decisive verdict still requires a real verbatim quote. Do not invent one; if
+  no verbatim span supports the verdict, it is "cannot_determine".
+- Output JSON only: {"assessments": [{...}, ...]}. No prose.\
+"""
+
+_PROMPTS = {"v1": _SYSTEM_PROMPT_V1, "v2": _SYSTEM_PROMPT_V2}
+
+
+def prompt_version() -> str:
+    """Active analyst prompt version. Additive: v1 stays the default so the
+    Phase 3 cache and results are never invalidated; v2 is opt-in via env."""
+    return os.environ.get("TG_PROMPT_VERSION", "v1")
+
 
 def _cache_key(patient_note: str, nct_id: str) -> str:
-    h = hashlib.sha256(f"{PROMPT_VERSION}|{nct_id}|{patient_note}".encode()).hexdigest()[:20]
+    h = hashlib.sha256(f"{prompt_version()}|{nct_id}|{patient_note}".encode()).hexdigest()[:20]
     return h
 
 
@@ -95,6 +130,7 @@ def _salvage(raw: str) -> list[dict]:
 
 def _llm():
     from langchain_groq import ChatGroq
+
     from trialguard.config import settings
     # Groq free tier is TPM-capped (~12k tokens/min). max_retries lets the client
     # honor the 429 Retry-After header and back off instead of crashing the run.
@@ -124,13 +160,12 @@ def analyze_trial(
 
     config = {"callbacks": [handler]} if handler is not None else {}
     resp = _llm().invoke(
-        [SystemMessage(content=_SYSTEM_PROMPT), HumanMessage(content=user)],
+        [SystemMessage(content=_PROMPTS[prompt_version()]), HumanMessage(content=user)],
         config=config,
     )
     assessments = _parse(str(resp.content))
     cache_path.write_text(json.dumps(assessments))
     # Space fresh calls to stay under the free-tier TPM window. Cache hits skip this.
-    import os
     import time
     time.sleep(float(os.environ.get("TG_ANALYST_DELAY", "7")))
     return assessments
