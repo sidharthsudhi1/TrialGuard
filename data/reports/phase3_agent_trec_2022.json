@@ -1,0 +1,28 @@
+{
+  "cohort": "trec_2022",
+  "n_patients": 15,
+  "baseline": {
+    "max_retries": 0,
+    "n_criteria": 368,
+    "decisive_attempts": 122,
+    "grounded": 107,
+    "citation_precision": 0.877,
+    "unsupported_verdict_rate": 0.123,
+    "abstention_rate": 0.7092,
+    "trial_accuracy": 0.35,
+    "n_trials": 60,
+    "rate_limited": false
+  },
+  "verified": {
+    "max_retries": 2,
+    "n_criteria": 369,
+    "decisive_attempts": 117,
+    "grounded": 106,
+    "citation_precision": 0.906,
+    "unsupported_verdict_rate": 0.094,
+    "abstention_rate": 0.7127,
+    "trial_accuracy": 0.3667,
+    "n_trials": 60,
+    "rate_limited": false
+  }
+}

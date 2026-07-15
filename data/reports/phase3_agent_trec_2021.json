@@ -1,0 +1,28 @@
+{
+  "cohort": "trec_2021",
+  "n_patients": 15,
+  "baseline": {
+    "max_retries": 0,
+    "n_criteria": 396,
+    "decisive_attempts": 150,
+    "grounded": 132,
+    "citation_precision": 0.88,
+    "unsupported_verdict_rate": 0.12,
+    "abstention_rate": 0.6667,
+    "trial_accuracy": 0.2712,
+    "n_trials": 59,
+    "rate_limited": false
+  },
+  "verified": {
+    "max_retries": 2,
+    "n_criteria": 398,
+    "decisive_attempts": 151,
+    "grounded": 134,
+    "citation_precision": 0.8874,
+    "unsupported_verdict_rate": 0.1126,
+    "abstention_rate": 0.6633,
+    "trial_accuracy": 0.2712,
+    "n_trials": 59,
+    "rate_limited": false
+  }
+}

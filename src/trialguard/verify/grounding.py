@@ -25,14 +25,19 @@ def normalize(text: str) -> str:
     return _WS.sub(" ", text).strip()
 
 
-def is_grounded(quote: str, source_text: str, min_len: int = 12) -> bool:
-    """True iff the normalized quote is a substring of the normalized source.
+def is_grounded(quote: str, source_text: str, min_tokens: int = 2) -> bool:
+    """True iff the normalized quote is a verbatim substring of the source AND
+    carries at least min_tokens words.
 
-    Quotes shorter than min_len chars (after normalization) are rejected: a
-    two-word fragment matches almost anything and grounds nothing.
+    A token guard (not a char-length guard): it rejects vague single-word quotes
+    ("ECOG", "cancer") that match spuriously, while accepting specific short
+    clinical facts ("48 M", "EF was 25%", "T-L spine"). A char-length guard
+    rejected those real atomic facts — the high-value evidence in eligibility
+    matching — which inflated the apparent hallucination rate on corpora with
+    terse patient text (TREC).
     """
     q = normalize(quote)
-    if len(q) < min_len:
+    if len(q.split()) < min_tokens:
         return False
     return q in normalize(source_text)
 

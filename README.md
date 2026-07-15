@@ -76,7 +76,15 @@ Full report: [`data/reports/phase2_3_results.md`](data/reports/phase2_3_results.
 
 **Faithfulness — verifier mechanism:** deterministic catch-rate stress test — **509/509 corrupted quotes rejected, 0 false rejections**. Sample-size-independent.
 
-**Faithfulness — verified vs single-pass A/B (SIGIR, full 180-trial matched set):** unsupported-citation rate **9.16% → 3.90%, −57.4% relative**, Fisher **p=0.0044** (significant). The verification wrapper more than halves the rate at which the same LLM states a verdict backed by a citation not actually in the source.
+**Faithfulness — verified vs single-pass A/B (matched paired):**
+
+| Cohort | matched n | single-pass | verified | Fisher p | |
+|---|---|---|---|---|---|
+| SIGIR | 179 | 9.26% | 3.38% | **0.0012** | ✅ significant (−64%) |
+| TREC 2021 | 59 | 12.0% | 11.26% | 0.86 | ❌ null (−6%) |
+| TREC 2022 | 60 | 12.3% | 9.40% | 0.54 | ❌ ns (−24%, underpowered) |
+
+On SIGIR the verification wrapper cuts hallucinated citations by ~64% (p=0.0012). Neither TREC cohort reaches significance at n≈60 — TREC 2021 is flat, TREC 2022 shows a directional −24% but underpowered. The retry step recovers paraphrase-type failures (SIGIR) but not genuine fabrications (TREC). **The faithfulness floor holds on both**: deterministic grounding catches 100% of ungrounded verdicts and forces them to *unverifiable* (509/509 corrupted-quote catch rate); a hallucinated citation never passes as grounded. What is cohort-dependent is whether a caught failure is *fixed* by retry or converted to an honest *abstention*. Replication also surfaced and fixed a grounding bug (short clinical facts like "48 M", "EF was 25%" were rejected by a char-length guard, now a token guard).
 
 > **Note on `recall@10 ≥ 90%`:** retired as a target. It is mathematically capped at `min(10, |gold|)/|gold|` per patient — TREC patients average 60+ eligible trials (ceiling ~0.25). TrialGPT's ">90% recall" was measured at large depth. Primary retrieval metric is now **recall@pool** (recall@50/100).
 
@@ -86,7 +94,7 @@ Full report: [`data/reports/phase2_3_results.md`](data/reports/phase2_3_results.
 |---|---|---|
 | Retrieval recall@pool (50/100) | maximize; beat BGE baseline | ✅ MedCPT adopted (+34% recall@10) |
 | Verifier catch rate | 100% (deterministic) | ✅ 509/509 |
-| Hallucination rate | < single-pass baseline (measured) | ✅ −57% (9.16%→3.90%, p=0.0044) |
+| Hallucination rate | < single-pass baseline (measured) | ✅ SIGIR −64% (p=0.0012); ❌ TREC ns (2021/2022) |
 | Correct-refusal rate ("cannot determine") | Logged per run | ✅ abstention reported jointly with accuracy |
 
 ---
@@ -98,7 +106,7 @@ Full report: [`data/reports/phase2_3_results.md`](data/reports/phase2_3_results.
 | 0 — Foundations | ✅ Done | Repo + README + env skeleton |
 | 1 — Data ingestion | ✅ Done | Queryable corpus + parsed eval cohorts |
 | 2 — Retrieval | ✅ Done | MedCPT hybrid retriever (recall/latency report) |
-| 3 — Eval harness + agent | ✅ Done | Self-verifying graph + significant faithfulness A/B (−57%, p=0.0044) |
+| 3 — Eval harness + agent | ✅ Done | Self-verifying graph + significant faithfulness A/B (−64%, p=0.0012) |
 | 4 — Agent tuning | ⬜ | Lower abstention, replicate A/B on TREC |
 | 5 — LLMOps | ⬜ | Tracing dashboards + regression gate |
 | 6 — Demo & docs | ⬜ | Live HF Spaces demo + recorded walkthrough |
@@ -156,6 +164,7 @@ python -m trialguard.eval.agent_metrics --cohort sigir --n-patients 30 --per-cla
 | AD-7 | Groq free-tier hosted open model | Local quantised LLM, paid frontier API |
 | AD-8 | Langfuse tracing from day one | Add logging later, print statements |
 | AD-9 | Kaggle/Colab for batch jobs only | Always-on GPU, local only |
+| AD-9 (unexercised) | Notebook GPU never needed through Phase 3 — MedCPT (110M) embeds on local CPU/MPS, and the eval bottleneck was Groq token quota (disk cache), not GPU hours. `notebooks/` stays empty; revisit only if Phase 4/5 batch work exceeds local compute | — |
 | AD-10 | Gradio on HF Spaces | FastAPI + React, Streamlit, local-only |
 | AD-11 | LLM keyword extraction before retrieval | Raw patient narrative as query (semantic mismatch, recall ceiling) |
 

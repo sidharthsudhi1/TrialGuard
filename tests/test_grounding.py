@@ -23,8 +23,17 @@ def test_hallucinated_quote_rejected():
     assert not is_grounded("patient has documented EGFR exon 19 deletion", SRC)
 
 
-def test_too_short_quote_rejected():
+def test_single_token_quote_rejected():
+    # one vague word matches spuriously — rejected even if present
     assert not is_grounded("ECOG", SRC)
+
+
+def test_short_specific_fact_grounds():
+    # short but multi-token clinical facts must ground (the TREC artifact fix)
+    src = "48 M with EF was 25% and T-L spine involvement per chart."
+    assert is_grounded("48 M", src)
+    assert is_grounded("EF was 25%", src)
+    assert is_grounded("T-L spine", src)
 
 
 def test_ground_assessments_forces_unverifiable():
