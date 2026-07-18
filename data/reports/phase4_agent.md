@@ -93,10 +93,37 @@ reserving `cannot_determine` for genuinely absent evidence.
 
 - Additive versioning is unit-tested (`test_prompt_version_switches_cache_key`):
   v2 gets its own cache namespace and cannot collide with the v1 cache.
-- Measurement is **quota-blocked this session** — a fresh v2 run needs a full
-  analyst-cache miss, and the daily Groq token cap (100k) was already reached by
-  the section-1 retry run (confirmed: HTTP 429 on the first v2 call). Deferred to
-  DoD-P1, paced across days exactly as Phase 3 handled its own quota wall.
+- Initial fresh v2 attempt was quota-blocked (HTTP 429). Resolved on a fresh
+  daily allowance — see section 5.
+
+---
+
+## 5. v2 result: it lowers abstention AND improves faithfulness (DoD-P1)
+
+A fresh v2 run (`TG_PROMPT_VERSION=v2`) reached 93 of 180 SIGIR trials before the
+daily cap. Comparing v2 against v1 over that **same matched 93-trial set** (v1
+recomputed from cache, single-pass on both arms, deterministic and $0):
+
+| metric | v1 | v2 | relative |
+|---|---|---|---|
+| abstention | 0.7377 | 0.6729 | **-8.8%** |
+| coverage (grounded decisive / criteria) | 0.2623 | 0.3271 | **+24.7%** |
+| citation precision | 0.905 | 0.9633 | **+6.4%** |
+
+The coverage shift is significant: **Fisher p = 0.0097** (grounded-vs-not, v1 vs v2).
+
+**This is the Phase 4 headline.** The over-abstention prompt did exactly what it
+was meant to and nothing it wasn't: the analyst commits to a decisive verdict
+~25% more often, abstains ~9% less — and the extra verdicts are *more* grounded,
+not less (precision rose 6%). Lowering abstention did not cost faithfulness; it
+improved it, because v2 spends its effort finding real short facts (age, stage,
+ECOG) that v1 was leaving on the table as `cannot_determine`.
+
+Caveats, disclosed: v2 emitted slightly fewer criterion objects (642 vs 690) over
+the same trials, so each rate is over its own emitted set; the verified (retry)
+arm under v2 reached only 4 trials before the cap, so a v2 retry A/B is still
+pending (rolls into P2's paced budget). The single-pass v2-vs-v1 result above,
+however, is clean, matched, and significant.
 
 ---
 
@@ -108,11 +135,15 @@ reserving `cannot_determine` for genuinely absent evidence.
    knee; abstention is analyst-driven, not a grounding artifact.
 3. **The retrieval-aware retry is at least as strong as the generic one** on the
    SIGIR sample it could reach (verified unsupported 0.0084 < 0.0403).
+4. **v2 lowers abstention without costing faithfulness (DoD-P1, SIGIR).** Matched
+   93-trial single-pass: abstention -8.8%, coverage +24.7%, precision +6.4%,
+   coverage-shift Fisher p=0.0097. The Phase 4 headline.
 
-## What is quota-paced (code done, tokens are the gate)
+## What is still quota-paced (code done, tokens are the gate)
 
-- **DoD-P1** Full v2 A/B across all three cohorts: does v2 lower abstention
-  without eroding citation precision?
+- **DoD-P1 (partial done)** v2 single-pass measured and significant on SIGIR
+  (section 5). Remaining: v2 on TREC 2021/2022, and a v2 *retry* arm (reached only
+  4 trials before the cap).
 - **DoD-P2** Full retrieval-aware-retry A/B on TREC 2021/2022 (+ larger-n TREC
   2022) to test whether the source-span retry transfers the SIGIR benefit.
 

@@ -1,0 +1,15 @@
+{
+  "comparison": "v1 vs v2 analyst prompt, matched trial set (both versions cached)",
+  "cohort": "sigir",
+  "matched_trials": 93,
+  "note": "Single-pass (no retry) on both arms; rates are over each version's own emitted criterion set (v2 emitted 642 vs v1 690). v2 baseline reached 93/180 trials before the Groq daily cap; v1 is recomputed over that same 93 from cache.",
+  "v1": {"abstention": 0.7377, "coverage": 0.2623, "citation_precision": 0.905, "n_criteria": 690},
+  "v2": {"abstention": 0.6729, "coverage": 0.3271, "citation_precision": 0.9633, "n_criteria": 642},
+  "deltas": {
+    "abstention_relative": -0.0878,
+    "coverage_relative": 0.2471,
+    "citation_precision_relative": 0.0644
+  },
+  "coverage_shift_fisher_p": 0.00969,
+  "significant_05": true
+}
