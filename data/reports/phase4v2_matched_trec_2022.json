@@ -1,0 +1,15 @@
+{
+  "comparison": "v1 vs v2 analyst prompt, matched trial set (both versions cached)",
+  "cohort": "trec_2022",
+  "matched_trials": 60,
+  "note": "Single-pass (no retry) on both arms. v2 baseline AND verified completed all 60 trials (no rate limit). v1 recomputed over the same 60 from cache. Index via TG_INDEX_EXCLUSION=0.",
+  "v1": {"abstention": 0.7092, "coverage": 0.2908, "citation_precision": 0.877, "n_criteria": 368},
+  "v2": {"abstention": 0.6453, "coverage": 0.3547, "citation_precision": 0.8944, "n_criteria": 358},
+  "deltas": {
+    "abstention_relative": -0.0901,
+    "coverage_relative": 0.2197,
+    "citation_precision_relative": 0.0198
+  },
+  "coverage_shift_fisher_p": 0.0682,
+  "significant_05": false
+}

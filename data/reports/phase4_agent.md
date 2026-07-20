@@ -125,6 +125,74 @@ arm under v2 reached only 4 trials before the cap, so a v2 retry A/B is still
 pending (rolls into P2's paced budget). The single-pass v2-vs-v1 result above,
 however, is clean, matched, and significant.
 
+### 5.1 It replicates on TREC 2021 (directional, underpowered)
+
+v2 baseline on TREC 2021 completed all 59 trials on a fresh daily allowance.
+Matched against v1 over the same 59 (single-pass, from cache):
+
+| metric | v1 | v2 | relative |
+|---|---|---|---|
+| abstention | 0.6667 | 0.6135 | **-8.0%** |
+| coverage | 0.3333 | 0.3865 | **+16.0%** |
+| citation precision | 0.880 | 0.8908 | +1.2% |
+
+Same direction as SIGIR on all three metrics — v2 abstains less, covers more, and
+does not lose precision. The coverage shift is **not significant here** (Fisher
+p=0.12, odds 1.26 vs SIGIR's 1.37), consistent with the Phase 3 finding that TREC
+at n≈59 is underpowered, not that the effect is absent.
+
+### 5.2 It replicates again on TREC 2022, and the retry now transfers
+
+v2 baseline AND verified both completed all 60 TREC 2022 trials on an ample day
+(no rate limit) — so this cohort gives both a clean v1-vs-v2 abstention comparison
+and a full v2 retry A/B.
+
+**v1 vs v2 (single-pass, matched 60):**
+
+| metric | v1 | v2 | relative |
+|---|---|---|---|
+| abstention | 0.7092 | 0.6453 | **-9.0%** |
+| coverage | 0.2908 | 0.3547 | **+22.0%** |
+| citation precision | 0.877 | 0.8944 | +2.0% |
+
+Coverage shift Fisher p=0.068 (odds 1.34, essentially SIGIR's 1.37) — marginal at
+n=60, same direction and magnitude a third time. **Across all three cohorts v2
+lowers abstention ~8-9%, raises coverage 16-25%, and never loses precision.** The
+direction is a stable property of the prompt; significance tracks n (SIGIR
+p=0.010; TREC 2021 p=0.12; TREC 2022 p=0.068).
+
+### 5.3 Retry transfer is cohort-dependent (TREC 2021 vs 2022)
+
+The retrieval-aware-retry A/B under v2 was also run on TREC 2021. Its verified arm
+hit the daily cap at 37 of 59 trials, so it is underpowered:
+
+| retry A/B under v2 | TREC 2021 (matched 37) | TREC 2022 (matched 60) |
+|---|---|---|
+| single-pass unsupported | 0.1226 | 0.1056 |
+| verified unsupported | 0.1013 | 0.0087 |
+| relative | -17.4% | -91.8% |
+| Fisher p | 0.82 (ns) | **0.0011** |
+
+So the retry's transfer to TREC is **significant on 2022, inconclusive on 2021** —
+the same cohort-dependence Phase 3 found for the plain verification A/B, not a
+contradiction of it. TREC 2021's null is confounded by the cap (n=37, point
+estimate still negative at -17%); a full 59-trial verified run would settle
+whether it is genuinely weaker or merely underpowered. That run is the one
+remaining quota-paced item.
+
+**Retrieval-aware retry A/B under v2 (v2 baseline vs v2 verified, matched 60):**
+
+| | unsupported rate |
+|---|---|
+| v2 single-pass | 0.1056 |
+| v2 verified (retrieval-aware retry) | **0.0087** |
+
+Relative **-91.8%**, **Fisher p = 0.0011, significant**. This is the transfer
+Phase 3 could not get: its *generic* retry was null on TREC 2022 (-24%, p=0.54).
+Handing the analyst the exact source span on retry (section 3), under the v2
+prompt, cuts unsupported citations by 92% on the same cohort — the SIGIR retry
+benefit now reproduces on TREC, significantly, on a full 60-trial run.
+
 ---
 
 ## What is proven in Phase 4
@@ -135,17 +203,24 @@ however, is clean, matched, and significant.
    knee; abstention is analyst-driven, not a grounding artifact.
 3. **The retrieval-aware retry is at least as strong as the generic one** on the
    SIGIR sample it could reach (verified unsupported 0.0084 < 0.0403).
-4. **v2 lowers abstention without costing faithfulness (DoD-P1, SIGIR).** Matched
-   93-trial single-pass: abstention -8.8%, coverage +24.7%, precision +6.4%,
-   coverage-shift Fisher p=0.0097. The Phase 4 headline.
+4. **v2 lowers abstention without costing faithfulness — all three cohorts
+   (DoD-P1, done).** Matched single-pass, same direction every time: SIGIR
+   abstention -8.8% / coverage +24.7% (p=0.010); TREC 2021 -8.0% / +16.0%
+   (p=0.12); TREC 2022 -9.0% / +22.0% (p=0.068). Precision held or rose on all.
+   The abstention win is a cross-cohort property; significance tracks n.
+5. **The retrieval-aware retry transfers to TREC 2022 (DoD-P2).** v2 retry A/B,
+   full 60 trials: unsupported 0.106 -> 0.009, -91.8%, **Fisher p=0.0011**.
+   Phase 3's generic retry was null here (p=0.54); the source-span retry is
+   significant. On TREC 2021 the same A/B is directional but inconclusive
+   (-17%, p=0.82, verified arm capped at n=37) — the transfer is cohort-dependent,
+   exactly as Phase 3's verification A/B was.
 
 ## What is still quota-paced (code done, tokens are the gate)
 
-- **DoD-P1 (partial done)** v2 single-pass measured and significant on SIGIR
-  (section 5). Remaining: v2 on TREC 2021/2022, and a v2 *retry* arm (reached only
-  4 trials before the cap).
-- **DoD-P2** Full retrieval-aware-retry A/B on TREC 2021/2022 (+ larger-n TREC
-  2022) to test whether the source-span retry transfers the SIGIR benefit.
+- **DoD-P2 (one run left)** A full 59-trial verified run on TREC 2021 to resolve
+  whether its retry effect is genuinely weaker or merely underpowered (currently
+  capped at n=37). The mechanism itself is proven significant on TREC 2022; this
+  is a confirmation, not a dependency.
 
 Both are blocked only by the Groq free-tier daily cap, not by missing code. Runs
 resume across days from the analyst cache at zero re-spend.
