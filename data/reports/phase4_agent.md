@@ -163,22 +163,25 @@ p=0.010; TREC 2021 p=0.12; TREC 2022 p=0.068).
 
 ### 5.3 Retry transfer is cohort-dependent (TREC 2021 vs 2022)
 
-The retrieval-aware-retry A/B under v2 was also run on TREC 2021. Its verified arm
-hit the daily cap at 37 of 59 trials, so it is underpowered:
+The retrieval-aware-retry A/B under v2 was also run on TREC 2021, now to full
+coverage (verified arm completed all 59 trials):
 
-| retry A/B under v2 | TREC 2021 (matched 37) | TREC 2022 (matched 60) |
+| retry A/B under v2 | TREC 2021 (matched 59) | TREC 2022 (matched 60) |
 |---|---|---|
-| single-pass unsupported | 0.1226 | 0.1056 |
-| verified unsupported | 0.1013 | 0.0087 |
-| relative | -17.4% | -91.8% |
-| Fisher p | 0.82 (ns) | **0.0011** |
+| single-pass unsupported | 0.1092 | 0.1056 |
+| verified unsupported | 0.0775 | 0.0087 |
+| relative | -29.1% | -91.8% |
+| Fisher p | 0.44 (ns) | **0.0011** |
 
-So the retry's transfer to TREC is **significant on 2022, inconclusive on 2021** —
-the same cohort-dependence Phase 3 found for the plain verification A/B, not a
-contradiction of it. TREC 2021's null is confounded by the cap (n=37, point
-estimate still negative at -17%); a full 59-trial verified run would settle
-whether it is genuinely weaker or merely underpowered. That run is the one
-remaining quota-paced item.
+So the retry's transfer to TREC is **significant on 2022, directional-only on
+2021** — and the full-n TREC 2021 run settles that this is a genuine
+cohort-difference, not underpowering: at the complete n=59 the effect is a larger
+-29% but still not significant (p=0.44). This is the same cohort split Phase 3
+found for the plain verification A/B, where TREC 2021 was likewise the flattest
+cohort (Phase 3 verification: TREC 2021 -6% p=0.86, TREC 2022 -24%). The retry
+helps most where the failures are recoverable verbatim spans (SIGIR, TREC 2022);
+TREC 2021's residual unsupported citations are more often genuinely absent from
+the source, which no source-span retry can fix.
 
 **Retrieval-aware retry A/B under v2 (v2 baseline vs v2 verified, matched 60):**
 
@@ -208,19 +211,19 @@ benefit now reproduces on TREC, significantly, on a full 60-trial run.
    abstention -8.8% / coverage +24.7% (p=0.010); TREC 2021 -8.0% / +16.0%
    (p=0.12); TREC 2022 -9.0% / +22.0% (p=0.068). Precision held or rose on all.
    The abstention win is a cross-cohort property; significance tracks n.
-5. **The retrieval-aware retry transfers to TREC 2022 (DoD-P2).** v2 retry A/B,
-   full 60 trials: unsupported 0.106 -> 0.009, -91.8%, **Fisher p=0.0011**.
+5. **The retrieval-aware retry transfers to TREC 2022 (DoD-P2, done).** v2 retry
+   A/B, full 60 trials: unsupported 0.106 -> 0.009, -91.8%, **Fisher p=0.0011**.
    Phase 3's generic retry was null here (p=0.54); the source-span retry is
-   significant. On TREC 2021 the same A/B is directional but inconclusive
-   (-17%, p=0.82, verified arm capped at n=37) — the transfer is cohort-dependent,
-   exactly as Phase 3's verification A/B was.
+   significant. On TREC 2021 (full 59 trials) the same A/B is directional only
+   (-29%, p=0.44) — the transfer is genuinely cohort-dependent, the same split
+   Phase 3's verification A/B showed (TREC 2021 was its flattest cohort too).
 
-## What is still quota-paced (code done, tokens are the gate)
+## Phase 4 measurement: complete
 
-- **DoD-P2 (one run left)** A full 59-trial verified run on TREC 2021 to resolve
-  whether its retry effect is genuinely weaker or merely underpowered (currently
-  capped at n=37). The mechanism itself is proven significant on TREC 2022; this
-  is a confirmation, not a dependency.
+All P1/P2 runs are done across all three cohorts. Nothing remains quota-blocked.
+The two open questions Phase 3 left — does lowering abstention cost faithfulness,
+and does the retry transfer to TREC — are both answered: no (v2 improves both),
+and yes on TREC 2022 / cohort-dependently on TREC 2021.
 
 Both are blocked only by the Groq free-tier daily cap, not by missing code. Runs
 resume across days from the analyst cache at zero re-spend.

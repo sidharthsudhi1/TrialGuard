@@ -16,36 +16,36 @@
   },
   "verified": {
     "max_retries": 2,
-    "n_criteria": 161,
-    "decisive_attempts": 79,
-    "grounded": 71,
-    "citation_precision": 0.8987,
-    "unsupported_verdict_rate": 0.1013,
-    "coverage": 0.441,
-    "abstention_rate": 0.559,
-    "trial_accuracy": 0.2973,
-    "n_trials": 37,
-    "rate_limited": true
+    "n_criteria": 302,
+    "decisive_attempts": 142,
+    "grounded": 131,
+    "citation_precision": 0.9225,
+    "unsupported_verdict_rate": 0.0775,
+    "coverage": 0.4338,
+    "abstention_rate": 0.5662,
+    "trial_accuracy": 0.322,
+    "n_trials": 59,
+    "rate_limited": false
   },
   "significance": {
-    "matched_trials": 37,
+    "matched_trials": 59,
     "table": {
       "baseline": {
-        "unsupported": 13,
-        "grounded": 93,
-        "decisive": 106
+        "unsupported": 19,
+        "grounded": 155,
+        "decisive": 174
       },
       "verified": {
-        "unsupported": 8,
-        "grounded": 71,
-        "decisive": 79
+        "unsupported": 11,
+        "grounded": 131,
+        "decisive": 142
       }
     },
-    "baseline_unsupported_rate": 0.1226,
-    "verified_unsupported_rate": 0.1013,
-    "relative_change": -0.1743,
-    "odds_ratio": 1.2406,
-    "fisher_p": 0.8155,
+    "baseline_unsupported_rate": 0.1092,
+    "verified_unsupported_rate": 0.0775,
+    "relative_change": -0.2906,
+    "odds_ratio": 1.4598,
+    "fisher_p": 0.4409,
     "significant_05": false
   },
   "coverage_curve": [
