@@ -1,0 +1,77 @@
+{
+  "cohort": "trec_2022",
+  "n_patients": 15,
+  "baseline": {
+    "max_retries": 0,
+    "n_criteria": 358,
+    "decisive_attempts": 142,
+    "grounded": 127,
+    "citation_precision": 0.8944,
+    "unsupported_verdict_rate": 0.1056,
+    "coverage": 0.3547,
+    "abstention_rate": 0.6453,
+    "trial_accuracy": 0.4167,
+    "n_trials": 60,
+    "rate_limited": false
+  },
+  "verified": {
+    "max_retries": 2,
+    "n_criteria": 306,
+    "decisive_attempts": 115,
+    "grounded": 114,
+    "citation_precision": 0.9913,
+    "unsupported_verdict_rate": 0.0087,
+    "coverage": 0.3725,
+    "abstention_rate": 0.6275,
+    "trial_accuracy": 0.4333,
+    "n_trials": 60,
+    "rate_limited": false
+  },
+  "significance": {
+    "matched_trials": 60,
+    "table": {
+      "baseline": {
+        "unsupported": 15,
+        "grounded": 127,
+        "decisive": 142
+      },
+      "verified": {
+        "unsupported": 1,
+        "grounded": 114,
+        "decisive": 115
+      }
+    },
+    "baseline_unsupported_rate": 0.1056,
+    "verified_unsupported_rate": 0.0087,
+    "relative_change": -0.9177,
+    "odds_ratio": 13.4646,
+    "fisher_p": 0.0011,
+    "significant_05": true
+  },
+  "coverage_curve": [
+    {
+      "min_tokens": 1,
+      "coverage": 0.3771,
+      "citation_precision": 0.9507,
+      "n_criteria": 358
+    },
+    {
+      "min_tokens": 2,
+      "coverage": 0.3547,
+      "citation_precision": 0.8944,
+      "n_criteria": 358
+    },
+    {
+      "min_tokens": 3,
+      "coverage": 0.3408,
+      "citation_precision": 0.8592,
+      "n_criteria": 358
+    },
+    {
+      "min_tokens": 4,
+      "coverage": 0.3352,
+      "citation_precision": 0.8451,
+      "n_criteria": 358
+    }
+  ]
+}
