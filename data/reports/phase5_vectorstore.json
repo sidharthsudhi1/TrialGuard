@@ -1,0 +1,57 @@
+{
+  "source": "sigir",
+  "tag": "medcpt_excl",
+  "n_vectors": 2991,
+  "dim": 768,
+  "n_queries": 100,
+  "k": 50,
+  "arms": [
+    {
+      "backend": "numpy_brute (FileIndex, exact)",
+      "build_s": 0.0,
+      "p50_ms": 0.16,
+      "p95_ms": 0.22,
+      "mem_mb": 9.19,
+      "recall_vs_exact": 1.0
+    },
+    {
+      "backend": "sklearn_brute (exact)",
+      "build_s": 0.0011,
+      "p50_ms": 3.76,
+      "p95_ms": 3.95,
+      "mem_mb": 9.19,
+      "recall_vs_exact": 1.0
+    },
+    {
+      "backend": "pgvector ivfflat lists=54 (Neon free tier, approx)",
+      "build_s": 88.2433,
+      "p50_ms": 24.78,
+      "p95_ms": 49.78,
+      "mem_mb": 9.19,
+      "recall_vs_exact": 0.376
+    }
+  ],
+  "size_ceiling": [
+    {
+      "corpus": "SIGIR eval",
+      "n": 2991,
+      "vectors_mb": 9.2
+    },
+    {
+      "corpus": "TREC 2021/2022",
+      "n": 26000,
+      "vectors_mb": 79.9
+    },
+    {
+      "corpus": "scoped oncology prod",
+      "n": 50000,
+      "vectors_mb": 153.6
+    },
+    {
+      "corpus": "full ClinicalTrials.gov",
+      "n": 500000,
+      "vectors_mb": 1536.0
+    }
+  ],
+  "neon_free_tier_mb": 512
+}
