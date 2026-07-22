@@ -1,0 +1,48 @@
+{
+  "_doc": "Committed regression floors for the Phase 5 CI gate (eval/regression_gate.py). The gate reads the named report + the deterministic grounding stress test and fails the build (exit 1) if any metric crosses its threshold. Thresholds are set with headroom below the measured value so ordinary run-to-run noise does not flap the build, but a real regression (weakened grounding, lost significance, abstain-on-everything) trips it. Update deliberately, with the report that justifies the change, never to make a red build pass.",
+  "report": "data/reports/phase4_agent_sigir.json",
+  "gates": [
+    {
+      "metric": "verifier_catch_rate",
+      "source": "stress_test",
+      "op": ">=",
+      "threshold": 1.0,
+      "desc": "corrupted quotes rejected / corrupted quotes tested; the faithfulness floor, must be 100%"
+    },
+    {
+      "metric": "verifier_false_rejection_rate",
+      "source": "stress_test",
+      "op": "<=",
+      "threshold": 0.0,
+      "desc": "genuine grounded quotes wrongly rejected; must be 0"
+    },
+    {
+      "metric": "verified.unsupported_verdict_rate",
+      "source": "report",
+      "op": "<=",
+      "threshold": 0.05,
+      "desc": "verified-arm hallucinated-citation proxy; measured 0.0084, ceiling well above noise"
+    },
+    {
+      "metric": "significance.fisher_p",
+      "source": "report",
+      "op": "<=",
+      "threshold": 0.05,
+      "desc": "faithfulness A/B must stay significant; measured 0.0193"
+    },
+    {
+      "metric": "significance.relative_change",
+      "source": "report",
+      "op": "<=",
+      "threshold": -0.3,
+      "desc": "verified must cut unsupported rate by at least 30%; measured -0.8842"
+    },
+    {
+      "metric": "baseline.coverage",
+      "source": "report",
+      "op": ">=",
+      "threshold": 0.2,
+      "desc": "guard against a regression that abstains on everything to fake faithfulness; measured 0.2671"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "phase/**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Tests
+        run: pytest tests/ -q
+
+      # Faithfulness regression gate — runs on committed artifacts only (no Groq,
+      # no analyst cache). Fails the build red if the deterministic catch rate
+      # drops below 100% or any committed A/B floor regresses.
+      - name: Regression gate
+        run: python -m trialguard.eval.regression_gate
