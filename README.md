@@ -20,18 +20,34 @@ Analyst drafts a criterion-by-criterion assessment with quoted evidence; a **det
 
 ## Architecture
 
+Two stages. Retrieval is a standalone pipeline (`retrieval/pipeline.py`), not a
+graph node; the LangGraph graph (`agent/graph.py`) runs once per (patient, trial)
+pair on the retrieved candidates.
+
 ```mermaid
 flowchart TD
-    A[Patient Profile Input] --> B[Planner\nparse profile, extract clinical keywords]
-    B --> C[Retriever\nMedCPT dense + BM25 → RRF, per-keyword fusion]
-    C --> D[Eligibility Analyst\ncriterion-by-criterion assessment\nverbatim source quotes, batched JSON]
-    D --> E{Deterministic grounding\nquote verbatim in source?}
-    E -- GROUNDED --> F[Ranker / Reporter\nstructured JSON output\nwith citations]
-    E -- UNGROUNDED retry≤2 --> D
-    E -- exhausted --> G[Mark unverifiable\nflag to user]
-    G --> F
-    F --> H[Gradio UI / API]
+    subgraph RP [Retrieval pipeline — retrieval/pipeline.py]
+        A[Patient note] --> B[LLM keyword extraction\n8–12 clinical phrases, disk-cached]
+        B --> C[Per-keyword MedCPT dense + BM25\nfused via RRF]
+        C --> D[Candidate trials]
+    end
+    subgraph EG [LangGraph eligibility graph — agent/graph.py, per patient–trial pair]
+        D --> E[Analyst node\none batched Groq call\ncriterion-by-criterion, verbatim quotes\n+ deterministic grounding of every quote]
+        E --> F{Grounding failures?}
+        F -- none --> G[Report node\ntrial roll-up:\neligible / excluded / cannot_determine]
+        F -- yes, retries remain --> H[Retry node\ninject exact source span\n+ failed criteria into prompt]
+        H --> E
+        F -- "yes, retries exhausted" --> I[Failed criteria marked\nunverifiable]
+        I --> G
+    end
+    G --> J[Structured JSON output with citations]
 ```
+
+Graph nodes are `analyst`, `retry`, `report`. Deterministic grounding
+(`verify/grounding.py`) runs inside the analyst node — every quote is checked
+verbatim against the trial text and patient note — and the conditional edge
+routes on its failures. A Gradio UI on HF Spaces sits in front of this in
+Phase 6.
 
 ### Component map
 
@@ -109,7 +125,7 @@ On SIGIR the verification wrapper cuts hallucinated citations by ~64% (p=0.0012)
 | 1 — Data ingestion | ✅ Done | Queryable corpus + parsed eval cohorts |
 | 2 — Retrieval | ✅ Done | MedCPT hybrid retriever (recall/latency report) |
 | 3 — Eval harness + agent | ✅ Done | Self-verifying graph + significant faithfulness A/B (−64%, p=0.0012) |
-| 4 — Agent tuning | 🔶 In progress | In-harness significance + coverage/faithfulness curve + retrieval-aware retry + additive v2 prompt (full v2/TREC A/B quota-paced) |
+| 4 — Agent tuning | ✅ Done | v2 prompt cuts abstention ~8-9% at higher coverage and precision (3 cohorts); retrieval-aware retry transfers to TREC 2022 (unsupported −92%, p=0.0011); in-harness significance + coverage/faithfulness curve |
 | 5 — LLMOps | ⬜ | Tracing dashboards + regression gate |
 | 6 — Demo & docs | ⬜ | Live HF Spaces demo + recorded walkthrough |
 
