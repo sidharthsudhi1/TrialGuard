@@ -64,6 +64,36 @@ def get_langchain_handler(
         return None
 
 
+def emit_scores(
+    scores: dict[str, float | str],
+    session_id: str | None = None,
+    trace_id: str | None = None,
+) -> bool:
+    """Push run/trace quality scores to Langfuse. No-op when tracing is disabled.
+
+    These are the custom scores the Phase 5 dashboard trends over time
+    (faithfulness, abstention, coverage, mean retries). Numeric values become
+    NUMERIC scores; strings become CATEGORICAL (e.g. a dominant rejection reason).
+    Linked to the eval session so cost/latency/retry, already aggregated by
+    Langfuse from the traces, sit next to quality on one board.
+
+    Returns True if the scores were emitted, False if tracing is off.
+    """
+    client = get_client()
+    if client is None:
+        return False
+    for name, value in scores.items():
+        client.create_score(
+            name=name,
+            value=value,
+            session_id=session_id,
+            trace_id=trace_id,
+            data_type="CATEGORICAL" if isinstance(value, str) else "NUMERIC",
+        )
+    client.flush()
+    return True
+
+
 def flush() -> None:
     """Flush all queued trace events. Call before process exit in scripts."""
     client = get_client()
