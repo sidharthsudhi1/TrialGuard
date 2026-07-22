@@ -29,6 +29,12 @@ def dense_search(
     if source:
         params["source"] = source
 
+    from trialguard.config import settings
+
     with get_conn() as conn, conn.cursor() as cur:
+        # Widen the ivfflat search beyond the default single list; probes=1 loses
+        # ~64% recall vs exact (measured in phase5_vectorstore). SET LOCAL scopes it
+        # to this transaction.
+        cur.execute("SET LOCAL ivfflat.probes = %s", (settings.pgvector_probes,))
         cur.execute(sql, params)
         return [(row[0], float(row[1])) for row in cur.fetchall()]

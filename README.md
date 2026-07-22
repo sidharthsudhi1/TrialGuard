@@ -183,6 +183,7 @@ TG_PROMPT_VERSION=v2 python -m trialguard.eval.agent_metrics --cohort sigir --ta
 | AD-4 | Criterion-level structured JSON output | Free-text verdict, binary flag |
 | AD-5 | MedCPT (768-dim) embeddings on CPU/MPS | MiniLM (0.49 recall ceiling), BGE (same ceiling), hosted API |
 | AD-6 | pgvector (production) + numpy file index (eval) | Load 26k eval trials into Neon free tier (too small) |
+| AD-6 (amended, Phase 5) | Benchmark ([`phase5_vectorstore.md`](data/reports/phase5_vectorstore.md)) confirms the split: numpy brute is exact and sub-ms at eval scale, and the free-tier 512 MB ceiling (full corpus ≈ 1.5 GB of vectors) is the real driver. Amendment: production ivfflat at default `probes=1` loses ~64% recall vs exact; `dense_search` now sets `ivfflat.probes` (default 20) to recover it at near-flat latency | Silent default-probes recall loss; managed alternative (size ceiling, not engine, is binding) |
 | AD-7 | Groq free-tier hosted open model | Local quantised LLM, paid frontier API |
 | AD-8 | Langfuse tracing from day one | Add logging later, print statements |
 | AD-9 | Kaggle/Colab for batch jobs only | Always-on GPU, local only |

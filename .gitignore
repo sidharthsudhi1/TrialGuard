@@ -55,8 +55,9 @@ trace_cache/
 # Build
 *.so
 
-# Local phase docs and skills
-PHASE*.md
+# Local phase docs and skills (root-level only; report files under data/reports
+# such as phase5_vectorstore.md must stay trackable)
+/PHASE*.md
 CLAUDE.md
 .agents/
 skills-lock.json

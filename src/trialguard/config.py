@@ -17,6 +17,10 @@ class Settings(BaseSettings):
 
     # Vector store
     database_url: str = ""
+    # ivfflat probes: default 1 scans a single list and loses ~64% recall vs exact
+    # (measured, phase5_vectorstore). Higher probes recovers recall at near-flat
+    # latency on the free tier; tune toward sqrt(lists) for the production corpus.
+    pgvector_probes: int = 20
 
     # ClinicalTrials.gov
     ctgov_api_base: str = "https://clinicaltrials.gov/api/v2"
