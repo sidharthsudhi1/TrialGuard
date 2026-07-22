@@ -257,7 +257,6 @@ def run(cohorts: list[str], pool_size: int, use_keywords: bool) -> list[dict]:
         all_results.append(results)
 
         pool_recall = results.get(f"recall@{pool_size}", 0.0)
-        pool_recall_adj = results.get(f"recall@{pool_size}_adj")
         console.print(
             f"  recall@10: {results['recall@10']:.4f}  "
             f"recall@{pool_size}: {pool_recall:.4f}  "
@@ -348,7 +347,7 @@ def _write_report(all_results: list[dict], pool_size: int, path: Path, ablate: b
 
     # Recall sweep
     k_headers = " | ".join(f"Recall@{k}" for k in K_LIST)
-    lines += [f"\n## Recall@N Sweep\n",
+    lines += ["\n## Recall@N Sweep\n",
                f"| Cohort | Config | {k_headers} | MRR | p50 ms | p95 ms | n |",
                "|---|---|" + "|".join("---" for _ in K_LIST) + "|---|---|---|---|"]
     for r in all_results:

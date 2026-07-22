@@ -8,7 +8,6 @@ Prints one JSON line with recall sweep + config tag.
 """
 
 import json
-import os
 import sys
 
 from trialguard.eval.file_index import get_index

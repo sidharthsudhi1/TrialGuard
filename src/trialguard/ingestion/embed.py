@@ -90,7 +90,6 @@ def _get_medcpt(is_query: bool):
         from trialguard.config import settings
         if settings.hf_token:
             os.environ.setdefault("HF_TOKEN", settings.hf_token)
-        import torch
         from transformers import AutoModel, AutoTokenizer
         name = MEDCPT_QUERY_MODEL if is_query else MEDCPT_ARTICLE_MODEL
         tok = AutoTokenizer.from_pretrained(name)

@@ -34,9 +34,8 @@ def test_verified_retry_recovers_grounding(monkeypatch):
 
 def test_retry_capped(monkeypatch):
     G._GRAPH = None
-    always_bad = lambda note, nct, crit, handler=None: [
-        {"criterion": "dx", "verdict": "met", "quote": "never in source at all here"}
-    ]
+    def always_bad(note, nct, crit, handler=None):
+        return [{"criterion": "dx", "verdict": "met", "quote": "never in source at all here"}]
     with patch.object(G, "analyze_trial", always_bad):
         state = G.assess("patient", "NCT1", ["dx"], SRC, max_retries=2)
     # exhausted retries -> unverifiable, never forced to a verdict

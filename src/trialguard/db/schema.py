@@ -1,6 +1,7 @@
 """Create and manage the pgvector schema for TrialGuard."""
 
 import psycopg2
+
 from trialguard.config import settings
 
 DDL = """

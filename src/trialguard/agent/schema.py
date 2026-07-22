@@ -12,7 +12,9 @@ Verdict = Literal["met", "not_met", "cannot_determine", "unverifiable"]
 class CriterionAssessment(BaseModel):
     criterion: str
     verdict: Verdict
-    quote: str = Field(default="", description="Verbatim span from trial text supporting the verdict.")
+    quote: str = Field(
+        default="", description="Verbatim span from trial text supporting the verdict."
+    )
     rationale: str = ""
     grounded: bool = False
     grounding_failure: bool = False
