@@ -16,6 +16,20 @@ import httpx
 
 EVAL_DIR = Path("data/eval")
 
+# Non-negotiable: no real patient data, ever. Patient notes may only come from
+# these vetted, published, synthetic cohorts. Every patient/label loader validates
+# against this allowlist so a real-PHI source cannot be loaded even by mistake.
+SYNTHETIC_COHORTS = frozenset({"sigir", "trec_2021", "trec_2022"})
+
+
+def _require_synthetic(cohort: str) -> None:
+    if cohort not in SYNTHETIC_COHORTS:
+        raise ValueError(
+            f"cohort {cohort!r} is not an allowed synthetic cohort "
+            f"{sorted(SYNTHETIC_COHORTS)}; loading non-synthetic patient data is forbidden"
+        )
+
+
 COHORTS = {
     "sigir": {
         "queries": "https://raw.githubusercontent.com/ncbi-nlp/TrialGPT/main/dataset/sigir/queries.jsonl",
@@ -55,6 +69,7 @@ def download_cohorts() -> None:
 
 def load_patients(cohort: str) -> list[dict]:
     """Return list of patient dicts: patient_id, description, cohort."""
+    _require_synthetic(cohort)
     path = EVAL_DIR / cohort / "queries.jsonl"
     patients = []
     with open(path) as f:
@@ -78,6 +93,7 @@ def load_labels(cohort: str) -> list[dict]:
     qrels TSV columns: query-id  corpus-id  score
     Scores: 0=irrelevant, 1=excluded, 2=eligible
     """
+    _require_synthetic(cohort)
     path = EVAL_DIR / cohort / "qrels.tsv"
     score_map = {"0": "irrelevant", "1": "excluded", "2": "eligible"}
     labels = []

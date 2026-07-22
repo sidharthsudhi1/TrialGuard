@@ -23,6 +23,13 @@ jobs:
       - name: Lint
         run: ruff check .
 
+      - name: Secret hygiene
+        run: |
+          if git ls-files --error-unmatch .env >/dev/null 2>&1; then
+            echo "ERROR: .env is tracked in git"; exit 1
+          fi
+          echo ".env not tracked."
+
       - name: Tests
         run: pytest tests/ -q
 
@@ -31,3 +38,11 @@ jobs:
       # drops below 100% or any committed A/B floor regresses.
       - name: Regression gate
         run: python -m trialguard.eval.regression_gate
+
+      # Advisory: surfaces known CVEs in the dependency tree without failing the
+      # build on upstream issues we cannot fix in this PR.
+      - name: Dependency audit
+        continue-on-error: true
+        run: |
+          pip install pip-audit
+          pip-audit || true
