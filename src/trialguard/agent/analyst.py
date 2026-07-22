@@ -168,15 +168,17 @@ def _salvage(raw: str) -> list[dict]:
 def _llm():
     from langchain_groq import ChatGroq
 
+    from trialguard.agent.ratelimit import MAX_RETRIES
     from trialguard.config import settings
     # Groq free tier is TPM-capped (~12k tokens/min). max_retries lets the client
     # honor the 429 Retry-After header and back off instead of crashing the run.
+    # Backoff/budget constants live in agent/ratelimit.py, not inline.
     return ChatGroq(
         api_key=settings.groq_api_key,
         model=settings.groq_model,
         temperature=0,
         max_tokens=4096,
-        max_retries=8,
+        max_retries=MAX_RETRIES,
     )
 
 
@@ -200,14 +202,23 @@ def analyze_trial(
         note_block = f"Patient summary:\n{patient_note}"
     user = f"{note_block}\n\nTrial {nct_id} criteria:\n{crit_block}"
 
+    from trialguard.agent.ratelimit import ANALYST_DELAY, TokenBudget, estimate_tokens
+
+    system = _PROMPTS[prompt_version()]
+    budget = TokenBudget()
+    # Refuse a fresh call we already know would cross the daily cap; the harness
+    # catches BudgetExhausted and degrades to cached-only instead of hitting 429s.
+    budget.check(estimate_tokens(system + user) + 4096)
+
     config = {"callbacks": [handler]} if handler is not None else {}
-    resp = _llm().invoke(
-        [SystemMessage(content=_PROMPTS[prompt_version()]), HumanMessage(content=user)],
-        config=config,
-    )
+    resp = _llm().invoke([SystemMessage(content=system), HumanMessage(content=user)], config=config)
+
+    usage = getattr(resp, "usage_metadata", None) or {}
+    budget.record(usage.get("total_tokens") or estimate_tokens(system + user + str(resp.content)))
+
     assessments = _parse(str(resp.content))
     cache_path.write_text(json.dumps(assessments))
     # Space fresh calls to stay under the free-tier TPM window. Cache hits skip this.
     import time
-    time.sleep(float(os.environ.get("TG_ANALYST_DELAY", "7")))
+    time.sleep(ANALYST_DELAY)
     return assessments

@@ -109,7 +109,10 @@ def _run_arm(subset: list[dict], max_retries: int, handler=None) -> dict:
             except Exception as e:
                 # Groq free-tier daily token cap (TPD) is a hard wall. Stop and
                 # report metrics over the trials that completed rather than crash.
-                if "rate_limit" in str(e) or "429" in str(e):
+                # BudgetExhausted is the pre-emptive local gate; 429/rate_limit is
+                # the server telling us the same thing.
+                from trialguard.agent.ratelimit import BudgetExhausted
+                if isinstance(e, BudgetExhausted) or "rate_limit" in str(e) or "429" in str(e):
                     rate_limited = True
                     break
                 raise
