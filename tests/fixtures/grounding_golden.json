@@ -1,0 +1,105 @@
+{
+  "_doc": "Self-contained grounding golden set. No dependency on data/cache (gitignored) so it runs in CI from a clean checkout. Each case: a source span and a quote that MUST ground (grounded=true) or MUST be rejected (grounded=false). The regression gate also derives the catch-rate stress test from the grounded cases: it corrupts each clinically meaningful token in every grounded quote and asserts every corruption is rejected (catch rate) while the untouched quote still grounds (no false rejection). Synthetic oncology text only; no real patient data.",
+  "cases": [
+    {
+      "source": "Inclusion Criteria: Patients must have histologically confirmed Stage IV non-small cell lung cancer. ECOG performance status 0 to 1. Adequate organ function. Exclusion Criteria: Active brain metastases. Prior immunotherapy.",
+      "quote": "histologically confirmed Stage IV non-small cell lung cancer",
+      "grounded": true
+    },
+    {
+      "source": "Inclusion Criteria: Patients must have histologically confirmed Stage IV non-small cell lung cancer. ECOG performance status 0 to 1. Adequate organ function.",
+      "quote": "ECOG performance status 0 to 1",
+      "grounded": true
+    },
+    {
+      "source": "Eligible subjects have measurable disease per RECIST 1.1 and adequate bone marrow function defined as ANC greater than 1500.",
+      "quote": "measurable disease per RECIST 1.1",
+      "grounded": true
+    },
+    {
+      "source": "Patients with HER2-positive metastatic breast cancer who have received at least one prior line of anti-HER2 therapy are eligible.",
+      "quote": "HER2-positive metastatic breast cancer",
+      "grounded": true
+    },
+    {
+      "source": "Documented EGFR exon 19 deletion or exon 21 L858R mutation is required for enrollment on this arm.",
+      "quote": "EGFR exon 19 deletion",
+      "grounded": true
+    },
+    {
+      "source": "58-year-old woman with triple-negative breast cancer, ECOG 1, no prior chemotherapy in the metastatic setting.",
+      "quote": "triple-negative breast cancer",
+      "grounded": true
+    },
+    {
+      "source": "48 M with EF was 25% and T-L spine involvement documented on imaging per the tumor board note.",
+      "quote": "48 M",
+      "grounded": true
+    },
+    {
+      "source": "48 M with EF was 25% and T-L spine involvement documented on imaging per the tumor board note.",
+      "quote": "EF was 25%",
+      "grounded": true
+    },
+    {
+      "source": "Prior treatment with an immune checkpoint inhibitor within 6 months is an exclusion criterion for this study.",
+      "quote": "immune checkpoint inhibitor within 6 months",
+      "grounded": true
+    },
+    {
+      "source": "Subjects must have castration-resistant prostate cancer with rising PSA on two consecutive measurements.",
+      "quote": "castration-resistant prostate cancer",
+      "grounded": true
+    },
+    {
+      "source": "Creatinine clearance must be at least 60 mL/min calculated by the Cockcroft-Gault formula at screening.",
+      "quote": "Creatinine clearance must be at least 60 mL/min",
+      "grounded": true
+    },
+    {
+      "source": "Patients with active, untreated central nervous system metastases are excluded from participation.",
+      "quote": "active, untreated central nervous system metastases",
+      "grounded": true
+    },
+    {
+      "source": "Histologically or cytologically confirmed diagnosis of pancreatic adenocarcinoma that is locally advanced or metastatic.",
+      "quote": "pancreatic adenocarcinoma",
+      "grounded": true
+    },
+    {
+      "source": "Life expectancy of at least 12 weeks as judged by the treating investigator is required.",
+      "quote": "Life expectancy of at least 12 weeks",
+      "grounded": true
+    },
+    {
+      "source": "Patients must not have received any prior systemic therapy for advanced or metastatic disease.",
+      "quote": "no prior systemic therapy for advanced or metastatic disease",
+      "grounded": false
+    },
+    {
+      "source": "Inclusion Criteria: Patients must have histologically confirmed Stage IV non-small cell lung cancer. ECOG performance status 0 to 1.",
+      "quote": "documented EGFR exon 19 deletion present in tumor tissue",
+      "grounded": false
+    },
+    {
+      "source": "Subjects must have castration-resistant prostate cancer with rising PSA on two consecutive measurements.",
+      "quote": "hormone-sensitive prostate cancer",
+      "grounded": false
+    },
+    {
+      "source": "Eligible subjects have measurable disease per RECIST 1.1 and adequate bone marrow function.",
+      "quote": "ECOG",
+      "grounded": false
+    },
+    {
+      "source": "Patients with HER2-positive metastatic breast cancer are eligible for cohort A.",
+      "quote": "HER2-negative metastatic breast cancer",
+      "grounded": false
+    },
+    {
+      "source": "Creatinine clearance must be at least 60 mL/min calculated by the Cockcroft-Gault formula.",
+      "quote": "creatinine clearance must be at least 90 ml/min",
+      "grounded": false
+    }
+  ]
+}

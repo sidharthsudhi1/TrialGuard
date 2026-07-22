@@ -61,8 +61,11 @@ def run(max_trials: int, skip_trials: bool, skip_eval: bool) -> None:
         console.print("Downloading eval cohorts...")
         download_cohorts()
 
+        import json
+
+        import psycopg2.extras
+
         from trialguard.db.schema import get_conn
-        import psycopg2.extras, json
 
         with get_conn() as conn, conn.cursor() as cur:
             for cohort in ("sigir", "trec_2021", "trec_2022"):

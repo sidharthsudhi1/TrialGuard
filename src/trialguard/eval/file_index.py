@@ -62,9 +62,10 @@ class FileIndex:
         )
 
     def build(self, trials: list[dict]) -> None:
+        from rank_bm25 import BM25Okapi
+
         from trialguard.ingestion.embed import eligibility_text_for_embedding, embed_batch
         from trialguard.ingestion.normalise import normalise_trial
-        from rank_bm25 import BM25Okapi
 
         ids_path, emb_path = self._cache_path()
 

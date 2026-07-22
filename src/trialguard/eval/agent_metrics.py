@@ -83,6 +83,7 @@ def _run_arm(subset: list[dict], max_retries: int, handler=None) -> dict:
 
     decisive = grounded = abstain = total_crit = 0
     trial_correct = trial_total = 0
+    total_retries = trials_with_retry = 0
     rate_limited = False
     per_trial: dict[str, dict[str, int]] = {}
 
@@ -108,7 +109,10 @@ def _run_arm(subset: list[dict], max_retries: int, handler=None) -> dict:
             except Exception as e:
                 # Groq free-tier daily token cap (TPD) is a hard wall. Stop and
                 # report metrics over the trials that completed rather than crash.
-                if "rate_limit" in str(e) or "429" in str(e):
+                # BudgetExhausted is the pre-emptive local gate; 429/rate_limit is
+                # the server telling us the same thing.
+                from trialguard.agent.ratelimit import BudgetExhausted
+                if isinstance(e, BudgetExhausted) or "rate_limit" in str(e) or "429" in str(e):
                     rate_limited = True
                     break
                 raise
@@ -129,6 +133,12 @@ def _run_arm(subset: list[dict], max_retries: int, handler=None) -> dict:
                 if v in ("cannot_determine", "unverifiable"):
                     abstain += 1
             per_trial[tr["nct_id"]] = {"decisive": t_dec, "unsupported": t_uns}
+            # retry observability: how often the grounding back-edge fired, and how
+            # deep. Native retry spans are in the trace; this is the aggregate.
+            retries_used = state.get("retries", 0)
+            total_retries += retries_used
+            if retries_used:
+                trials_with_retry += 1
             # trial-level accuracy vs qrels
             trial_total += 1
             if state["trial_verdict"] == tr["gold"]:
@@ -148,6 +158,8 @@ def _run_arm(subset: list[dict], max_retries: int, handler=None) -> dict:
         "abstention_rate": round(abstain / total_crit, 4) if total_crit else 0.0,
         "trial_accuracy": round(trial_correct / trial_total, 4) if trial_total else 0.0,
         "n_trials": trial_total,
+        "mean_retries": round(total_retries / trial_total, 4) if trial_total else 0.0,
+        "trials_with_retry": trials_with_retry,
         "rate_limited": rate_limited,
         "per_trial": per_trial,
     }
@@ -193,10 +205,26 @@ def coverage_curve(subset: list[dict], min_tokens_values=(1, 2, 3, 4)) -> list[d
     return curve
 
 
+def _observability(verified: dict) -> dict:
+    """Run-level quality scores for the Langfuse dashboard (Phase 5 WS-2).
+
+    Faithfulness = citation precision of the verified (thesis) arm. Kept in the
+    report too, so the observability numbers survive even without a tracing backend.
+    """
+    return {
+        "faithfulness": verified["citation_precision"],
+        "unsupported_verdict_rate": verified["unsupported_verdict_rate"],
+        "abstention_rate": verified["abstention_rate"],
+        "coverage": verified["coverage"],
+        "mean_retries": verified["mean_retries"],
+    }
+
+
 def run(cohort: str, n_patients: int, per_class: int) -> dict:
     from trialguard.eval.significance import matched_ab
-    from trialguard.tracing import get_langchain_handler
-    handler = get_langchain_handler(session_id=f"agent-eval-{cohort}", tags=["agent-eval"])
+    from trialguard.tracing import emit_scores, get_langchain_handler
+    session_id = f"agent-eval-{cohort}"
+    handler = get_langchain_handler(session_id=session_id, tags=["agent-eval"])
 
     subset = _build_subset(cohort, n_patients, per_class)
     baseline = _run_arm(subset, max_retries=0, handler=handler)
@@ -206,6 +234,8 @@ def run(cohort: str, n_patients: int, per_class: int) -> dict:
     # per_trial is bookkeeping for the matched test; drop it from the saved report.
     baseline.pop("per_trial", None)
     verified.pop("per_trial", None)
+    scores = _observability(verified)
+    emit_scores(scores, session_id=session_id)  # no-op without Langfuse creds
     return {
         "cohort": cohort,
         "n_patients": len(subset),
@@ -213,6 +243,7 @@ def run(cohort: str, n_patients: int, per_class: int) -> dict:
         "verified": verified,
         "significance": sig,
         "coverage_curve": curve,
+        "observability": scores,
     }
 
 

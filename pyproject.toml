@@ -62,6 +62,13 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "I"]
 
+[tool.ruff.lint.per-file-ignores]
+# Test fixtures carry long inline medical-string/JSON literals; report-building
+# scripts emit long markdown table rows. Long lines there are intrinsic, not debt.
+"tests/*" = ["E501"]
+"scripts/*" = ["E501"]
+"src/trialguard/scripts/*" = ["E501"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]

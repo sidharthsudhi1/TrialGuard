@@ -28,7 +28,7 @@ def _split_criteria(raw: str) -> tuple[list[str], list[str]]:
     exc_match = exc_pattern.search(raw)
 
     def _parse_block(text: str) -> list[str]:
-        lines = [l.strip() for l in text.splitlines()]
+        lines = [ln.strip() for ln in text.splitlines()]
         criteria = []
         for line in lines:
             line = re.sub(r"^[\d\.\-\*\•]+\s*", "", line).strip()

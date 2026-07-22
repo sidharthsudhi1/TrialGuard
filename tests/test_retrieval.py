@@ -1,11 +1,8 @@
 import json
-import tempfile
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+from trialguard.eval.retrieval_metrics import mrr, ndcg_at_k, recall_at_k
 from trialguard.retrieval.fusion import rrf
-from trialguard.eval.retrieval_metrics import recall_at_k, mrr, ndcg_at_k
-
 
 # RRF tests
 
