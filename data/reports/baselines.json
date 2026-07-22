@@ -43,6 +43,13 @@
       "op": ">=",
       "threshold": 0.2,
       "desc": "guard against a regression that abstains on everything to fake faithfulness; measured 0.2671"
+    },
+    {
+      "metric": "prompt_registry_intact",
+      "source": "registry",
+      "op": ">=",
+      "threshold": 1.0,
+      "desc": "every live prompt registered and no frozen (v1/v2) prompt text has drifted from its recorded hash"
     }
   ]
 }

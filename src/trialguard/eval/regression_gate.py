@@ -76,10 +76,21 @@ def stress_test(cases: list[dict]) -> dict:
     }
 
 
-def _resolve(metric: str, report: dict, stress: dict) -> float:
-    """Resolve a dotted metric path against the stress result or the report dict."""
+def registry_check() -> dict:
+    """Prompt-registry invariants as a 0/1 gate metric (Phase 5 WS-6): 1.0 iff
+    every live prompt is registered and no frozen prompt's text has drifted."""
+    from trialguard.agent.analyst import registry_violations
+
+    violations = registry_violations()
+    return {"prompt_registry_intact": 0.0 if violations else 1.0, "_violations": violations}
+
+
+def _resolve(metric: str, report: dict, stress: dict, registry: dict) -> float:
+    """Resolve a dotted metric path against the stress/registry results or report."""
     if metric in stress:
         return float(stress[metric])
+    if metric in registry:
+        return float(registry[metric])
     node: object = report
     for part in metric.split("."):
         node = node[part]  # type: ignore[index]
@@ -101,10 +112,11 @@ def evaluate(baselines_path: Path = BASELINES, fixture_path: Path = FIXTURE) -> 
     cases = json.loads(fixture_path.read_text())["cases"]
     report = json.loads((Path(baselines["report"])).read_text())
     stress = stress_test(cases)
+    registry = registry_check()
 
     results = []
     for gate in baselines["gates"]:
-        value = _resolve(gate["metric"], report, stress)
+        value = _resolve(gate["metric"], report, stress, registry)
         ok = _passes(value, gate["op"], gate["threshold"])
         results.append(
             {

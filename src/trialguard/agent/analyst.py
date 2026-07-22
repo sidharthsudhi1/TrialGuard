@@ -97,6 +97,54 @@ Rules:
 
 _PROMPTS = {"v1": _SYSTEM_PROMPT_V1, "v2": _SYSTEM_PROMPT_V2, "v3": _SYSTEM_PROMPT_V3}
 
+# Prompt registry (Phase 5 WS-6): answers "which prompt produced this number" from
+# code, not archaeology. Each version's cache namespace is its own key discriminator
+# (see _cache_key), so versions never collide. `frozen` versions back committed
+# reports and must never be mutated in place; `sha16` is their recorded text hash,
+# and the CI gate fails red if a frozen prompt's text drifts from it — that is the
+# enforcement behind "additive, never destructive".
+PROMPT_REGISTRY = {
+    "v1": {
+        "frozen": True,
+        "sha16": "f16d7f119144b8c9",
+        "backs": ("phase3_agent*.json", "phase4_agent_sigir.json"),
+        "note": "Phase 3/4 baseline; cannot_determine encouraged. Default. Never invalidate.",
+    },
+    "v2": {
+        "frozen": True,
+        "sha16": "310cbad7ddb514e0",
+        "backs": ("phase4v2_*.json",),
+        "note": "Abstention-lowering: scan for a decisive fact before abstaining.",
+    },
+    "v3": {
+        "frozen": False,
+        "sha16": "8df76fe3077cff22",
+        "backs": (),
+        "note": "OWASP LLM01 hardened; segregates the fenced note as data. Effectiveness P2/quota.",
+    },
+}
+
+
+def prompt_hash(version: str) -> str:
+    return hashlib.sha256(_PROMPTS[version].encode()).hexdigest()[:16]
+
+
+def registry_violations() -> list[str]:
+    """Structural checks over the prompt registry, enforced by the CI gate:
+    every live prompt is registered, and no frozen prompt's text has drifted from
+    its recorded hash (mutating v1/v2 in place would silently break a committed
+    result's reproducibility)."""
+    out = []
+    for v in _PROMPTS:
+        if v not in PROMPT_REGISTRY:
+            out.append(f"prompt {v!r} is not in PROMPT_REGISTRY")
+    for v, spec in PROMPT_REGISTRY.items():
+        if v not in _PROMPTS:
+            out.append(f"registry version {v!r} has no prompt text")
+        elif spec["frozen"] and prompt_hash(v) != spec["sha16"]:
+            out.append(f"frozen prompt {v!r} text changed: {prompt_hash(v)} != {spec['sha16']}")
+    return out
+
 
 def prompt_version() -> str:
     """Active analyst prompt version. Additive: v1 stays the default so the
