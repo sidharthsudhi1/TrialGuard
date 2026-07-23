@@ -4,7 +4,7 @@
 
 > *Faithfulness is the product.* Every eligibility verdict is backed by a verified citation from the source trial, or explicitly flagged as unverifiable.
 
-Live demo: *(Phase 6 — not yet deployed)*
+Live demo: *(Gradio app built — `app.py`; HF Spaces deploy pending, see [`docs/deploy.md`](docs/deploy.md))*
 
 ---
 
@@ -127,7 +127,7 @@ On SIGIR the verification wrapper cuts hallucinated citations by ~64% (p=0.0012)
 | 3 — Eval harness + agent | ✅ Done | Self-verifying graph + significant faithfulness A/B (−64%, p=0.0012) |
 | 4 — Agent tuning | ✅ Done | v2 prompt cuts abstention ~8-9% at higher coverage and precision (3 cohorts); retrieval-aware retry transfers to TREC 2022 (unsupported −92%, p=0.0011); in-harness significance + coverage/faithfulness curve |
 | 5 — LLMOps & hardening | ✅ Done | CI regression gate (100% verifier catch rate + committed faithfulness floors + frozen-prompt hash, all offline/$0); Langfuse run-level quality scores + dashboard spec; Groq daily token-budget with graceful cached-only degradation; OWASP LLM hardening (out-of-band injection defense proven, output-schema validation, synthetic-data guard); prompt registry. pgvector-vs-managed benchmark compute-paced |
-| 6 — Demo & docs | ⬜ | Live HF Spaces demo + recorded walkthrough |
+| 6 — Demo & docs | 🚧 In progress | Gradio demo (`app.py`) + cost-engineering write-up + deploy guide done; HF Spaces deploy + recorded walkthrough user-gated |
 
 ---
 
@@ -161,6 +161,44 @@ TG_PROMPT_VERSION=v2 python -m trialguard.eval.agent_metrics --cohort sigir --ta
 ```
 
 > Groq free tier is capped at ~12k tokens/min and 100k tokens/day. A full agent A/B run exceeds the daily cap; the harness caches every analyst call by `(patient, trial, prompt_version)` and degrades gracefully on rate limits, so runs resume across days without re-spending. Set `TG_ANALYST_DELAY` to space calls under the TPM window.
+
+### Run the demo locally
+
+```bash
+pip install -e ".[demo]"
+python app.py    # Gradio UI on http://localhost:7860
+```
+
+Pick a synthetic patient or paste a synthetic note; the app retrieves candidate
+oncology trials (self-contained `FileIndex`, no database) and shows each criterion's
+verdict with its **verbatim citation** and a grounded / *unverifiable* badge — the
+faithfulness thesis made visible. Deploy to HF Spaces: [`docs/deploy.md`](docs/deploy.md).
+
+---
+
+## Cost engineering
+
+The **$0/month** stack is a deliberate constraint, not a limitation to apologise for
+— it forces every choice to be defensible and keeps the whole system reproducible by
+anyone who clones the repo.
+
+- **Inference:** Groq free tier (Llama 3.3 70B). A daily token budget
+  (`agent/ratelimit.py`) refuses calls past the cap instead of failing, and every
+  analyst call is cached by `(patient, trial, prompt_version)`, so a multi-day eval
+  spends each token once.
+- **Embeddings:** MedCPT (110M) on CPU/MPS — a one-time offline job, cached to `.npy`.
+- **Verification:** deterministic quote grounding is pure Python. The faithfulness
+  guarantee costs nothing and cannot be rate-limited.
+- **Vector store:** pgvector on Neon free tier for production; numpy `FileIndex` for
+  eval and the demo. The free-tier 512 MB ceiling — not query speed — is why the two
+  are split ([`phase5_vectorstore.md`](data/reports/phase5_vectorstore.md)).
+- **CI:** the regression gate runs on committed artifacts only, so it needs no Groq
+  calls and stays free on GitHub Actions.
+- **Serving:** Gradio on a free HF Spaces CPU; MedCPT runs on CPU, inference is hosted.
+
+The cost target shaped the architecture: caching-first everything, a deterministic
+verifier instead of a paid LLM judge, and an eval harness that resumes across days
+under the free-tier quota.
 
 ---
 

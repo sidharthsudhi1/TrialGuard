@@ -51,6 +51,9 @@ dev = [
     "ruff>=0.6",
     "mypy>=1.11",
 ]
+demo = [
+    "gradio>=4.0",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
