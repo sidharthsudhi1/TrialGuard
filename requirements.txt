@@ -1,0 +1,5 @@
+# Hugging Face Spaces installs from this file. Installs the TrialGuard package
+# (pyproject) plus the Gradio demo UI. Retrieval runs on the bundled FileIndex
+# embeddings, so no database is needed at runtime.
+.
+gradio>=4.0
