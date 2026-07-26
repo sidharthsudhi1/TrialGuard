@@ -1,46 +1,27 @@
-"""BM25 retrieval using rank-bm25. Index built in-memory, cached per source."""
+"""Lexical retrieval via Postgres full-text search (tsvector + GIN).
+
+Ranks with ts_rank_cd over the generated doc_tsv column (title + inclusion +
+exclusion). Lexical search runs in the DB against a GIN index, so it scales with
+the corpus instead of rebuilding an in-memory BM25 index from a full table scan on
+every cold start. Keeps the (nct_id, score) contract the RRF fusion expects.
+
+Named bm25_search for the fusion interface; ts_rank_cd is not Okapi BM25 (no IDF
+saturation / length normalization), so ranking is re-validated against gold before
+it is trusted (PHASE7 WS-4).
+"""
 
 from __future__ import annotations
 
-import re
-from functools import lru_cache
-
 from trialguard.db.schema import get_conn
 
-
-def _tokenize(text: str) -> list[str]:
-    text = text.lower()
-    text = re.sub(r"[^a-z0-9\s]", " ", text)
-    return text.split()
-
-
-def _load_corpus(source: str | None) -> tuple[list[str], list[str]]:
-    """Return (nct_ids, tokenized_docs) for given source scope."""
-    sql = """
-    SELECT nct_id,
-           title || ' ' || array_to_string(inclusion_criteria, ' ')
-    FROM trials
-    WHERE embedding IS NOT NULL
-    {clause}
-    ORDER BY nct_id;
-    """.format(clause="AND source = %s" if source else "")
-
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute(sql, (source,) if source else ())
-        rows = cur.fetchall()
-
-    nct_ids = [r[0] for r in rows]
-    docs = [_tokenize(r[1] or "") for r in rows]
-    return nct_ids, docs
-
-
-@lru_cache(maxsize=8)
-def _get_index(source: str | None):
-    from rank_bm25 import BM25Okapi  # type: ignore
-
-    nct_ids, docs = _load_corpus(source)
-    index = BM25Okapi(docs)
-    return nct_ids, index
+SQL = """
+SELECT nct_id, ts_rank_cd(doc_tsv, query) AS score
+FROM trials, websearch_to_tsquery('english', %(q)s) AS query
+WHERE doc_tsv @@ query
+{source_clause}
+ORDER BY score DESC
+LIMIT %(top_k)s;
+"""
 
 
 def bm25_search(
@@ -48,18 +29,14 @@ def bm25_search(
     top_k: int = 50,
     source: str | None = None,
 ) -> list[tuple[str, float]]:
-    """Return (nct_id, bm25_score) sorted descending."""
-    nct_ids, index = _get_index(source)
-    tokens = _tokenize(query_text)
-    scores = index.get_scores(tokens)
+    """Return (nct_id, ts_rank_cd score) sorted descending."""
+    source_clause = "AND source = %(source)s" if source else ""
+    sql = SQL.format(source_clause=source_clause)
 
-    ranked = sorted(
-        zip(nct_ids, scores.tolist()),
-        key=lambda x: x[1],
-        reverse=True,
-    )
-    return ranked[:top_k]
+    params: dict = {"q": query_text, "top_k": top_k}
+    if source:
+        params["source"] = source
 
-
-def invalidate_cache() -> None:
-    _get_index.cache_clear()
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute(sql, params)
+        return [(row[0], float(row[1])) for row in cur.fetchall()]
