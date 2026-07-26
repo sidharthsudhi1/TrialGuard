@@ -7,6 +7,14 @@ from trialguard.config import settings
 DDL = """
 CREATE EXTENSION IF NOT EXISTS vector;
 
+CREATE OR REPLACE FUNCTION trials_doc_tsv(_title text, _incl text[], _excl text[])
+RETURNS tsvector LANGUAGE sql IMMUTABLE AS $func$
+    SELECT to_tsvector('english',
+        coalesce(_title, '') || ' ' ||
+        coalesce(array_to_string(_incl, ' '), '') || ' ' ||
+        coalesce(array_to_string(_excl, ' '), ''))
+$func$;
+
 CREATE TABLE IF NOT EXISTS trials (
     nct_id              TEXT PRIMARY KEY,
     title               TEXT,
@@ -24,6 +32,9 @@ CREATE TABLE IF NOT EXISTS trials (
     last_updated        TEXT,
     embedding           VECTOR(768),
     metadata            JSONB,
+    doc_tsv             TSVECTOR GENERATED ALWAYS AS (
+        trials_doc_tsv(title, inclusion_criteria, exclusion_criteria)
+    ) STORED,
     source              TEXT DEFAULT 'ctgov_live',
     ingested_at         TIMESTAMPTZ DEFAULT NOW()
 );
@@ -32,7 +43,10 @@ CREATE INDEX IF NOT EXISTS trials_source_idx ON trials(source);
 
 CREATE INDEX IF NOT EXISTS trials_embedding_idx
     ON trials USING ivfflat (embedding vector_cosine_ops)
-    WITH (lists = 55);
+    WITH (lists = 161);
+
+CREATE INDEX IF NOT EXISTS trials_doc_tsv_idx
+    ON trials USING gin (doc_tsv);
 
 CREATE TABLE IF NOT EXISTS eval_patients (
     patient_id   TEXT,
