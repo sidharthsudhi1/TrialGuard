@@ -30,11 +30,21 @@ def run(max_trials: int, skip_trials: bool, skip_eval: bool) -> None:
     init_schema()
 
     if not skip_trials:
+        # Resume: skip trials already embedded so a re-run after a mid-ingest
+        # failure does not re-embed what is already loaded.
+        from trialguard.db.schema import get_conn
+
+        with get_conn() as _c, _c.cursor() as _cur:
+            _cur.execute("SELECT nct_id FROM trials WHERE embedding IS NOT NULL")
+            existing = {r[0] for r in _cur.fetchall()}
         console.print(f"Pulling up to {max_trials} oncology trials from CT.gov...")
+        console.print(f"  {len(existing)} already loaded — skipping those.")
         batch: list[dict] = []
         total = 0
 
         for trial in fetch_oncology_trials(max_trials=max_trials):
+            if trial["nct_id"] in existing:
+                continue
             trial = normalise_trial(trial)
             batch.append(trial)
 

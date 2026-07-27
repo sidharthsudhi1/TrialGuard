@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import time
 
+import psycopg2
 import psycopg2.extras
 
 from trialguard.db.schema import get_conn
@@ -68,8 +70,17 @@ def upsert_trials(trials: list[dict], source: str = "ctgov_live") -> int:
             "source": t.get("source", source),
         })
 
-    with get_conn() as conn, conn.cursor() as cur:
-        psycopg2.extras.execute_batch(cur, UPSERT_SQL, rows, page_size=100)
-        conn.commit()
+    # Retry transient Neon drops (OperationalError/InterfaceError) with a fresh
+    # connection; the upsert is idempotent (ON CONFLICT), so a retry is safe.
+    for attempt in range(3):
+        try:
+            with get_conn() as conn, conn.cursor() as cur:
+                psycopg2.extras.execute_batch(cur, UPSERT_SQL, rows, page_size=100)
+                conn.commit()
+            return len(rows)
+        except (psycopg2.OperationalError, psycopg2.InterfaceError):
+            if attempt == 2:
+                raise
+            time.sleep(2 ** attempt)
 
     return len(rows)

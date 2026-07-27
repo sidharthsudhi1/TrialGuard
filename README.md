@@ -53,15 +53,18 @@ Phase 6.
 
 | Component | Technology | Cost |
 |---|---|---|
-| Orchestration | LangGraph | $0 |
-| LLM inference | Groq free tier (Llama 3.3 70B) | $0 |
-| Embeddings | MedCPT (768-dim, NCBI) on CPU/MPS | $0 |
-| Lexical retrieval | BM25 (`rank-bm25`), RRF fusion | $0 |
-| Vector store | pgvector on Neon free tier (production); numpy file index (eval) | $0 |
-| Verification | deterministic quote grounding (pure Python) | $0 |
-| Tracing | Langfuse free tier | $0 |
-| Demo hosting | Hugging Face Spaces | $0 |
-| **Total** | | **$0/month** |
+| Orchestration | LangGraph | free |
+| LLM inference | Groq free tier (Llama 3.3 70B) | free tier |
+| Embeddings | MedCPT (768-dim, NCBI) on CPU/MPS | free (local) |
+| Lexical retrieval | Postgres FTS (production); BM25 `rank-bm25` (eval); RRF fusion | free |
+| Vector store | pgvector on Neon (production); numpy file index (eval/demo) | **paid (Neon)** |
+| Verification | deterministic quote grounding (pure Python) | free |
+| Tracing | Langfuse free tier | free tier |
+| Demo hosting | Hugging Face Spaces | free tier |
+
+The demo, eval, and inference run entirely on free tiers. The production vector
+store is the one paid line: the 26k-trial oncology corpus (531 MB) exceeds Neon's
+512 MB free ceiling, so production pgvector runs on a paid Neon instance.
 
 ---
 
@@ -79,7 +82,7 @@ All patient profiles in demos are **synthetic**. No real patient data enters thi
 
 ## Measured results
 
-Full reports: [`data/reports/phase2_3_results.md`](data/reports/phase2_3_results.md) (Phase 2/3), [`data/reports/phase4_agent.md`](data/reports/phase4_agent.md) (Phase 4). All numbers reproduced from code, $0 (Groq free tier + local embeddings).
+Full reports: [`data/reports/phase2_3_results.md`](data/reports/phase2_3_results.md) (Phase 2/3), [`data/reports/phase4_agent.md`](data/reports/phase4_agent.md) (Phase 4). All numbers reproduced from code, free to rerun (Groq free tier + local embeddings).
 
 **Phase 4 (in progress):** the faithfulness A/B p-value is now computed in-harness (`eval/significance.py`) instead of by hand; abstention vs citation-precision is reported as a swept curve, not a single point (`min_tokens=2` sits at the knee, and abstention is analyst-driven, not a grounding artifact); the retry is now retrieval-aware (hands the analyst the exact source span for failed criteria); and the analyst prompt is additively versioned (v1 default preserves the Phase 3 cache, v2 targets over-abstention). Full v2 and TREC retry A/B runs are quota-paced behind the Groq daily cap — code complete, tokens are the gate.
 
@@ -127,7 +130,8 @@ On SIGIR the verification wrapper cuts hallucinated citations by ~64% (p=0.0012)
 | 3 — Eval harness + agent | ✅ Done | Self-verifying graph + significant faithfulness A/B (−64%, p=0.0012) |
 | 4 — Agent tuning | ✅ Done | v2 prompt cuts abstention ~8-9% at higher coverage and precision (3 cohorts); retrieval-aware retry transfers to TREC 2022 (unsupported −92%, p=0.0011); in-harness significance + coverage/faithfulness curve |
 | 5 — LLMOps & hardening | ✅ Done | CI regression gate (100% verifier catch rate + committed faithfulness floors + frozen-prompt hash, all offline/$0); Langfuse run-level quality scores + dashboard spec; Groq daily token-budget with graceful cached-only degradation; OWASP LLM hardening (out-of-band injection defense proven, output-schema validation, synthetic-data guard); prompt registry. pgvector-vs-managed benchmark compute-paced |
-| 6 — Demo & docs | 🚧 In progress | Gradio demo (`app.py`) + cost-engineering write-up + deploy guide done; HF Spaces deploy + recorded walkthrough user-gated |
+| 6 — Demo & docs | ✅ Done | Gradio demo (`app.py`) + cost-engineering write-up + deploy guide; HF Spaces deploy + recorded walkthrough user-gated |
+| 7 — Production corpus | ✅ Done | 25,965 recruiting oncology trials in pgvector; lexical BM25 → Postgres FTS (tsvector + GIN, indexes exclusion too); hybrid stack validated vs gold (recall@100 non-regressing, recall@10 +0.043); ivfflat probes retuned 20→40; resumable ingest + safe corpus refresh. Report: [`data/reports/phase7_retrieval.md`](data/reports/phase7_retrieval.md) |
 
 ---
 
@@ -176,11 +180,11 @@ faithfulness thesis made visible. Deploy to HF Spaces: [`docs/deploy.md`](docs/d
 
 ---
 
-## Cost engineering
+## Stack & cost
 
-The **$0/month** stack is a deliberate constraint, not a limitation to apologise for
-— it forces every choice to be defensible and keeps the whole system reproducible by
-anyone who clones the repo.
+The stack leans on free tiers and local compute; the production vector store is the
+one paid component. Caching-first everything and a deterministic verifier (not a paid
+LLM judge) keep the paid footprint to a single small database.
 
 - **Inference:** Groq free tier (Llama 3.3 70B). A daily token budget
   (`agent/ratelimit.py`) refuses calls past the cap instead of failing, and every
@@ -189,16 +193,14 @@ anyone who clones the repo.
 - **Embeddings:** MedCPT (110M) on CPU/MPS — a one-time offline job, cached to `.npy`.
 - **Verification:** deterministic quote grounding is pure Python. The faithfulness
   guarantee costs nothing and cannot be rate-limited.
-- **Vector store:** pgvector on Neon free tier for production; numpy `FileIndex` for
-  eval and the demo. The free-tier 512 MB ceiling — not query speed — is why the two
-  are split ([`phase5_vectorstore.md`](data/reports/phase5_vectorstore.md)).
+- **Vector store:** pgvector on a paid Neon instance for production (the 26k-trial
+  corpus is 531 MB, over the 512 MB free ceiling); numpy `FileIndex` for eval and the
+  demo, which stay free. The size ceiling — not query speed — is why the two are
+  split ([`phase5_vectorstore.md`](data/reports/phase5_vectorstore.md)).
 - **CI:** the regression gate runs on committed artifacts only, so it needs no Groq
   calls and stays free on GitHub Actions.
-- **Serving:** Gradio on a free HF Spaces CPU; MedCPT runs on CPU, inference is hosted.
-
-The cost target shaped the architecture: caching-first everything, a deterministic
-verifier instead of a paid LLM judge, and an eval harness that resumes across days
-under the free-tier quota.
+- **Serving:** Gradio on a free HF Spaces CPU (numpy `FileIndex`, no database); MedCPT
+  runs on CPU, inference is hosted.
 
 ---
 
@@ -222,6 +224,7 @@ under the free-tier quota.
 | AD-5 | MedCPT (768-dim) embeddings on CPU/MPS | MiniLM (0.49 recall ceiling), BGE (same ceiling), hosted API |
 | AD-6 | pgvector (production) + numpy file index (eval) | Load 26k eval trials into Neon free tier (too small) |
 | AD-6 (amended, Phase 5) | Benchmark ([`phase5_vectorstore.md`](data/reports/phase5_vectorstore.md)) confirms the split: numpy brute is exact and sub-ms at eval scale, and the free-tier 512 MB ceiling (full corpus ≈ 1.5 GB of vectors) is the real driver. Amendment: production ivfflat at default `probes=1` loses ~64% recall vs exact; `dense_search` now sets `ivfflat.probes` (default 20) to recover it at near-flat latency | Silent default-probes recall loss; managed alternative (size ceiling, not engine, is binding) |
+| AD-6 (amended, Phase 7) | Neon upgraded off the free tier; production `ctgov_live` populated with 25,965 recruiting oncology trials (531 MB, over the 512 MB free ceiling). Lexical moved from in-memory BM25 to Postgres FTS (tsvector + GIN) to serve at corpus scale; `probes` retuned to 40 (20 recovered only ~62% of exact). See [`phase7_retrieval.md`](data/reports/phase7_retrieval.md) | Staying on the free tier (corpus no longer fits); keeping in-memory BM25 (rebuilt per process, doesn't scale) |
 | AD-7 | Groq free-tier hosted open model | Local quantised LLM, paid frontier API |
 | AD-8 | Langfuse tracing from day one | Add logging later, print statements |
 | AD-9 | Kaggle/Colab for batch jobs only | Always-on GPU, local only |
