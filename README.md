@@ -128,7 +128,7 @@ On SIGIR the verification wrapper cuts hallucinated citations by ~64% (p=0.0012)
 | 4 — Agent tuning | ✅ Done | v2 prompt cuts abstention ~8-9% at higher coverage and precision (3 cohorts); retrieval-aware retry transfers to TREC 2022 (unsupported −92%, p=0.0011); in-harness significance + coverage/faithfulness curve |
 | 5 — LLMOps & hardening | ✅ Done | CI regression gate (100% verifier catch rate + committed faithfulness floors + frozen-prompt hash, all offline/$0); Langfuse run-level quality scores + dashboard spec; Groq daily token-budget with graceful cached-only degradation; OWASP LLM hardening (out-of-band injection defense proven, output-schema validation, synthetic-data guard); prompt registry. pgvector-vs-managed benchmark compute-paced |
 | 6 — Demo & docs | ✅ Done | Gradio demo (`app.py`) + cost-engineering write-up + deploy guide; HF Spaces deploy + recorded walkthrough user-gated |
-| 7 — Production corpus | 🚧 In progress | Load ~26k recruiting oncology trials into pgvector; migrate production lexical BM25 → Postgres FTS (tsvector + GIN) for corpus-scale serving; validate hybrid stack vs gold. Plan: [`PHASE7.md`](PHASE7.md) |
+| 7 — Production corpus | ✅ Done | 25,965 recruiting oncology trials in pgvector; lexical BM25 → Postgres FTS (tsvector + GIN, indexes exclusion too); hybrid stack validated vs gold (recall@100 non-regressing, recall@10 +0.043); ivfflat probes retuned 20→40; resumable ingest + safe corpus refresh. Report: [`data/reports/phase7_retrieval.md`](data/reports/phase7_retrieval.md) |
 
 ---
 
