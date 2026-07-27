@@ -67,7 +67,15 @@ CREATE TABLE IF NOT EXISTS eval_labels (
 
 
 def get_conn():
-    return psycopg2.connect(settings.database_url)
+    # Keepalives so long ingest runs don't get silently dropped by the Neon
+    # serverless proxy mid-statement (observed: SSL SYSCALL timeout at ~18k rows).
+    return psycopg2.connect(
+        settings.database_url,
+        keepalives=1,
+        keepalives_idle=30,
+        keepalives_interval=10,
+        keepalives_count=5,
+    )
 
 
 def init_schema() -> None:
