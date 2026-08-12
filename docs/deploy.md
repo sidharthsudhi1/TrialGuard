@@ -40,6 +40,13 @@ merge=lfs -text`).
 ## Secrets (Space settings → Secrets)
 
 - `GROQ_API_KEY` — required (analyst + keyword extraction).
+
+> **Provider:** `app.py` pins `LLM_PROVIDER=groq` so the Space stays on the free
+> tier. The project default is DeepInfra (metered) since Phase 8, which is right
+> for eval and wrong for a public demo — unbounded traffic against a paid host is
+> a billing incident. Do **not** set `DEEPINFRA_API_KEY` as a Space secret unless
+> you intend a metered demo, in which case also set `DAILY_USD_CAP` and read the
+> quota note below.
 - `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` — optional (tracing/scores; the app is
   a no-op without them).
 

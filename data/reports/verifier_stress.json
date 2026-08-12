@@ -1,0 +1,7 @@
+{
+  "_doc": "Committed output of the deterministic grounding stress test (eval/regression_gate.stress_test). Recomputed every CI run from tests/fixtures/grounding_golden.json; this file is the artifact the README cites so the catch-rate claim cannot drift from the code. Refresh with: python -m trialguard.eval.regression_gate --write-stress",
+  "verifier_catch_rate": 1.0,
+  "verifier_false_rejection_rate": 0.0,
+  "n_corrupted": 51,
+  "n_genuine": 14
+}
