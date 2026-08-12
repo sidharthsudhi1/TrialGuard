@@ -86,6 +86,73 @@ def test_new_day_resets_spend(tmp_path, monkeypatch):
     assert not led.exhausted()
 
 
+# --- Per-day history ----------------------------------------------------------
+# The daily counter must reset (usd_cap means per day), but resetting used to
+# destroy the closing day outright: the ledger could answer "how much today" and
+# never "how much has this project spent". The only surviving record of one
+# earlier day was a number copied into a report by hand.
+
+
+def test_rollover_banks_the_closing_day(tmp_path, monkeypatch):
+    led = _ledger(tmp_path, usd_cap=1.0)
+    monkeypatch.setattr(ratelimit, "_today", lambda: "2026-08-02")
+    led.record(_usage(1000, 500, usd=0.04), *DEEPINFRA)
+
+    monkeypatch.setattr(ratelimit, "_today", lambda: "2026-08-11")
+    led.record(_usage(2000, 1000, usd=0.02), *DEEPINFRA)
+
+    s = led.summary()
+    assert s["usd"] == pytest.approx(0.02)  # today only
+    assert s["history"]["2026-08-02"]["usd"] == pytest.approx(0.04)
+    assert s["history"]["2026-08-02"]["calls"] == 1
+
+
+def test_history_survives_multiple_rollovers(tmp_path, monkeypatch):
+    led = _ledger(tmp_path, usd_cap=1.0)
+    for day, usd in (("2026-08-01", 0.01), ("2026-08-02", 0.02), ("2026-08-03", 0.03)):
+        monkeypatch.setattr(ratelimit, "_today", lambda d=day: d)
+        led.record(_usage(usd=usd), *DEEPINFRA)
+    monkeypatch.setattr(ratelimit, "_today", lambda: "2026-08-04")
+    assert sorted(led.summary()["history"]) == ["2026-08-01", "2026-08-02", "2026-08-03"]
+
+
+def test_lifetime_includes_today(tmp_path, monkeypatch):
+    """Today is live and not yet banked, so summing history alone undercounts."""
+    led = _ledger(tmp_path, usd_cap=1.0)
+    monkeypatch.setattr(ratelimit, "_today", lambda: "2026-08-02")
+    led.record(_usage(usd=0.04), *DEEPINFRA)
+    monkeypatch.setattr(ratelimit, "_today", lambda: "2026-08-11")
+    led.record(_usage(usd=0.02), *DEEPINFRA)
+    lt = led.summary()["lifetime"]
+    assert lt["usd"] == pytest.approx(0.06)
+    assert lt["calls"] == 2
+    assert lt["days"] == 2
+
+
+def test_cap_still_enforced_on_today_alone(tmp_path, monkeypatch):
+    """History must not feed the circuit breaker: accumulated lifetime spend
+    crossing the daily cap would wedge the ledger permanently."""
+    led = _ledger(tmp_path, usd_cap=0.05)
+    monkeypatch.setattr(ratelimit, "_today", lambda: "2026-08-02")
+    led.record(_usage(usd=0.049), *DEEPINFRA)
+    monkeypatch.setattr(ratelimit, "_today", lambda: "2026-08-11")
+    led.check(1000, *DEEPINFRA)  # yesterday's 0.049 must not count against today
+    assert led.remaining_usd() == pytest.approx(0.05)
+
+
+def test_empty_day_is_not_banked(tmp_path, monkeypatch):
+    """A day with no calls is absence of spend, not a $0 measurement."""
+    led = _ledger(tmp_path, usd_cap=1.0)
+    monkeypatch.setattr(ratelimit, "_today", lambda: "2026-08-02")
+    led.record(_usage(usd=0.01), *DEEPINFRA)
+    for day in ("2026-08-03", "2026-08-04"):
+        monkeypatch.setattr(ratelimit, "_today", lambda d=day: d)
+        led.summary()  # reads only, no calls recorded
+    monkeypatch.setattr(ratelimit, "_today", lambda: "2026-08-05")
+    led.record(_usage(usd=0.01), *DEEPINFRA)
+    assert sorted(led.summary()["history"]) == ["2026-08-02"]
+
+
 # --- Pricing ------------------------------------------------------------------
 
 

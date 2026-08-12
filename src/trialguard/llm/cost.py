@@ -125,11 +125,39 @@ class CostLedger:
         self.token_cap = token_cap
 
     def _load(self) -> dict:
+        """Today's counter, carrying the accumulated per-day history forward.
+
+        The daily fields reset on rollover because `usd_cap` means *per day* — a
+        counter that never reset would trip permanently after a few days' use.
+        But resetting used to destroy the previous day outright, so the ledger
+        could answer "how much today" and never "how much has this project
+        spent". `history` keeps the per-day record the cost story needs; the
+        enforcement path still reads only the daily fields.
+        """
+        today = ratelimit._today()
         if self.path.exists():
             data = json.loads(self.path.read_text())
-            if data.get("date") == ratelimit._today():
+            history = data.get("history", {})
+            if data.get("date") == today:
+                data["history"] = history
                 return data
-        return {"date": ratelimit._today(), "usd": 0.0, "tokens": 0, "calls": 0, "by_model": {}}
+            # Rollover: bank the closing day before zeroing the counter.
+            if data.get("calls"):
+                history[data["date"]] = {
+                    "usd": data.get("usd", 0.0),
+                    "tokens": data.get("tokens", 0),
+                    "calls": data.get("calls", 0),
+                }
+        else:
+            history = {}
+        return {
+            "date": today,
+            "usd": 0.0,
+            "tokens": 0,
+            "calls": 0,
+            "by_model": {},
+            "history": history,
+        }
 
     def spent_usd(self) -> float:
         return self._load()["usd"]
@@ -199,6 +227,15 @@ class CostLedger:
 
     def summary(self) -> dict:
         d = self._load()
+        history = d.get("history", {})
+        # Today is live and not yet banked into history, so add it explicitly
+        # rather than summing history alone.
+        lifetime = {
+            "usd": round(sum(v["usd"] for v in history.values()) + d["usd"], 6),
+            "tokens": sum(v["tokens"] for v in history.values()) + d["tokens"],
+            "calls": sum(v["calls"] for v in history.values()) + d["calls"],
+            "days": len(history) + (1 if d["calls"] else 0),
+        }
         return {
             "date": d["date"],
             "usd": round(d["usd"], 6),
@@ -206,6 +243,8 @@ class CostLedger:
             "tokens": d["tokens"],
             "calls": d["calls"],
             "by_model": d["by_model"],
+            "history": history,
+            "lifetime": lifetime,
         }
 
 
