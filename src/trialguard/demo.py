@@ -16,7 +16,7 @@ from __future__ import annotations
 import functools
 
 DEMO_COHORT = "sigir"
-TOP_K = 5
+TOP_K = 3
 MAX_CRITERIA = 12
 
 _BADGE = {
@@ -29,6 +29,13 @@ _VERDICT = {
     "not_met": "❌ not met",
     "cannot_determine": "🟡 cannot determine",
     "unverifiable": "⚠️ unverifiable",
+}
+# CT.gov enrollment status → display. Empty for eval trials (SIGIR carries no
+# status), so the badge only appears on the live ctgov_live corpus.
+_STATUS = {
+    "RECRUITING": "🟢 recruiting",
+    "NOT_YET_RECRUITING": "🟡 opens soon",
+    "ENROLLING_BY_INVITATION": "🔵 by invitation",
 }
 
 
@@ -68,6 +75,7 @@ def retrieve_trials(note: str, top_k: int = TOP_K) -> list[dict]:
                 "score": round(float(score), 4),
                 "criteria": criteria,
                 "source_text": t.get("eligibility_raw", ""),
+                "status": t.get("status"),
             }
         )
     return out
@@ -87,6 +95,7 @@ def assess_note(note: str, top_k: int = TOP_K) -> dict:
             {
                 "nct_id": tr["nct_id"],
                 "score": tr["score"],
+                "status": tr.get("status"),
                 "trial_verdict": state.get("trial_verdict", "cannot_determine"),
                 "assessments": state.get("assessments", []),
             }
@@ -103,7 +112,11 @@ def render(result: dict) -> str:
     lines = [f"### {len(results)} candidate trials assessed\n"]
     for r in results:
         badge = _BADGE.get(r["trial_verdict"], r["trial_verdict"])
-        lines.append(f"#### {r['nct_id']} — {badge}")
+        status = _STATUS.get((r.get("status") or "").upper(), "")
+        header = f"#### {r['nct_id']} — {badge}"
+        if status:
+            header += f"  <sub>{status}</sub>"
+        lines.append(header)
         lines.append(f"<sub>retrieval score {r['score']}</sub>\n")
         for a in r["assessments"]:
             verdict = _VERDICT.get(a.get("verdict", ""), a.get("verdict", ""))
@@ -177,7 +190,13 @@ def build_ui():
                 "else cannot determine."
             )
         preset.change(lambda p: preset_map.get(p, ""), inputs=preset, outputs=note)
-        go.click(run, inputs=note, outputs=out)
+        # Show an immediate status before the (multi-second) Groq round trips, so the
+        # button never looks frozen; then run and replace it with the result.
+        go.click(
+            lambda: "⏳ Retrieving trials and assessing criteria… "
+            "(first query also loads the retrieval model; this can take 10–30s)",
+            outputs=out,
+        ).then(run, inputs=note, outputs=out)
     return demo
 
 

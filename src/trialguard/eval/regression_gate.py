@@ -19,6 +19,7 @@ from trialguard.verify.grounding import is_grounded, normalize
 
 FIXTURE = Path("tests/fixtures/grounding_golden.json")
 BASELINES = Path("data/reports/baselines.json")
+STRESS_ARTIFACT = Path("data/reports/verifier_stress.json")
 
 # short function/stop words carry no clinical signal; corrupting them would be a
 # weak test, and some (e.g. "of") are ubiquitous enough to reappear by chance.
@@ -131,8 +132,37 @@ def evaluate(baselines_path: Path = BASELINES, fixture_path: Path = FIXTURE) -> 
     return {"passed": all(r["passed"] for r in results), "results": results, "stress": stress}
 
 
+def write_stress_artifact(
+    stress: dict | None = None, path: Path = STRESS_ARTIFACT
+) -> dict:
+    """Persist the live stress-test numbers so README claims cite a real artifact."""
+    if stress is None:
+        cases = json.loads(FIXTURE.read_text())["cases"]
+        stress = stress_test(cases)
+    payload = {
+        "_doc": (
+            "Committed output of the deterministic grounding stress test "
+            "(eval/regression_gate.stress_test). Recomputed every CI run from "
+            "tests/fixtures/grounding_golden.json; this file is the artifact the "
+            "README cites so the catch-rate claim cannot drift from the code. "
+            "Refresh with: python -m trialguard.eval.regression_gate --write-stress"
+        ),
+        "verifier_catch_rate": stress["verifier_catch_rate"],
+        "verifier_false_rejection_rate": stress["verifier_false_rejection_rate"],
+        "n_corrupted": stress["n_corrupted"],
+        "n_genuine": stress["n_genuine"],
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2) + "\n")
+    return payload
+
+
 def main() -> None:
+    write = "--write-stress" in sys.argv
     outcome = evaluate()
+    if write:
+        write_stress_artifact(outcome["stress"])
+        print(f"Wrote {STRESS_ARTIFACT}")
     print(f"Regression gate — report: {json.loads(BASELINES.read_text())['report']}")
     print(
         f"Stress test: catch_rate={outcome['stress']['verifier_catch_rate']:.4f} "

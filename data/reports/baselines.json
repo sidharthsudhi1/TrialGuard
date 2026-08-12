@@ -1,6 +1,6 @@
 {
-  "_doc": "Committed regression floors for the Phase 5 CI gate (eval/regression_gate.py). The gate reads the named report + the deterministic grounding stress test and fails the build (exit 1) if any metric crosses its threshold. Thresholds are set with headroom below the measured value so ordinary run-to-run noise does not flap the build, but a real regression (weakened grounding, lost significance, abstain-on-everything) trips it. Update deliberately, with the report that justifies the change, never to make a red build pass.",
-  "report": "data/reports/phase4_agent_sigir.json",
+  "_doc": "Committed regression floors for the Phase 5 CI gate (eval/regression_gate.py). The gate reads the named report + the deterministic grounding stress test and fails the build (exit 1) if any metric crosses its threshold. Thresholds are set with headroom below the measured value so ordinary run-to-run noise does not flap the build, but a real regression (weakened grounding, lost significance, abstain-on-everything) trips it. Update deliberately, with the report that justifies the change, never to make a red build pass. Anchored to Phase 8 DeepInfra SIGIR (180/180 trials) after Phase 4's rate-limited truncation (60/180) stopped being the current quality floor.",
+  "report": "data/reports/phase8di_agent_sigir.json",
   "gates": [
     {
       "metric": "verifier_catch_rate",
@@ -21,28 +21,28 @@
       "source": "report",
       "op": "<=",
       "threshold": 0.05,
-      "desc": "verified-arm hallucinated-citation proxy; measured 0.0084, ceiling well above noise"
+      "desc": "verified-arm hallucinated-citation proxy; measured 0.0287 on phase8di SIGIR"
     },
     {
       "metric": "significance.fisher_p",
       "source": "report",
       "op": "<=",
       "threshold": 0.05,
-      "desc": "faithfulness A/B must stay significant; measured 0.0193"
+      "desc": "faithfulness A/B must stay significant; measured 0.0004"
     },
     {
       "metric": "significance.relative_change",
       "source": "report",
       "op": "<=",
       "threshold": -0.3,
-      "desc": "verified must cut unsupported rate by at least 30%; measured -0.8842"
+      "desc": "verified must cut unsupported rate by at least 30%; measured -0.6855"
     },
     {
       "metric": "baseline.coverage",
       "source": "report",
       "op": ">=",
       "threshold": 0.2,
-      "desc": "guard against a regression that abstains on everything to fake faithfulness; measured 0.2671"
+      "desc": "guard against a regression that abstains on everything to fake faithfulness; measured 0.2958"
     },
     {
       "metric": "prompt_registry_intact",

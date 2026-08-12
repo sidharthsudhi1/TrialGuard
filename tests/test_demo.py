@@ -1,3 +1,4 @@
+import os
 from unittest.mock import patch
 
 from trialguard import demo
@@ -69,3 +70,38 @@ def test_run_handles_rate_limit():
     with patch.object(demo, "assess_note", side_effect=Exception("429 rate_limit")):
         out = demo.run("some synthetic note")
     assert "rate limit" in out.lower()
+
+
+def test_demo_entrypoint_pins_the_free_tier():
+    """app.py must resolve to Groq even with no .env and no LLM_PROVIDER set.
+
+    Phase 8 moved the project default to a metered provider, which is right for
+    eval and wrong for a public demo: unbounded traffic against a paid host is a
+    billing incident, and the README's $0 claim should not depend on remembering
+    to set a Space secret. Run in a subprocess with a scrubbed environment
+    because the pin is a module-level os.environ.setdefault, and this repo's own
+    .env would otherwise mask exactly the condition being tested.
+    """
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    env = {
+        k: v
+        for k, v in os.environ.items()
+        if k not in ("LLM_PROVIDER", "DEEPINFRA_API_KEY", "TG_ANALYST_DELAY")
+    }
+    code = (
+        "import app;"  # noqa: F401 — import triggers the env pin
+        "from trialguard.config import Settings;"
+        "import trialguard.config as c;"
+        "c.settings = Settings(_env_file=None);"
+        "from trialguard.llm.provider import active_provider;"
+        "print(active_provider())"
+    )
+    out = subprocess.run(
+        [sys.executable, "-c", code], cwd=root, env=env, capture_output=True, text=True
+    )
+    assert out.returncode == 0, out.stderr
+    assert out.stdout.strip().endswith("groq"), out.stdout

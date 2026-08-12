@@ -152,9 +152,29 @@ def prompt_version() -> str:
     return os.environ.get("TG_PROMPT_VERSION", "v1")
 
 
+# The (provider, model) pair that produced every committed analyst cache entry.
+# Phase 3/4 results are reproduced from those files, so this pair must keep
+# emitting the original key format forever. This branch is load-bearing for
+# reproducibility, not a transitional wart to be refactored away.
+LEGACY_PAIR = ("groq", "llama-3.3-70b-versatile")
+
+
 def _cache_key(patient_note: str, nct_id: str) -> str:
-    h = hashlib.sha256(f"{prompt_version()}|{nct_id}|{patient_note}".encode()).hexdigest()[:20]
-    return h
+    """Cache key discriminated by (prompt_version, provider, model, trial, note).
+
+    Provider and model belong in the key because they change the output: DeepInfra
+    serves an FP8-quantized build of the same weights Groq serves at full
+    precision. Two hosts sharing a cache entry would let one host's results be
+    reported as the other's.
+    """
+    from trialguard.llm.provider import active_model, active_provider
+
+    pair = (active_provider(), active_model())
+    if pair == LEGACY_PAIR:
+        raw = f"{prompt_version()}|{nct_id}|{patient_note}"
+    else:
+        raw = f"{prompt_version()}|{pair[0]}|{pair[1]}|{nct_id}|{patient_note}"
+    return hashlib.sha256(raw.encode()).hexdigest()[:20]
 
 
 def _parse(raw: str) -> list[dict]:
@@ -214,20 +234,12 @@ def _salvage(raw: str) -> list[dict]:
 
 
 def _llm():
-    from langchain_groq import ChatGroq
+    # Host selection lives in llm/provider.py so (provider, model) is a recorded
+    # input to the result rather than an import-time fact. Backoff/budget
+    # constants stay in agent/ratelimit.py; call params in the provider module.
+    from trialguard.llm.provider import get_chat_model
 
-    from trialguard.agent.ratelimit import MAX_RETRIES
-    from trialguard.config import settings
-    # Groq free tier is TPM-capped (~12k tokens/min). max_retries lets the client
-    # honor the 429 Retry-After header and back off instead of crashing the run.
-    # Backoff/budget constants live in agent/ratelimit.py, not inline.
-    return ChatGroq(
-        api_key=settings.groq_api_key,
-        model=settings.groq_model,
-        temperature=0,
-        max_tokens=4096,
-        max_retries=MAX_RETRIES,
-    )
+    return get_chat_model("analyst")
 
 
 def analyze_trial(
@@ -250,23 +262,36 @@ def analyze_trial(
         note_block = f"Patient summary:\n{patient_note}"
     user = f"{note_block}\n\nTrial {nct_id} criteria:\n{crit_block}"
 
-    from trialguard.agent.ratelimit import ANALYST_DELAY, TokenBudget, estimate_tokens
+    from trialguard.agent.ratelimit import analyst_delay, estimate_tokens
+    from trialguard.llm.cost import active_ledger
+    from trialguard.llm.provider import active_model, active_provider, extract_usage
 
     system = _PROMPTS[prompt_version()]
-    budget = TokenBudget()
-    # Refuse a fresh call we already know would cross the daily cap; the harness
-    # catches BudgetExhausted and degrades to cached-only instead of hitting 429s.
-    budget.check(estimate_tokens(system + user) + 4096)
+    provider, model = active_provider(), active_model()
+    ledger = active_ledger()
+    # Gate on an estimate: this call's real cost is unknowable until it returns.
+    # The harness catches BudgetExhausted and degrades to cached-only rather than
+    # hammering into 429s (free tier) or spending past the cap (metered).
+    ledger.check(estimate_tokens(system + user) + 4096, provider=provider, model=model)
 
-    config = {"callbacks": [handler]} if handler is not None else {}
+    from trialguard.tracing import trace_config
+
+    # Provider, model and prompt version go on the trace: with two hosts and
+    # three prompt versions live, a trace that does not record which produced it
+    # cannot be attributed after the fact.
+    config = trace_config(
+        handler, provider=provider, model=model, prompt_version=prompt_version(), nct_id=nct_id
+    )
     resp = _llm().invoke([SystemMessage(content=system), HumanMessage(content=user)], config=config)
 
-    usage = getattr(resp, "usage_metadata", None) or {}
-    budget.record(usage.get("total_tokens") or estimate_tokens(system + user + str(resp.content)))
+    # Account on the actual: real token counts and, where the provider reports it,
+    # the provider's own cost figure rather than a local price table.
+    ledger.record(extract_usage(resp), provider, model)
 
     assessments = _parse(str(resp.content))
     cache_path.write_text(json.dumps(assessments))
-    # Space fresh calls to stay under the free-tier TPM window. Cache hits skip this.
+    # Pace fresh calls under the free-tier TPM window; zero on a metered provider.
+    # Cache hits skip this entirely.
     import time
-    time.sleep(ANALYST_DELAY)
+    time.sleep(analyst_delay())
     return assessments

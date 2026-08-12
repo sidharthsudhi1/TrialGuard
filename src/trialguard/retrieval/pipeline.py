@@ -16,6 +16,7 @@ def retrieve(
     dense_pool: int = 50,
     bm25_pool: int = 50,
     use_keywords: bool = False,
+    handler=None,
 ) -> tuple[list[tuple[str, float]], dict[str, float]]:
     """Run hybrid retrieval. Returns (results, latency_ms_breakdown).
 
@@ -27,7 +28,7 @@ def retrieve(
     if use_keywords:
         from trialguard.retrieval.query_transform import generate_keywords
         tk = time.perf_counter()
-        queries = generate_keywords(query)
+        queries = generate_keywords(query, handler=handler)
         keyword_ms = (time.perf_counter() - tk) * 1000
     else:
         queries = [query]

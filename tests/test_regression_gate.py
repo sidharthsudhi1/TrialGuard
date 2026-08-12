@@ -30,12 +30,12 @@ def test_gate_passes_on_committed_reports():
 def test_gate_bites_on_regressed_report(tmp_path):
     # Prove the gate actually fails red: point it at a report whose verified
     # unsupported rate blew past the ceiling, keep everything else passing.
-    good = json.loads(Path("data/reports/phase4_agent_sigir.json").read_text())
+    baselines = json.loads(Path("data/reports/baselines.json").read_text())
+    good = json.loads(Path(baselines["report"]).read_text())
     good["verified"]["unsupported_verdict_rate"] = 0.5
     bad_report = tmp_path / "regressed.json"
     bad_report.write_text(json.dumps(good))
 
-    baselines = json.loads(Path("data/reports/baselines.json").read_text())
     baselines["report"] = str(bad_report)
     bad_baselines = tmp_path / "baselines.json"
     bad_baselines.write_text(json.dumps(baselines))
@@ -44,3 +44,14 @@ def test_gate_bites_on_regressed_report(tmp_path):
     assert outcome["passed"] is False
     failed = [r["metric"] for r in outcome["results"] if not r["passed"]]
     assert "verified.unsupported_verdict_rate" in failed
+
+
+def test_stress_artifact_matches_live():
+    from trialguard.eval.regression_gate import STRESS_ARTIFACT
+
+    committed = json.loads(STRESS_ARTIFACT.read_text())
+    live = stress_test(CASES)
+    assert committed["n_corrupted"] == live["n_corrupted"]
+    assert committed["n_genuine"] == live["n_genuine"]
+    assert committed["verifier_catch_rate"] == live["verifier_catch_rate"]
+    assert committed["verifier_false_rejection_rate"] == live["verifier_false_rejection_rate"]
