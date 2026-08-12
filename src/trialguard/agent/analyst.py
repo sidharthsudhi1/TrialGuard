@@ -274,7 +274,14 @@ def analyze_trial(
     # hammering into 429s (free tier) or spending past the cap (metered).
     ledger.check(estimate_tokens(system + user) + 4096, provider=provider, model=model)
 
-    config = {"callbacks": [handler]} if handler is not None else {}
+    from trialguard.tracing import trace_config
+
+    # Provider, model and prompt version go on the trace: with two hosts and
+    # three prompt versions live, a trace that does not record which produced it
+    # cannot be attributed after the fact.
+    config = trace_config(
+        handler, provider=provider, model=model, prompt_version=prompt_version(), nct_id=nct_id
+    )
     resp = _llm().invoke([SystemMessage(content=system), HumanMessage(content=user)], config=config)
 
     # Account on the actual: real token counts and, where the provider reports it,

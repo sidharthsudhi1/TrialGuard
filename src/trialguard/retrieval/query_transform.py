@@ -61,8 +61,14 @@ def _parse_keywords(raw: str, n_max: int) -> list[str]:
     return result
 
 
-def generate_keywords(patient_note: str, n_max: int = 12) -> list[str]:
-    """LLM-extract search keywords from patient note. Cached to disk by note hash."""
+def generate_keywords(patient_note: str, n_max: int = 12, handler=None) -> list[str]:
+    """LLM-extract search keywords from patient note. Cached to disk by note hash.
+
+    `handler` is optional and defaults to None so every existing caller keeps
+    working. Until Phase 8 WS-5 this call was untraced and therefore invisible in
+    Langfuse — a real LLM call, on the retrieval path, that no trace accounted
+    for. The cost ledger is what surfaced it.
+    """
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     cache_path = CACHE_DIR / f"{_note_hash(patient_note)}.json"
 
@@ -70,13 +76,16 @@ def generate_keywords(patient_note: str, n_max: int = 12) -> list[str]:
         return json.loads(cache_path.read_text())
 
     try:
-        from trialguard.llm.provider import get_chat_model
+        from trialguard.llm.provider import active_model, active_provider, get_chat_model
+        from trialguard.tracing import trace_config
 
         llm = get_chat_model("keywords")
         response = llm.invoke([
             SystemMessage(content=_SYSTEM_PROMPT),
             HumanMessage(content=f"Patient summary:\n{patient_note}"),
-        ])
+        ], config=trace_config(
+            handler, provider=active_provider(), model=active_model(), purpose="keywords"
+        ))
         keywords = _parse_keywords(str(response.content), n_max)
         if not keywords:
             raise ValueError("empty keyword list")

@@ -1,4 +1,4 @@
-"""Langfuse v3 tracing. LangGraph agents use get_langchain_handler().
+"""Langfuse tracing (v3 and v4). LangGraph agents use get_langchain_handler().
 
 Lazy-initialized: Langfuse client created only after env vars are loaded.
 No-op fallback when credentials are absent or tracing is disabled.
@@ -42,7 +42,7 @@ def get_langchain_handler(
 
     Usage:
         handler = get_langchain_handler(session_id="run-42", tags=["eval"])
-        graph.invoke(input, config={"callbacks": [handler]})
+        graph.invoke(input, config=trace_config(handler))
 
     Returns None when tracing is disabled; LangGraph ignores None callbacks.
     """
@@ -60,19 +60,42 @@ def get_langchain_handler(
             metadata["langfuse_tags"] = tags
 
         try:
-            return CallbackHandler(metadata=metadata if metadata else None)
+            handler = CallbackHandler(metadata=metadata if metadata else None)
         except TypeError:
-            # Langfuse v4 dropped constructor metadata: session/user/tags now ride
-            # the per-invocation config instead. Constructing without it keeps
-            # traces flowing rather than crashing every run that has credentials
-            # — which is how this stayed invisible, since a credential-less
-            # environment returns None above and never reaches the constructor.
-            # Session grouping is lost until the config route is wired (WS-5).
+            # Langfuse v4 dropped constructor metadata: session/user/tags ride the
+            # per-invocation config instead. This stayed invisible for a release
+            # because a credential-less environment returns None above and never
+            # reaches the constructor — so CI and the test suite never saw it.
             handler = CallbackHandler()
-            handler.trialguard_metadata = metadata  # consumed once WS-5 lands
-            return handler
+        # Stashed either way so trace_config() is the single place that knows how
+        # metadata reaches Langfuse, regardless of which SDK major is installed.
+        handler.trialguard_metadata = metadata
+        return handler
     except ImportError:
         return None
+
+
+def trace_config(handler: Any, **extra: Any) -> dict[str, Any]:
+    """Build the LangChain invocation config for a traced call.
+
+    Every LangGraph/LLM invocation in this project goes through here, so there is
+    one definition of "what a traced call carries" rather than three ad-hoc
+    `{"callbacks": [handler]}` literals that drift apart.
+
+    `extra` becomes trace metadata — provider, model, prompt_version, nct_id. That
+    matters more since Phase 8: with two hosts and three prompt versions in play, a
+    trace that does not record which produced it cannot be attributed afterwards.
+
+    Returns `{}` when tracing is off, which every call site already handles.
+    """
+    if handler is None:
+        return {}
+    metadata = dict(getattr(handler, "trialguard_metadata", {}) or {})
+    metadata.update({k: v for k, v in extra.items() if v is not None})
+    config: dict[str, Any] = {"callbacks": [handler]}
+    if metadata:
+        config["metadata"] = metadata
+    return config
 
 
 def emit_scores(

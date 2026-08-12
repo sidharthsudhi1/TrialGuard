@@ -121,7 +121,9 @@ def assess(
     global _GRAPH
     if _GRAPH is None:
         _GRAPH = build_graph()
-    config = {"callbacks": [handler]} if handler is not None else {}
+    from trialguard.tracing import trace_config
+
+    config = trace_config(handler, nct_id=nct_id, max_retries=max_retries)
     return _GRAPH.invoke(
         {
             "patient_note": patient_note,

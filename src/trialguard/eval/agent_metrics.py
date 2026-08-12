@@ -205,19 +205,26 @@ def coverage_curve(subset: list[dict], min_tokens_values=(1, 2, 3, 4)) -> list[d
     return curve
 
 
-def _observability(verified: dict) -> dict:
+def _observability(verified: dict, run_usd: float | None = None) -> dict:
     """Run-level quality scores for the Langfuse dashboard (Phase 5 WS-2).
 
     Faithfulness = citation precision of the verified (thesis) arm. Kept in the
     report too, so the observability numbers survive even without a tracing backend.
+
+    `run_usd` (Phase 8 WS-5) puts spend next to quality on the same board. Without
+    it the dashboard can say a run got more faithful but not what that cost, which
+    is half of the tradeoff any tuning decision actually turns on.
     """
-    return {
+    scores = {
         "faithfulness": verified["citation_precision"],
         "unsupported_verdict_rate": verified["unsupported_verdict_rate"],
         "abstention_rate": verified["abstention_rate"],
         "coverage": verified["coverage"],
         "mean_retries": verified["mean_retries"],
     }
+    if run_usd is not None:
+        scores["run_usd"] = round(run_usd, 6)
+    return scores
 
 
 def run(cohort: str, n_patients: int, per_class: int) -> dict:
@@ -225,6 +232,10 @@ def run(cohort: str, n_patients: int, per_class: int) -> dict:
     from trialguard.tracing import emit_scores, get_langchain_handler
     session_id = f"agent-eval-{cohort}"
     handler = get_langchain_handler(session_id=session_id, tags=["agent-eval"])
+
+    from trialguard.llm.cost import active_ledger
+
+    spend_before = active_ledger().spent_usd()
 
     subset = _build_subset(cohort, n_patients, per_class)
     baseline = _run_arm(subset, max_retries=0, handler=handler)
@@ -234,7 +245,10 @@ def run(cohort: str, n_patients: int, per_class: int) -> dict:
     # per_trial is bookkeeping for the matched test; drop it from the saved report.
     baseline.pop("per_trial", None)
     verified.pop("per_trial", None)
-    scores = _observability(verified)
+    # Ledger delta over the run. Cache hits cost nothing, so a fully cached rerun
+    # honestly reports $0 rather than re-charging work already paid for.
+    run_usd = max(0.0, active_ledger().spent_usd() - spend_before)
+    scores = _observability(verified, run_usd=run_usd)
     emit_scores(scores, session_id=session_id)  # no-op without Langfuse creds
     return {
         "cohort": cohort,
