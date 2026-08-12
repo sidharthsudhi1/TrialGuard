@@ -214,20 +214,12 @@ def _salvage(raw: str) -> list[dict]:
 
 
 def _llm():
-    from langchain_groq import ChatGroq
+    # Host selection lives in llm/provider.py so (provider, model) is a recorded
+    # input to the result rather than an import-time fact. Backoff/budget
+    # constants stay in agent/ratelimit.py; call params in the provider module.
+    from trialguard.llm.provider import get_chat_model
 
-    from trialguard.agent.ratelimit import MAX_RETRIES
-    from trialguard.config import settings
-    # Groq free tier is TPM-capped (~12k tokens/min). max_retries lets the client
-    # honor the 429 Retry-After header and back off instead of crashing the run.
-    # Backoff/budget constants live in agent/ratelimit.py, not inline.
-    return ChatGroq(
-        api_key=settings.groq_api_key,
-        model=settings.groq_model,
-        temperature=0,
-        max_tokens=4096,
-        max_retries=MAX_RETRIES,
-    )
+    return get_chat_model("analyst")
 
 
 def analyze_trial(

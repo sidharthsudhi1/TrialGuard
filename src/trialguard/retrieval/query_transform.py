@@ -8,7 +8,6 @@ import re
 from pathlib import Path
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_groq import ChatGroq
 
 CACHE_DIR = Path("data/cache/keywords")
 
@@ -55,9 +54,9 @@ def generate_keywords(patient_note: str, n_max: int = 12) -> list[str]:
         return json.loads(cache_path.read_text())
 
     try:
-        from trialguard.config import settings
+        from trialguard.llm.provider import get_chat_model
 
-        llm = ChatGroq(api_key=settings.groq_api_key, model=settings.groq_model)
+        llm = get_chat_model("keywords")
         response = llm.invoke([
             SystemMessage(content=_SYSTEM_PROMPT),
             HumanMessage(content=f"Patient summary:\n{patient_note}"),

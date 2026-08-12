@@ -236,7 +236,7 @@ def test_generate_keywords_cache_hit(tmp_path, monkeypatch):
     cached = ["metastatic breast cancer", "HER2-positive"]
     (tmp_path / f"{note_hash}.json").write_text(json.dumps(cached))
 
-    with patch("langchain_groq.ChatGroq") as mock_llm:
+    with patch("trialguard.llm.provider.get_chat_model") as mock_llm:
         result = query_transform.generate_keywords(note)
 
     mock_llm.assert_not_called()
@@ -257,7 +257,7 @@ def test_generate_keywords_parses_llm_response(tmp_path, monkeypatch):
     mock_llm_instance = MagicMock()
     mock_llm_instance.invoke.return_value = mock_response
 
-    with patch("trialguard.retrieval.query_transform.ChatGroq", return_value=mock_llm_instance):
+    with patch("trialguard.llm.provider.get_chat_model", return_value=mock_llm_instance):
         result = query_transform.generate_keywords(note, n_max=10)
 
     assert "nsclc egfr mutation" in result
@@ -273,7 +273,7 @@ def test_generate_keywords_fallback_on_llm_failure(tmp_path, monkeypatch):
     monkeypatch.setattr(query_transform, "CACHE_DIR", tmp_path)
     note = "Patient with AML, refractory"
 
-    with patch("trialguard.retrieval.query_transform.ChatGroq", side_effect=Exception("rate limit")):
+    with patch("trialguard.llm.provider.get_chat_model", side_effect=Exception("rate limit")):
         result = query_transform.generate_keywords(note)
 
     assert result == [note]
@@ -291,7 +291,7 @@ def test_generate_keywords_strips_markdown_fences(tmp_path, monkeypatch):
     mock_llm_instance = MagicMock()
     mock_llm_instance.invoke.return_value = mock_response
 
-    with patch("trialguard.retrieval.query_transform.ChatGroq", return_value=mock_llm_instance):
+    with patch("trialguard.llm.provider.get_chat_model", return_value=mock_llm_instance):
         result = query_transform.generate_keywords(note)
 
     assert result == ["chronic lymphocytic leukemia"]
@@ -310,7 +310,7 @@ def test_generate_keywords_cap_at_n_max(tmp_path, monkeypatch):
     mock_llm_instance = MagicMock()
     mock_llm_instance.invoke.return_value = mock_response
 
-    with patch("trialguard.retrieval.query_transform.ChatGroq", return_value=mock_llm_instance):
+    with patch("trialguard.llm.provider.get_chat_model", return_value=mock_llm_instance):
         result = query_transform.generate_keywords(note, n_max=5)
 
     assert len(result) == 5

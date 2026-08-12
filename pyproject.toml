@@ -13,6 +13,9 @@ dependencies = [
     "langchain>=0.3",
     "langchain-community>=0.3",
     "langchain-groq>=0.2",
+    # OpenAI-compatible client: covers DeepInfra, Together, Fireworks, OpenRouter,
+    # and vLLM via base_url. Not a dependency on OpenAI the vendor.
+    "langchain-openai>=0.2",
 
     # Embeddings
     "sentence-transformers>=3.0",
