@@ -19,11 +19,12 @@ def deepinfra(monkeypatch):
 
 
 def test_default_provider_is_groq():
-    """Groq stays the default until the WS-3 parity gate passes. Flipping this
-    default is a deliberate act, not something a config edit does by accident."""
+    """DeepInfra since the WS-3 parity gate passed (phase8_provider_parity.md).
+    Pinned because changing the default silently changes which model produced
+    every fresh result, and that must be a deliberate act."""
     from trialguard.config import Settings
 
-    assert Settings(_env_file=None).llm_provider == "groq"
+    assert Settings(_env_file=None).llm_provider == "deepinfra"
 
 
 def test_active_model_tracks_provider(groq):

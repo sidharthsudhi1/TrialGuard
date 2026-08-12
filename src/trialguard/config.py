@@ -8,11 +8,12 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
 
-    # Provider selection (Phase 8). Groq stays the default until the WS-3 parity
-    # gate validates DeepInfra against the committed Phase 3/4 faithfulness
-    # numbers: DeepInfra serves only the FP8-quantized Turbo build, so the swap
-    # changes numerical precision on the model that produces verbatim quotes.
-    llm_provider: str = "groq"
+    # Provider selection (Phase 8). DeepInfra by default since the WS-3 parity
+    # gate passed: FP8 quantization left citation precision unchanged (0.9057 ->
+    # 0.9086 on the matched 180-trial baseline arm) and cleared every committed
+    # regression floor. See data/reports/phase8_provider_parity.md.
+    # Groq stays fully runnable — it reproduces Phase 3/4 from cache.
+    llm_provider: str = "deepinfra"
     deepinfra_api_key: str = ""
     # The served model ID, not the alias. Requesting "...-Instruct" is silently
     # aliased to Turbo; recording the alias would let the cache key claim two
