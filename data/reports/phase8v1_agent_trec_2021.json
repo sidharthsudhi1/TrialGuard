@@ -1,0 +1,97 @@
+{
+  "cohort": "trec_2021",
+  "n_patients": 15,
+  "baseline": {
+    "max_retries": 0,
+    "n_criteria": 392,
+    "decisive_attempts": 150,
+    "grounded": 130,
+    "citation_precision": 0.8667,
+    "unsupported_verdict_rate": 0.1333,
+    "coverage": 0.3316,
+    "abstention_rate": 0.6684,
+    "trial_accuracy": 0.2712,
+    "n_trials": 59,
+    "mean_retries": 0.0,
+    "trials_with_retry": 0,
+    "rate_limited": false
+  },
+  "verified": {
+    "max_retries": 2,
+    "n_criteria": 368,
+    "decisive_attempts": 126,
+    "grounded": 121,
+    "citation_precision": 0.9603,
+    "unsupported_verdict_rate": 0.0397,
+    "coverage": 0.3288,
+    "abstention_rate": 0.6712,
+    "trial_accuracy": 0.2712,
+    "n_trials": 59,
+    "mean_retries": 0.3898,
+    "trials_with_retry": 16,
+    "rate_limited": false
+  },
+  "significance": {
+    "matched_trials": 59,
+    "table": {
+      "baseline": {
+        "unsupported": 20,
+        "grounded": 130,
+        "decisive": 150
+      },
+      "verified": {
+        "unsupported": 5,
+        "grounded": 121,
+        "decisive": 126
+      }
+    },
+    "baseline_unsupported_rate": 0.1333,
+    "verified_unsupported_rate": 0.0397,
+    "relative_change": -0.7024,
+    "odds_ratio": 3.7231,
+    "fisher_p": 0.0103,
+    "significant_05": true
+  },
+  "coverage_curve": [
+    {
+      "min_tokens": 1,
+      "coverage": 0.352,
+      "citation_precision": 0.92,
+      "n_criteria": 392
+    },
+    {
+      "min_tokens": 2,
+      "coverage": 0.3316,
+      "citation_precision": 0.8667,
+      "n_criteria": 392
+    },
+    {
+      "min_tokens": 3,
+      "coverage": 0.2934,
+      "citation_precision": 0.7667,
+      "n_criteria": 392
+    },
+    {
+      "min_tokens": 4,
+      "coverage": 0.2653,
+      "citation_precision": 0.6933,
+      "n_criteria": 392
+    }
+  ],
+  "observability": {
+    "faithfulness": 0.9603,
+    "unsupported_verdict_rate": 0.0397,
+    "abstention_rate": 0.6712,
+    "coverage": 0.3288,
+    "mean_retries": 0.3898
+  },
+  "provenance": {
+    "provider": "deepinfra",
+    "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    "prompt_version": "v1",
+    "index_exclusion": "0",
+    "elapsed_s": 2068.4,
+    "fresh_calls": 82,
+    "usd": 0.018113
+  }
+}
