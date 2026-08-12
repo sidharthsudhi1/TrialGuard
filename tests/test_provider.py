@@ -114,3 +114,69 @@ def test_extract_usage_survives_empty_response():
     usage = extract_usage(Resp())
     assert usage["input_tokens"] == 0
     assert usage["provider_usd"] is None
+
+
+# --- Cache-key discrimination (WS-1) -----------------------------------------
+# The 700 committed analyst entries and 178 keyword entries back Phase 3/4 and
+# Phase 2/7. A key change that orphans them is a reproducibility failure, and it
+# is invisible at runtime: an orphaned cache just looks like a cold one.
+
+NOTE = "58-year-old woman with stage IV HER2-positive breast cancer, ECOG 1."
+NCT = "NCT01234567"
+
+
+def test_legacy_pair_reproduces_the_original_key_format(groq, monkeypatch):
+    """Recomputed independently here rather than asserted against the
+    implementation, so a change to the format fails this test instead of being
+    silently mirrored by it."""
+    import hashlib
+
+    from trialguard.agent.analyst import _cache_key, prompt_version
+
+    monkeypatch.setattr(settings, "groq_model", "llama-3.3-70b-versatile")
+    expected = hashlib.sha256(
+        f"{prompt_version()}|{NCT}|{NOTE}".encode()
+    ).hexdigest()[:20]
+    assert _cache_key(NOTE, NCT) == expected
+
+
+def test_deepinfra_gets_a_separate_cache_namespace(monkeypatch):
+    """FP8 and full-precision builds must never share an entry: one host's
+    results would be reported as the other's."""
+    from trialguard.agent.analyst import _cache_key
+
+    monkeypatch.setattr(settings, "groq_model", "llama-3.3-70b-versatile")
+    monkeypatch.setattr(settings, "llm_provider", "groq")
+    legacy = _cache_key(NOTE, NCT)
+
+    monkeypatch.setattr(settings, "llm_provider", "deepinfra")
+    assert _cache_key(NOTE, NCT) != legacy
+
+
+def test_keyword_cache_legacy_hash_is_the_bare_note(groq, monkeypatch):
+    import hashlib
+
+    from trialguard.retrieval.query_transform import _note_hash
+
+    monkeypatch.setattr(settings, "groq_model", "llama-3.3-70b-versatile")
+    assert _note_hash(NOTE) == hashlib.sha256(NOTE.encode()).hexdigest()[:16]
+
+
+def test_keyword_cache_separates_providers(deepinfra):
+    import hashlib
+
+    from trialguard.retrieval.query_transform import _note_hash
+
+    bare = hashlib.sha256(NOTE.encode()).hexdigest()[:16]
+    assert _note_hash(NOTE) != bare
+
+
+def test_a_different_groq_model_also_gets_its_own_namespace(groq, monkeypatch):
+    """The carve-out keys on the exact (provider, model) pair, not on provider
+    alone — swapping Groq's model must not silently reuse llama-3.3-70b entries."""
+    from trialguard.agent.analyst import _cache_key
+
+    monkeypatch.setattr(settings, "groq_model", "llama-3.3-70b-versatile")
+    legacy = _cache_key(NOTE, NCT)
+    monkeypatch.setattr(settings, "groq_model", "llama-3.1-8b-instant")
+    assert _cache_key(NOTE, NCT) != legacy

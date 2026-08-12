@@ -25,8 +25,24 @@ Rules:
 """
 
 
+# The (provider, model) pair that produced every committed keyword cache entry.
+# Those files back the Phase 2/7 retrieval numbers, so this pair keeps the
+# original key format. Same carve-out as the analyst cache (agent/analyst.py).
+LEGACY_PAIR = ("groq", "llama-3.3-70b-versatile")
+
+
 def _note_hash(note: str) -> str:
-    return hashlib.sha256(note.encode()).hexdigest()[:16]
+    """Keyword cache key, discriminated by (provider, model) off the legacy pair.
+
+    Keywords are model-dependent: they drive per-keyword dense+BM25 retrieval, so
+    a different host's phrasing changes recall. Sharing one namespace across hosts
+    would make a retrieval number unattributable to the model that produced it.
+    """
+    from trialguard.llm.provider import active_model, active_provider
+
+    pair = (active_provider(), active_model())
+    raw = note if pair == LEGACY_PAIR else f"{pair[0]}|{pair[1]}|{note}"
+    return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
 
 def _parse_keywords(raw: str, n_max: int) -> list[str]:
