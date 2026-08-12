@@ -262,23 +262,29 @@ def analyze_trial(
         note_block = f"Patient summary:\n{patient_note}"
     user = f"{note_block}\n\nTrial {nct_id} criteria:\n{crit_block}"
 
-    from trialguard.agent.ratelimit import ANALYST_DELAY, TokenBudget, estimate_tokens
+    from trialguard.agent.ratelimit import analyst_delay, estimate_tokens
+    from trialguard.llm.cost import active_ledger
+    from trialguard.llm.provider import active_model, active_provider, extract_usage
 
     system = _PROMPTS[prompt_version()]
-    budget = TokenBudget()
-    # Refuse a fresh call we already know would cross the daily cap; the harness
-    # catches BudgetExhausted and degrades to cached-only instead of hitting 429s.
-    budget.check(estimate_tokens(system + user) + 4096)
+    provider, model = active_provider(), active_model()
+    ledger = active_ledger()
+    # Gate on an estimate: this call's real cost is unknowable until it returns.
+    # The harness catches BudgetExhausted and degrades to cached-only rather than
+    # hammering into 429s (free tier) or spending past the cap (metered).
+    ledger.check(estimate_tokens(system + user) + 4096, provider=provider, model=model)
 
     config = {"callbacks": [handler]} if handler is not None else {}
     resp = _llm().invoke([SystemMessage(content=system), HumanMessage(content=user)], config=config)
 
-    usage = getattr(resp, "usage_metadata", None) or {}
-    budget.record(usage.get("total_tokens") or estimate_tokens(system + user + str(resp.content)))
+    # Account on the actual: real token counts and, where the provider reports it,
+    # the provider's own cost figure rather than a local price table.
+    ledger.record(extract_usage(resp), provider, model)
 
     assessments = _parse(str(resp.content))
     cache_path.write_text(json.dumps(assessments))
-    # Space fresh calls to stay under the free-tier TPM window. Cache hits skip this.
+    # Pace fresh calls under the free-tier TPM window; zero on a metered provider.
+    # Cache hits skip this entirely.
     import time
-    time.sleep(ANALYST_DELAY)
+    time.sleep(analyst_delay())
     return assessments
