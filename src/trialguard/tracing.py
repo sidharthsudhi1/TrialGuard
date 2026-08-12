@@ -59,7 +59,18 @@ def get_langchain_handler(
         if tags:
             metadata["langfuse_tags"] = tags
 
-        return CallbackHandler(metadata=metadata if metadata else None)
+        try:
+            return CallbackHandler(metadata=metadata if metadata else None)
+        except TypeError:
+            # Langfuse v4 dropped constructor metadata: session/user/tags now ride
+            # the per-invocation config instead. Constructing without it keeps
+            # traces flowing rather than crashing every run that has credentials
+            # — which is how this stayed invisible, since a credential-less
+            # environment returns None above and never reaches the constructor.
+            # Session grouping is lost until the config route is wired (WS-5).
+            handler = CallbackHandler()
+            handler.trialguard_metadata = metadata  # consumed once WS-5 lands
+            return handler
     except ImportError:
         return None
 
