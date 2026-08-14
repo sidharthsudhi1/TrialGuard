@@ -17,6 +17,10 @@ os.environ.setdefault("TG_ANALYST_DELAY", "0")
 # assignment, so an operator can still opt into a metered demo deliberately.
 os.environ.setdefault("LLM_PROVIDER", "groq")
 
+# v4 assesses inclusion AND exclusion (prior prompts were inclusion-only). Additive
+# cache namespace — Phase 3/4/8 results stay untouched.
+os.environ.setdefault("TG_PROMPT_VERSION", "v4")
+
 from trialguard.demo import launch  # noqa: E402 — must follow the env default above
 
 if __name__ == "__main__":

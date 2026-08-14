@@ -48,6 +48,12 @@ class Settings(BaseSettings):
     # Scope
     condition_class: str = "oncology"
 
+    # Demo serving source: "sigir" = $0 FileIndex (HF Spaces default);
+    # "ctgov_live" = production pgvector + Postgres FTS (needs DATABASE_URL).
+    demo_source: str = "sigir"
+    # Hard cap on trials assessed per demo request (cost bound).
+    demo_max_top_k: int = 5
+
     # Hugging Face
     hf_token: str = ""
 

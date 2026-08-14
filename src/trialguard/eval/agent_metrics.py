@@ -26,18 +26,14 @@ def _build_subset(cohort: str, n_patients: int, per_class: int) -> list[dict]:
 
     Returns list of {patient_id, note, trials:[{nct_id, gold, criteria, source_text}]}.
     """
+    from trialguard.agent.schema import build_typed_criteria
     from trialguard.eval.cohorts import load_labels, load_patients
-    from trialguard.eval.file_index import get_index
+    from trialguard.eval.file_index import _load_sigir_trials, _load_trec_trials
     from trialguard.ingestion.normalise import normalise_trial
 
-    idx = get_index(cohort)
-    texts = idx.trial_texts()  # nct_id -> title+criteria doc string
-    corpus_ids = idx.corpus_ids()
-
-    # Rebuild raw trials for criteria + source text.
-    from trialguard.eval.file_index import _load_sigir_trials, _load_trec_trials
     raw = _load_sigir_trials() if cohort == "sigir" else _load_trec_trials(cohort)
     by_id = {t["nct_id"]: normalise_trial(t) for t in raw}
+    corpus_ids = set(by_id)
 
     patients = {p["patient_id"]: p for p in load_patients(cohort)}
     labels = load_labels(cohort)
@@ -60,14 +56,15 @@ def _build_subset(cohort: str, n_patients: int, per_class: int) -> list[dict]:
         trials = []
         for nct, gold in chosen:
             t = by_id[nct]
-            criteria = t.get("inclusion_criteria", [])[:12]
+            criteria, truncated = build_typed_criteria(t)
             if not criteria:
                 continue
             trials.append({
                 "nct_id": nct,
                 "gold": gold,
                 "criteria": criteria,
-                "source_text": t.get("eligibility_raw", "") or texts.get(nct, ""),
+                "criteria_truncated": truncated,
+                "source_text": t.get("eligibility_raw", ""),
             })
         if trials:
             subset.append(
@@ -78,6 +75,15 @@ def _build_subset(cohort: str, n_patients: int, per_class: int) -> list[dict]:
     return subset
 
 
+def _eval_workers() -> int:
+    """Parallel analyst calls per arm. Default 1 — committed results stay
+    byte-identical unless a run explicitly opts in. Higher values only help
+    because the analyst call is network-bound; the cost ledger is lock-guarded."""
+    import os
+
+    return max(1, int(os.environ.get("TG_EVAL_WORKERS", "1")))
+
+
 def _run_arm(subset: list[dict], max_retries: int, handler=None) -> dict:
     from trialguard.agent.graph import assess
 
@@ -86,6 +92,13 @@ def _run_arm(subset: list[dict], max_retries: int, handler=None) -> dict:
     total_retries = trials_with_retry = 0
     rate_limited = False
     per_trial: dict[str, dict[str, int]] = {}
+    # Same counters split by criterion kind. Exclusion criteria carry inverted
+    # semantics and quote from a different span, so an aggregate rate can hide a
+    # regression isolated to one kind.
+    by_kind: dict[str, dict[str, int]] = {
+        k: dict.fromkeys(("n_criteria", "decisive", "grounded", "abstain"), 0)
+        for k in ("inclusion", "exclusion")
+    }
 
     import os
 
@@ -93,19 +106,42 @@ def _run_arm(subset: list[dict], max_retries: int, handler=None) -> dict:
     from trialguard.agent.analyst import _cache_key
     cached_only = os.environ.get("TG_CACHED_ONLY") == "1"
 
+    # Flatten to (note, trial) work items so an arm can run concurrently.
+    work = []
     for p in subset:
-        if rate_limited:
-            break
         for tr in p["trials"]:
             if cached_only:
                 cp_path = ACACHE / f"{_cache_key(p['note'], tr['nct_id'])}.json"
                 if not cp_path.exists():
                     continue  # skip uncached trial; no fresh Groq call
+            work.append((p["note"], tr))
+
+    def _assess_one(item):
+        note, tr = item
+        return tr, assess(
+            note, tr["nct_id"], tr["criteria"], tr["source_text"],
+            max_retries=max_retries, handler=handler,
+            criteria_truncated=tr.get("criteria_truncated", False),
+        )
+
+    workers = _eval_workers()
+    if workers > 1:
+        from concurrent.futures import ThreadPoolExecutor
+
+        pool = ThreadPoolExecutor(max_workers=workers)
+        results_iter = pool.map(_assess_one, work)
+    else:
+        pool = None
+        results_iter = map(_assess_one, work)
+
+    try:
+        for item in work:
+            if rate_limited:
+                break
             try:
-                state = assess(
-                    p["note"], tr["nct_id"], tr["criteria"], tr["source_text"],
-                    max_retries=max_retries, handler=handler,
-                )
+                tr, state = next(results_iter)  # type: ignore[call-overload]
+            except StopIteration:
+                break
             except Exception as e:
                 # Groq free-tier daily token cap (TPD) is a hard wall. Stop and
                 # report metrics over the trials that completed rather than crash.
@@ -120,18 +156,24 @@ def _run_arm(subset: list[dict], max_retries: int, handler=None) -> dict:
             for a in state["assessments"]:
                 total_crit += 1
                 v = a.get("verdict")
+                bk = by_kind.get(a.get("kind") or "inclusion", by_kind["inclusion"])
+                bk["n_criteria"] += 1
                 # "decisive attempt" = analyst produced a met/not_met with a quote
                 # that either grounded (still met/not_met) or was forced unverifiable.
                 if v in ("met", "not_met"):
                     decisive += 1
                     grounded += 1  # grounded verdicts survive as met/not_met
                     t_dec += 1
+                    bk["decisive"] += 1
+                    bk["grounded"] += 1
                 elif a.get("grounding_failure"):
                     decisive += 1  # attempted but failed grounding -> unverifiable
                     t_dec += 1
                     t_uns += 1
+                    bk["decisive"] += 1
                 if v in ("cannot_determine", "unverifiable"):
                     abstain += 1
+                    bk["abstain"] += 1
             per_trial[tr["nct_id"]] = {"decisive": t_dec, "unsupported": t_uns}
             # retry observability: how often the grounding back-edge fired, and how
             # deep. Native retry spans are in the trace; this is the aggregate.
@@ -143,10 +185,26 @@ def _run_arm(subset: list[dict], max_retries: int, handler=None) -> dict:
             trial_total += 1
             if state["trial_verdict"] == tr["gold"]:
                 trial_correct += 1
+    finally:
+        if pool is not None:
+            pool.shutdown(wait=False, cancel_futures=True)
 
     cp = grounded / decisive if decisive else 0.0
+    kind_report = {}
+    for kind, c in by_kind.items():
+        k_cp = c["grounded"] / c["decisive"] if c["decisive"] else 0.0
+        kind_report[kind] = {
+            "n_criteria": c["n_criteria"],
+            "decisive_attempts": c["decisive"],
+            "grounded": c["grounded"],
+            "citation_precision": round(k_cp, 4),
+            "unsupported_verdict_rate": round(1 - k_cp, 4) if c["decisive"] else 0.0,
+            "coverage": round(c["grounded"] / c["n_criteria"], 4) if c["n_criteria"] else 0.0,
+            "abstention_rate": round(c["abstain"] / c["n_criteria"], 4) if c["n_criteria"] else 0.0,
+        }
     return {
         "max_retries": max_retries,
+        "by_kind": kind_report,
         "n_criteria": total_crit,
         "decisive_attempts": decisive,
         "grounded": grounded,

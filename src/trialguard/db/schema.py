@@ -1,6 +1,11 @@
 """Create and manage the pgvector schema for TrialGuard."""
 
-import psycopg2
+from __future__ import annotations
+
+from contextlib import contextmanager
+from typing import Iterator
+
+from psycopg2 import pool
 
 from trialguard.config import settings
 
@@ -65,21 +70,67 @@ CREATE TABLE IF NOT EXISTS eval_labels (
 );
 """
 
+# Neon serverless proxies connections; a small pool is correct. One retrieve()
+# leases two connections (dense + FTS); keep headroom for a few concurrent users.
+_POOL_MIN = 1
+_POOL_MAX = 10
 
-def get_conn():
+_pool: pool.ThreadedConnectionPool | None = None
+
+
+def _keepalive_kwargs() -> dict:
     # Keepalives so long ingest runs don't get silently dropped by the Neon
     # serverless proxy mid-statement (observed: SSL SYSCALL timeout at ~18k rows).
-    return psycopg2.connect(
-        settings.database_url,
-        keepalives=1,
-        keepalives_idle=30,
-        keepalives_interval=10,
-        keepalives_count=5,
-    )
+    return {
+        "keepalives": 1,
+        "keepalives_idle": 30,
+        "keepalives_interval": 10,
+        "keepalives_count": 5,
+    }
+
+
+def _get_pool() -> pool.ThreadedConnectionPool:
+    global _pool
+    if _pool is None:
+        if not settings.database_url:
+            raise RuntimeError("DATABASE_URL is not configured")
+        _pool = pool.ThreadedConnectionPool(
+            _POOL_MIN,
+            _POOL_MAX,
+            settings.database_url,
+            **_keepalive_kwargs(),
+        )
+    return _pool
+
+
+@contextmanager
+def get_conn() -> Iterator:
+    """Lease a pooled connection; commit on success, return to the pool on exit.
+
+    Callers keep `with get_conn() as conn:` — the previous per-call connect()
+    leaked TCP sessions under concurrent retrieve().
+    """
+    p = _get_pool()
+    conn = p.getconn()
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        p.putconn(conn)
+
+
+def close_pool() -> None:
+    """Shut down the pool (tests / process teardown)."""
+    global _pool
+    if _pool is not None:
+        _pool.closeall()
+        _pool = None
 
 
 def init_schema() -> None:
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute(DDL)
-        conn.commit()
     print("Schema initialised.")
