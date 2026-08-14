@@ -10,10 +10,28 @@ import os
 from typing import Any
 
 
+def _export_credentials() -> bool:
+    """Mirror Langfuse settings into os.environ and report whether they exist.
+
+    The Langfuse SDK reads its credentials from the environment, but this project
+    loads config through pydantic-settings, which populates `settings` from .env
+    without touching os.environ. Reading os.getenv directly therefore reported "no
+    credentials" for every CLI run — tracing silently no-opped everywhere except
+    where the vars happened to be exported by hand.
+    """
+    from trialguard.config import settings  # local import — env loaded by now
+
+    if not (settings.langfuse_public_key and settings.langfuse_secret_key):
+        return False
+    os.environ.setdefault("LANGFUSE_PUBLIC_KEY", settings.langfuse_public_key)
+    os.environ.setdefault("LANGFUSE_SECRET_KEY", settings.langfuse_secret_key)
+    os.environ.setdefault("LANGFUSE_BASE_URL", settings.langfuse_base_url)
+    os.environ.setdefault("LANGFUSE_HOST", settings.langfuse_host)
+    return True
+
+
 def _credentials_present() -> bool:
-    return bool(
-        os.getenv("LANGFUSE_PUBLIC_KEY") and os.getenv("LANGFUSE_SECRET_KEY")
-    )
+    return _export_credentials()
 
 
 def get_client():
@@ -46,7 +64,9 @@ def get_langchain_handler(
 
     Returns None when tracing is disabled; LangGraph ignores None callbacks.
     """
-    if not _credentials_present():
+    from trialguard.config import settings
+
+    if not settings.tracing_enabled or not _credentials_present():
         return None
     try:
         from langfuse.langchain import CallbackHandler  # type: ignore

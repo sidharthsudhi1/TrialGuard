@@ -33,6 +33,9 @@ jobs:
       - name: Tests
         run: pytest tests/ -q
 
+      - name: Typecheck
+        run: mypy src/trialguard/db src/trialguard/agent/schema.py src/trialguard/retrieval/pipeline.py --ignore-missing-imports
+
       # Faithfulness regression gate — runs on committed artifacts only (no Groq,
       # no analyst cache). Fails the build red if the deterministic catch rate
       # drops below 100% or any committed A/B floor regresses.

@@ -80,3 +80,59 @@ def test_analyst_parse_salvages_truncated_json():
     trunc = '{"assessments":[{"criterion":"a","verdict":"met","quote":"stage IV"},{"criterion":"b","verdict":"met","quote":"z"},{"criterion":"c","verdict":"met","quote":"cut off her'
     r = _parse(trunc)
     assert [o["criterion"] for o in r] == ["a", "b"]
+
+
+def test_exclusion_met_excludes_trial():
+    from trialguard.agent.schema import rollup_trial_verdict
+
+    assert (
+        rollup_trial_verdict(
+            [
+                {"kind": "inclusion", "verdict": "met"},
+                {"kind": "exclusion", "verdict": "met"},
+            ]
+        )
+        == "excluded"
+    )
+
+
+def test_exclusion_not_met_allows_eligible():
+    from trialguard.agent.schema import rollup_trial_verdict
+
+    assert (
+        rollup_trial_verdict(
+            [
+                {"kind": "inclusion", "verdict": "met"},
+                {"kind": "exclusion", "verdict": "not_met"},
+            ]
+        )
+        == "eligible"
+    )
+
+
+def test_build_typed_criteria_includes_exclusion():
+    from trialguard.agent.schema import build_typed_criteria
+
+    trial = {
+        "inclusion_criteria": ["Age >= 18"],
+        "exclusion_criteria": ["Brain metastases"],
+    }
+    crit, truncated = build_typed_criteria(trial)
+    assert not truncated
+    assert crit == [
+        {"text": "Age >= 18", "kind": "inclusion"},
+        {"text": "Brain metastases", "kind": "exclusion"},
+    ]
+
+
+def test_criteria_truncation_flagged():
+    from trialguard.agent.schema import MAX_CRITERIA, build_typed_criteria
+
+    trial = {
+        "inclusion_criteria": [f"inc{i}" for i in range(MAX_CRITERIA)],
+        "exclusion_criteria": ["exc0"],
+    }
+    crit, truncated = build_typed_criteria(trial)
+    assert truncated
+    assert len(crit) == MAX_CRITERIA
+    assert all(c["kind"] == "inclusion" for c in crit)

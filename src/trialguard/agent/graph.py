@@ -19,24 +19,27 @@ from langgraph.graph import END, StateGraph
 
 from trialguard.agent.analyst import CACHE_DIR as ANALYST_CACHE
 from trialguard.agent.analyst import _cache_key, analyze_trial
+from trialguard.agent.schema import attach_kinds, normalize_criteria, rollup_trial_verdict
 from trialguard.verify.grounding import ground_assessments
 
 
 class State(TypedDict, total=False):
     patient_note: str
     nct_id: str
-    criteria: list[str]
+    criteria: list  # list[str] or list[{text, kind}]
     source_text: str
     max_retries: int
     handler: object
     retries: int
     assessments: list[dict]
     trial_verdict: str
+    criteria_truncated: bool
 
 
 def _analyst_node(state: State) -> State:
     attempt = state.get("retries", 0)
     note = state["patient_note"]
+    typed = normalize_criteria(state["criteria"])
     # Retrieval-aware retry: instead of a generic "copy verbatim" nudge, hand the
     # analyst the exact trial source span it must quote from, plus the specific
     # criteria whose quotes failed grounding last attempt. The generic nudge only
@@ -61,13 +64,13 @@ def _analyst_node(state: State) -> State:
             key = _cache_key(note, state["nct_id"])
             if not (ANALYST_CACHE / f"{key}.json").exists():
                 return {"assessments": prior}
-    raw = analyze_trial(note, state["nct_id"], state["criteria"], handler=state.get("handler"))
+    raw = analyze_trial(note, state["nct_id"], typed, handler=state.get("handler"))
     # A citation is grounded if it is a verbatim span of ANY provided source:
     # the trial's eligibility text or the patient note. "met"/"not_met" verdicts
     # legitimately cite patient facts ("58-year-old woman") as well as trial text.
     combined_source = state["patient_note"] + "\n" + state["source_text"]
     grounded = ground_assessments(raw, combined_source)
-    return {"assessments": grounded}
+    return {"assessments": attach_kinds(grounded, typed)}
 
 
 def _needs_retry(state: State) -> str:
@@ -82,16 +85,8 @@ def _retry_node(state: State) -> State:
 
 
 def _report_node(state: State) -> State:
-    """Trial roll-up: excluded if any criterion not_met; eligible only if all
-    resolvable criteria met; else cannot_determine."""
-    verdicts = [a.get("verdict") for a in state["assessments"]]
-    if any(v == "not_met" for v in verdicts):
-        tv = "excluded"
-    elif verdicts and all(v == "met" for v in verdicts):
-        tv = "eligible"
-    else:
-        tv = "cannot_determine"
-    return {"trial_verdict": tv}
+    """Trial roll-up with inverted exclusion semantics (see rollup_trial_verdict)."""
+    return {"trial_verdict": rollup_trial_verdict(state["assessments"])}
 
 
 def build_graph():
@@ -112,10 +107,11 @@ _GRAPH = None
 def assess(
     patient_note: str,
     nct_id: str,
-    criteria: list[str],
+    criteria: list,
     source_text: str,
     max_retries: int = 2,
     handler=None,
+    criteria_truncated: bool = False,
 ) -> dict:
     """Run the graph for one (patient, trial). Returns final State dict."""
     global _GRAPH
@@ -133,6 +129,7 @@ def assess(
             "max_retries": max_retries,
             "handler": handler,
             "retries": 0,
+            "criteria_truncated": criteria_truncated,
         },
         config=config,
     )

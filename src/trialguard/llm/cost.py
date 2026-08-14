@@ -24,6 +24,9 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import tempfile
+import threading
 from pathlib import Path
 
 # Imported as a module, not by value: `_today` is the single date seam the whole
@@ -34,6 +37,18 @@ from trialguard.agent.ratelimit import BudgetExhausted
 log = logging.getLogger(__name__)
 
 LEDGER_PATH = Path("data/cache/cost_ledger.json")
+
+
+def _atomic_write(path: Path, text: str) -> None:
+    """Write via temp file + rename so a crash cannot leave truncated JSON."""
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(text)
+        os.replace(tmp, path)
+    except BaseException:
+        Path(tmp).unlink(missing_ok=True)
+        raise
 
 # USD per 1M tokens, (input, output). Fallback only: used when the provider
 # reports no per-call cost, and as a cross-check when it does.
@@ -123,6 +138,10 @@ class CostLedger:
             usd_cap = settings.daily_usd_cap
         self.usd_cap = usd_cap
         self.token_cap = token_cap
+        # record() is read-modify-write on one JSON file. Concurrent callers
+        # (parallel eval workers, a threaded server) would otherwise interleave
+        # and lose spend, which turns the cap into a suggestion.
+        self._lock = threading.Lock()
 
     def _load(self) -> dict:
         """Today's counter, carrying the accumulated per-day history forward.
@@ -204,25 +223,26 @@ class CostLedger:
     def record(self, usage: dict, provider: str, model: str) -> float:
         """Bill one completed call from its real usage. Returns the USD charged."""
         usd, source = call_usd(usage, provider, model)
-        data = self._load()
-        data["usd"] = round(data["usd"] + usd, 8)
-        data["tokens"] = data["tokens"] + int(usage.get("total_tokens") or 0)
-        data["calls"] = data["calls"] + 1
+        with self._lock:
+            data = self._load()
+            data["usd"] = round(data["usd"] + usd, 8)
+            data["tokens"] = data["tokens"] + int(usage.get("total_tokens") or 0)
+            data["calls"] = data["calls"] + 1
 
-        # Keyed by the model the provider says it SERVED, not the one requested.
-        # DeepInfra aliases "-Instruct" to the FP8 "-Instruct-Turbo" build, so a
-        # silent substitution shows up here as an unexpected key.
-        served = usage.get("served_model") or model
-        bucket = data["by_model"].setdefault(
-            f"{provider}|{served}", {"usd": 0.0, "tokens": 0, "calls": 0, "source": source}
-        )
-        bucket["usd"] = round(bucket["usd"] + usd, 8)
-        bucket["tokens"] += int(usage.get("total_tokens") or 0)
-        bucket["calls"] += 1
-        bucket["source"] = source
+            # Keyed by the model the provider says it SERVED, not the one requested.
+            # DeepInfra aliases "-Instruct" to the FP8 "-Instruct-Turbo" build, so a
+            # silent substitution shows up here as an unexpected key.
+            served = usage.get("served_model") or model
+            bucket = data["by_model"].setdefault(
+                f"{provider}|{served}", {"usd": 0.0, "tokens": 0, "calls": 0, "source": source}
+            )
+            bucket["usd"] = round(bucket["usd"] + usd, 8)
+            bucket["tokens"] += int(usage.get("total_tokens") or 0)
+            bucket["calls"] += 1
+            bucket["source"] = source
 
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(json.dumps(data, indent=2, sort_keys=True))
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            _atomic_write(self.path, json.dumps(data, indent=2, sort_keys=True))
         return usd
 
     def summary(self) -> dict:
