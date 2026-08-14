@@ -55,20 +55,24 @@ def _cap_top_k(top_k: int) -> int:
 
 @functools.lru_cache(maxsize=1)
 def _load_sigir():
-    from trialguard.eval.cohorts import load_patients
     from trialguard.eval.file_index import _load_sigir_trials, get_index
     from trialguard.ingestion.normalise import normalise_trial
 
     idx = get_index(DEMO_COHORT)
     by_id = {t["nct_id"]: normalise_trial(t) for t in _load_sigir_trials()}
-    patients = {p["patient_id"]: p["description"] for p in load_patients(DEMO_COHORT)}
-    return idx, by_id, patients
+    return idx, by_id
 
 
+@functools.lru_cache(maxsize=1)
 def presets(n: int = 4) -> dict[str, str]:
-    """A few synthetic patient notes to seed the demo (SIGIR synthetic cohort)."""
-    _, _, patients = _load_sigir()
-    items = list(patients.items())[:n]
+    """A few synthetic patient notes to seed the demo (SIGIR synthetic cohort).
+
+    Reads queries.jsonl only. Must not call get_index() — retrieved.json is
+    gitignored, so CI and a fresh clone have no FileIndex corpus.
+    """
+    from trialguard.eval.cohorts import load_patients
+
+    items = [(p["patient_id"], p["description"]) for p in load_patients(DEMO_COHORT)[:n]]
     return {f"Synthetic patient {pid}": note for pid, note in items}
 
 
@@ -112,7 +116,7 @@ def retrieve_trials(note: str, top_k: int = TOP_K) -> list[dict]:
         return out
 
     # Default / fallback: SIGIR FileIndex ($0, no database).
-    idx, by_id, _ = _load_sigir()
+    idx, by_id = _load_sigir()
     hits = idx.search(note, top_k=top_k, use_keywords=True)
     out = []
     for nct, score in hits:
