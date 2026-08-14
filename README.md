@@ -46,8 +46,11 @@ flowchart TD
 Graph nodes are `analyst`, `retry`, `report`. Deterministic grounding
 (`verify/grounding.py`) runs inside the analyst node — every quote is checked
 verbatim against the trial text and patient note — and the conditional edge
-routes on its failures. A Gradio UI on HF Spaces sits in front of this in
-Phase 6.
+routes on its failures. Criteria are typed: inclusion `not_met` or exclusion
+`met` excludes the trial; eligible only if every inclusion is `met` and every
+exclusion is `not_met`. Prompt v4 labels each criterion with its kind. A Gradio
+UI sits in front of this; retrieval is `FileIndex` (SIGIR) or the live
+`ctgov_live` corpus, selected by `TG_DEMO_SOURCE`.
 
 ### Component map
 
@@ -135,6 +138,17 @@ Full reports: [`data/reports/phase2_3_results.md`](data/reports/phase2_3_results
 
 The open question was whether abstaining less would mean committing to shakier verdicts. It did not — abstention fell 5.0pp while citation precision *rose*, which suggests v1's abstention was largely the analyst declining to look for evidence it could have found. Retry stays significant on top of v2 (p=0.0006), so the prompt and the verifier address different failure modes.
 
+**Exclusion criteria (prompt v4).** Prior prompts scored inclusion only, so a
+correct exclude was structurally impossible. v4 types each criterion and the
+roll-up inverts exclusion semantics. SIGIR cannot measure that change: the
+corpus has no `exclusion criteria:` header, so `by_kind.exclusion.n_criteria`
+is 0 on [`phase9v4_agent_sigir.json`](data/reports/phase9v4_agent_sigir.json).
+That rerun measures the `MAX_CRITERIA` 12→24 lift, not exclusion handling
+(verified trial accuracy 0.2611 → 0.3722; unsupported-verdict rate 0.0287 →
+0.0966; retry still significant, −34.7%, p=0.0132). TREC 2021 is the cohort
+that actually contains exclusion text; that A/B is the v4 test. The CI gate
+stays anchored to Phase 8 SIGIR until that result lands.
+
 **Provider parity.** Inference moved to an FP8-quantized build, which changes numerical precision on the model that produces verbatim quotes — a failure that would be *silent*, since a paraphrased quote just fails grounding and downgrades to *unverifiable*, a legitimate output. Measured rather than assumed: on a matched 180-trial baseline arm, citation precision was unchanged (0.9057 → 0.9086). [`phase8_provider_parity.md`](data/reports/phase8_provider_parity.md)
 
 > **Note on `recall@10 ≥ 90%`:** retired as a target. It is mathematically capped at `min(10, |gold|)/|gold|` per patient — TREC patients average 60+ eligible trials (ceiling ~0.25). TrialGPT's ">90% recall" was measured at large depth. Primary retrieval metric is now **recall@pool** (recall@50/100).
@@ -163,6 +177,7 @@ The open question was whether abstaining less would mean committing to shakier v
 | 6 — Demo & docs | ✅ Done | Gradio demo (`app.py`) + cost-engineering write-up + deploy guide; HF Spaces deploy + recorded walkthrough user-gated |
 | 7 — Production corpus | ✅ Done | 25,965 recruiting oncology trials in pgvector; lexical BM25 → Postgres FTS (tsvector + GIN, indexes exclusion too); hybrid stack validated vs gold (recall@100 non-regressing, recall@10 +0.043); ivfflat probes retuned 20→40; resumable ingest + safe corpus refresh. Report: [`data/reports/phase7_retrieval.md`](data/reports/phase7_retrieval.md) |
 | 8 — Provider migration & cost ops | ✅ Done | Provider-agnostic LLM layer; analyst cache keyed by (provider, model) with a legacy carve-out so committed Phase 3/4 entries are never orphaned; USD cost ledger with a daily circuit breaker, billed from the provider's reported cost; FP8 parity gate before adopting the new host; the two quota-blocked Phase 4 A/Bs completed for $0.10. Reports: [`phase8_provider_parity.md`](data/reports/phase8_provider_parity.md), [`phase8_carryover.md`](data/reports/phase8_carryover.md) |
+| 9 — Close the production loop | 🔄 In progress | Typed inclusion+exclusion (prompt v4) and inverted trial roll-up; demo hits `ctgov_live` behind `TG_DEMO_SOURCE` (SIGIR `FileIndex` remains the $0 default); injection defense on the served path; batched `get_trials`; connection pool. HF Spaces live URL and the TREC 2021 v4 A/B are outstanding |
 
 ---
 
@@ -193,6 +208,9 @@ python -m trialguard.eval.agent_metrics --cohort sigir --n-patients 30 --per-cla
 
 # v2 analyst prompt (targets over-abstention; additive, own cache namespace)
 TG_PROMPT_VERSION=v2 python -m trialguard.eval.agent_metrics --cohort sigir --tag phase4v2
+
+# v4: inclusion + exclusion (additive cache namespace; app.py defaults to v4)
+TG_PROMPT_VERSION=v4 python -m trialguard.eval.agent_metrics --cohort sigir --tag phase9v4
 ```
 
 > Inference defaults to DeepInfra (metered). Every analyst call is cached by `(prompt_version, provider, model, patient, trial)`, so a rerun costs nothing and an interrupted run resumes rather than repeats — a killed parity run replayed 92 calls for free. A daily USD cap (`llm/cost.py`) refuses calls past the ceiling instead of overspending, and a per-day history keeps the cost story auditable. Set `LLM_PROVIDER=groq` to reproduce Phase 3/4 from the committed Groq cache; the free tier's ~12k tokens/min and 100k tokens/day still apply on that arm, and `TG_ANALYST_DELAY` paces calls under the TPM window.
@@ -205,9 +223,11 @@ python app.py    # Gradio UI on http://localhost:7860
 ```
 
 Pick a synthetic patient or paste a synthetic note; the app retrieves candidate
-oncology trials (self-contained `FileIndex`, no database) and shows each criterion's
-verdict with its **verbatim citation** and a grounded / *unverifiable* badge — the
-faithfulness thesis made visible. Deploy to HF Spaces: [`docs/deploy.md`](docs/deploy.md).
+oncology trials and shows each criterion's verdict with its **verbatim citation**
+and a grounded / *unverifiable* badge — the faithfulness thesis made visible.
+Default retrieval is the self-contained SIGIR `FileIndex` (no database). Set
+`TG_DEMO_SOURCE=ctgov_live` to hit the production corpus (needs `DATABASE_URL`).
+Deploy to HF Spaces: [`docs/deploy.md`](docs/deploy.md).
 
 ---
 

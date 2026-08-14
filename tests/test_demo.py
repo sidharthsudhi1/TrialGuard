@@ -54,6 +54,13 @@ def test_run_empty_note_prompts():
     assert "synthetic patient note" in demo.run("   ").lower()
 
 
+def test_presets_do_not_need_fileindex():
+    """Presets are queries.jsonl only; CI has no retrieved.json."""
+    notes = demo.presets()
+    assert notes
+    assert all(v.strip() for v in notes.values())
+
+
 def test_run_renders_assessment():
     with patch.object(demo, "assess_note", return_value=RESULT):
         out = demo.run("some synthetic note")
