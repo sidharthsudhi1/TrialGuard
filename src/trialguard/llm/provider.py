@@ -83,6 +83,7 @@ def get_chat_model(purpose: str = "analyst"):
         temperature=0,
         max_tokens=_MAX_TOKENS[purpose],
         max_retries=MAX_RETRIES,
+        timeout=60,
     )
 
 
