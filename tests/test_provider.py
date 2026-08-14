@@ -75,6 +75,13 @@ def test_deepinfra_points_at_openai_compat_endpoint(deepinfra):
     llm = get_chat_model("analyst")
     assert "deepinfra.com" in str(llm.openai_api_base)
     assert llm.temperature == 0
+    assert llm.request_timeout == 180
+
+
+def test_deepinfra_timeout_is_overridable(deepinfra, monkeypatch):
+    monkeypatch.setenv("TG_LLM_TIMEOUT", "90")
+    llm = get_chat_model("analyst")
+    assert llm.request_timeout == 90
 
 
 def test_extract_usage_reads_deepinfra_cost_from_response_metadata():
