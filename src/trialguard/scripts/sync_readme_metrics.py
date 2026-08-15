@@ -32,6 +32,7 @@ def main() -> None:
         "phase8di_agent_sigir.json",
         "phase8v2_agent_sigir.json",
         "phase9v4_agent_sigir.json",
+        "phase9v4_agent_trec_2021.json",
     ):
         path = REPORTS / name
         if not path.exists():
@@ -47,6 +48,12 @@ def main() -> None:
             f"citation_precision={v.get('citation_precision')}  "
             f"abstention={v.get('abstention_rate')}"
         )
+        for kind, c in (v.get("by_kind") or {}).items():
+            print(
+                f"  {kind}: n={c.get('n_criteria')}  "
+                f"unsupported={c.get('unsupported_verdict_rate')}  "
+                f"precision={c.get('citation_precision')}"
+            )
         if s:
             print(
                 f"matched={s.get('matched_trials')}  "
