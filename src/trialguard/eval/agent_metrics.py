@@ -75,6 +75,15 @@ def _build_subset(cohort: str, n_patients: int, per_class: int) -> list[dict]:
     return subset
 
 
+def _is_transient(exc: BaseException) -> bool:
+    """Timeouts and dropped connections are retryable; 429/budget are not."""
+    blob = f"{type(exc).__name__} {exc}".lower()
+    return any(
+        m in blob
+        for m in ("timeout", "timed out", "apiconnectionerror", "connection reset")
+    )
+
+
 def _eval_workers() -> int:
     """Parallel analyst calls per arm. Default 1 — committed results stay
     byte-identical unless a run explicitly opts in. Higher values only help
@@ -117,12 +126,23 @@ def _run_arm(subset: list[dict], max_retries: int, handler=None) -> dict:
             work.append((p["note"], tr))
 
     def _assess_one(item):
+        import time
+
         note, tr = item
-        return tr, assess(
-            note, tr["nct_id"], tr["criteria"], tr["source_text"],
-            max_retries=max_retries, handler=handler,
-            criteria_truncated=tr.get("criteria_truncated", False),
-        )
+        last: Exception | None = None
+        for attempt in range(3):
+            try:
+                return tr, assess(
+                    note, tr["nct_id"], tr["criteria"], tr["source_text"],
+                    max_retries=max_retries, handler=handler,
+                    criteria_truncated=tr.get("criteria_truncated", False),
+                )
+            except Exception as e:
+                last = e
+                if not _is_transient(e) or attempt == 2:
+                    raise
+                time.sleep(2 ** attempt)
+        raise last  # pragma: no cover
 
     workers = _eval_workers()
     if workers > 1:

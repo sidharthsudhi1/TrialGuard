@@ -88,7 +88,7 @@ All patient profiles in demos are **synthetic**. No real patient data enters thi
 
 ## Measured results
 
-Full reports: [`data/reports/phase2_3_results.md`](data/reports/phase2_3_results.md) (Phase 2/3), [`data/reports/phase4_agent.md`](data/reports/phase4_agent.md) (Phase 4), [`phase8_provider_parity.md`](data/reports/phase8_provider_parity.md) and [`phase8_carryover.md`](data/reports/phase8_carryover.md) (Phase 8). All numbers reproduced from code; the full Phase 8 measurement set reruns for ~$0.10.
+Full reports: [`data/reports/phase2_3_results.md`](data/reports/phase2_3_results.md) (Phase 2/3), [`data/reports/phase4_agent.md`](data/reports/phase4_agent.md) (Phase 4), [`phase8_provider_parity.md`](data/reports/phase8_provider_parity.md) and [`phase8_carryover.md`](data/reports/phase8_carryover.md) (Phase 8), [`phase9v4_agent_trec_2021.json`](data/reports/phase9v4_agent_trec_2021.json) (Phase 9 v4 TREC). All numbers reproduced from code; the full Phase 8 measurement set reruns for ~$0.10.
 
 **Phase 4 (complete, finished in Phase 8):** the faithfulness A/B p-value is computed in-harness (`eval/significance.py`) instead of by hand; abstention vs citation-precision is reported as a swept curve, not a single point (`min_tokens=2` sits at the knee, and abstention is analyst-driven, not a grounding artifact); the retry is retrieval-aware (hands the analyst the exact source span for failed criteria); and the analyst prompt is additively versioned. The v2 and TREC retry A/Bs were quota-blocked for weeks behind the Groq daily cap and ran once inference moved to a metered host — see the two findings below.
 
@@ -145,9 +145,25 @@ corpus has no `exclusion criteria:` header, so `by_kind.exclusion.n_criteria`
 is 0 on [`phase9v4_agent_sigir.json`](data/reports/phase9v4_agent_sigir.json).
 That rerun measures the `MAX_CRITERIA` 12→24 lift, not exclusion handling
 (verified trial accuracy 0.2611 → 0.3722; unsupported-verdict rate 0.0287 →
-0.0966; retry still significant, −34.7%, p=0.0132). TREC 2021 is the cohort
-that actually contains exclusion text; that A/B is the v4 test. The CI gate
-stays anchored to Phase 8 SIGIR until that result lands.
+0.0966; retry still significant, −34.7%, p=0.0132).
+
+TREC 2021 is the cohort that contains exclusion text
+([`phase9v4_agent_trec_2021.json`](data/reports/phase9v4_agent_trec_2021.json),
+30 patients, 180 trials, $0.083). Verified arm, split by kind:
+
+| Kind | Criteria | Unsupported rate | Citation precision |
+|---|---|---|---|
+| Inclusion | 1305 | 9.2% | 0.908 |
+| Exclusion | 691 | **31.2%** | 0.688 |
+
+Retry vs single-pass on that mix is not significant (−10%, Fisher p=0.2514).
+About 71% of remaining unsupported decisive verdicts are exclusion. Inclusion
+on TREC (9.2%) matches SIGIR v4 inclusion (9.7%); the aggregate drop is
+exclusion quoting, not a harder inclusion task. Trial accuracy 0.433 (verified)
+is above Phase 8 TREC 2021's 0.271 because the roll-up can now exclude on a met
+exclusion criterion. The CI gate stays anchored to Phase 8 SIGIR
+(`verified.unsupported_verdict_rate` 0.0287, threshold 0.05); this report
+(0.184) would fail that floor and is not a new baseline.
 
 **Provider parity.** Inference moved to an FP8-quantized build, which changes numerical precision on the model that produces verbatim quotes — a failure that would be *silent*, since a paraphrased quote just fails grounding and downgrades to *unverifiable*, a legitimate output. Measured rather than assumed: on a matched 180-trial baseline arm, citation precision was unchanged (0.9057 → 0.9086). [`phase8_provider_parity.md`](data/reports/phase8_provider_parity.md)
 
@@ -177,7 +193,7 @@ stays anchored to Phase 8 SIGIR until that result lands.
 | 6 — Demo & docs | ✅ Done | Gradio demo (`app.py`) + cost-engineering write-up + deploy guide; HF Spaces deploy + recorded walkthrough user-gated |
 | 7 — Production corpus | ✅ Done | 25,965 recruiting oncology trials in pgvector; lexical BM25 → Postgres FTS (tsvector + GIN, indexes exclusion too); hybrid stack validated vs gold (recall@100 non-regressing, recall@10 +0.043); ivfflat probes retuned 20→40; resumable ingest + safe corpus refresh. Report: [`data/reports/phase7_retrieval.md`](data/reports/phase7_retrieval.md) |
 | 8 — Provider migration & cost ops | ✅ Done | Provider-agnostic LLM layer; analyst cache keyed by (provider, model) with a legacy carve-out so committed Phase 3/4 entries are never orphaned; USD cost ledger with a daily circuit breaker, billed from the provider's reported cost; FP8 parity gate before adopting the new host; the two quota-blocked Phase 4 A/Bs completed for $0.10. Reports: [`phase8_provider_parity.md`](data/reports/phase8_provider_parity.md), [`phase8_carryover.md`](data/reports/phase8_carryover.md) |
-| 9 — Close the production loop | 🔄 In progress | Typed inclusion+exclusion (prompt v4) and inverted trial roll-up; demo hits `ctgov_live` behind `TG_DEMO_SOURCE` (SIGIR `FileIndex` remains the $0 default); injection defense on the served path; batched `get_trials`; connection pool. HF Spaces live URL and the TREC 2021 v4 A/B are outstanding |
+| 9 — Close the production loop | 🔄 In progress | Typed inclusion+exclusion (prompt v4) and inverted trial roll-up; demo hits `ctgov_live` behind `TG_DEMO_SOURCE` (SIGIR `FileIndex` remains the $0 default); injection defense on the served path; batched `get_trials`; connection pool. TREC 2021 v4 A/B: exclusion unsupported-rate 31.2% vs inclusion 9.2%, retry not significant (p=0.2514), report [`phase9v4_agent_trec_2021.json`](data/reports/phase9v4_agent_trec_2021.json). HF Spaces live URL outstanding |
 
 ---
 

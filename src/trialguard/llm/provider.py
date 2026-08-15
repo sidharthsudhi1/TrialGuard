@@ -71,18 +71,28 @@ def get_chat_model(purpose: str = "analyst"):
             )
         return ChatGroq(api_key=settings.groq_api_key, model=settings.groq_model)
 
+    import os
+
     from langchain_openai import ChatOpenAI
 
     # temperature=0 on both purposes. The Groq keywords path can't adopt this
     # without invalidating its committed cache; DeepInfra starts with a fresh
     # cache namespace, so it starts deterministic.
+    #
+    # Timeout is per HTTP attempt. v4 analyst output (typed inclusion+exclusion,
+    # up to 24 criteria, max_tokens=4096) routinely exceeds 60s on Llama 3.3 70B;
+    # 60s then raised APITimeoutError and killed the TREC eval arm. Groq's
+    # MAX_RETRIES=8 would stack to tens of minutes on a dead connection, so the
+    # DeepInfra client retries twice and the eval harness retries the trial.
+    timeout = float(os.environ.get("TG_LLM_TIMEOUT", "180"))
     return ChatOpenAI(
         api_key=settings.deepinfra_api_key,
         base_url=DEEPINFRA_BASE_URL,
         model=settings.deepinfra_model,
         temperature=0,
         max_tokens=_MAX_TOKENS[purpose],
-        max_retries=MAX_RETRIES,
+        max_retries=2,
+        timeout=timeout,
     )
 
 
