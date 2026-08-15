@@ -54,6 +54,18 @@ class Settings(BaseSettings):
     # Hard cap on trials assessed per demo request (cost bound).
     demo_max_top_k: int = 5
 
+    # Phase 9 Stage A API (FastAPI). CORS is a single origin — never "*".
+    api_cors_origin: str = "http://localhost:3000"
+    # Hard cap on nct_ids per /api/assess (LLM cost bound).
+    api_max_assess_trials: int = 5
+    # Per-IP sliding-window limits (keyword extract / analyst spend).
+    api_search_rate_per_min: int = 10
+    api_assess_rate_per_min: int = 5
+    # In-process assess job TTL (seconds).
+    api_job_ttl_seconds: int = 3600
+    # Bounded threadpool for assess() — also a spend concurrency limit.
+    api_assess_workers: int = 2
+
     # Hugging Face
     hf_token: str = ""
 
