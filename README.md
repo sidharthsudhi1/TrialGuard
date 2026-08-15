@@ -6,9 +6,10 @@
 
 Live demos:
 
-- **Stage A web app** (live `ctgov_live` corpus, quote-in-source UI): frontend + API —
-  deploy guide [`docs/deploy_stage_a.md`](docs/deploy_stage_a.md). Set live URLs here
-  after the first Vercel / Fly push.
+- **Stage A web app** (live `ctgov_live` corpus, quote-in-source UI):
+  [web-five-virid-38.vercel.app](https://web-five-virid-38.vercel.app) (frontend) —
+  API at [trialguard-api.fly.dev](https://trialguard-api.fly.dev/api/health).
+  Deploy guide [`docs/deploy_stage_a.md`](docs/deploy_stage_a.md).
 - **Gradio** ($0 SIGIR `FileIndex` on HF Spaces): `app.py` — see [`docs/deploy.md`](docs/deploy.md).
 
 ---
