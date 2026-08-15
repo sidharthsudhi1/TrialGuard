@@ -1,0 +1,11 @@
+# Reduce MedCPT / venv noise in the API image context
+.venv
+web/node_modules
+web/.next
+data/cache
+data/indexes
+data/raw
+.git
+**/__pycache__
+*.pyc
+.env

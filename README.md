@@ -4,7 +4,12 @@
 
 > *Faithfulness is the product.* Every eligibility verdict is backed by a verified citation from the source trial, or explicitly flagged as unverifiable.
 
-Live demo: *(Gradio app built — `app.py`; HF Spaces deploy pending, see [`docs/deploy.md`](docs/deploy.md))*
+Live demos:
+
+- **Stage A web app** (live `ctgov_live` corpus, quote-in-source UI): frontend + API —
+  deploy guide [`docs/deploy_stage_a.md`](docs/deploy_stage_a.md). Set live URLs here
+  after the first Vercel / Fly push.
+- **Gradio** ($0 SIGIR `FileIndex` on HF Spaces): `app.py` — see [`docs/deploy.md`](docs/deploy.md).
 
 ---
 
@@ -63,7 +68,7 @@ UI sits in front of this; retrieval is `FileIndex` (SIGIR) or the live
 | Vector store | pgvector on Neon (production); numpy file index (eval/demo) | **paid (Neon)** |
 | Verification | deterministic quote grounding (pure Python) | free |
 | Tracing | Langfuse free tier | free tier |
-| Demo hosting | Hugging Face Spaces | free tier |
+| Demo hosting | Gradio on HF Spaces ($0 SIGIR); FastAPI + Next.js Stage A (live corpus) | free / small metered |
 
 Two paid lines, both small. The production vector store: the 26k-trial oncology
 corpus (531 MB) exceeds Neon's 512 MB free ceiling. And inference: the free tier's
@@ -193,7 +198,7 @@ exclusion criterion. The CI gate stays anchored to Phase 8 SIGIR
 | 6 — Demo & docs | ✅ Done | Gradio demo (`app.py`) + cost-engineering write-up + deploy guide; HF Spaces deploy + recorded walkthrough user-gated |
 | 7 — Production corpus | ✅ Done | 25,965 recruiting oncology trials in pgvector; lexical BM25 → Postgres FTS (tsvector + GIN, indexes exclusion too); hybrid stack validated vs gold (recall@100 non-regressing, recall@10 +0.043); ivfflat probes retuned 20→40; resumable ingest + safe corpus refresh. Report: [`data/reports/phase7_retrieval.md`](data/reports/phase7_retrieval.md) |
 | 8 — Provider migration & cost ops | ✅ Done | Provider-agnostic LLM layer; analyst cache keyed by (provider, model) with a legacy carve-out so committed Phase 3/4 entries are never orphaned; USD cost ledger with a daily circuit breaker, billed from the provider's reported cost; FP8 parity gate before adopting the new host; the two quota-blocked Phase 4 A/Bs completed for $0.10. Reports: [`phase8_provider_parity.md`](data/reports/phase8_provider_parity.md), [`phase8_carryover.md`](data/reports/phase8_carryover.md) |
-| 9 — Close the production loop | 🔄 In progress | Typed inclusion+exclusion (prompt v4) and inverted trial roll-up; demo hits `ctgov_live` behind `TG_DEMO_SOURCE` (SIGIR `FileIndex` remains the $0 default); injection defense on the served path; batched `get_trials`; connection pool. TREC 2021 v4 A/B: exclusion unsupported-rate 31.2% vs inclusion 9.2%, retry not significant (p=0.2514), report [`phase9v4_agent_trec_2021.json`](data/reports/phase9v4_agent_trec_2021.json). HF Spaces live URL outstanding |
+| 9 — Close the production loop | 🔄 In progress | Typed inclusion+exclusion (prompt v4) and inverted trial roll-up; Gradio hits `ctgov_live` behind `TG_DEMO_SOURCE` (SIGIR `FileIndex` remains the $0 default); FastAPI Stage A (`src/trialguard/api/`) + Next.js (`web/`) wrap `retrieve()` / `assess()` unchanged with search/assess split, SSE, and quote-in-source highlighting. TREC 2021 v4 caveat: exclusion unsupported-rate 31.2% vs inclusion 9.2%, retry not significant (p=0.2514), report [`phase9v4_agent_trec_2021.json`](data/reports/phase9v4_agent_trec_2021.json). Deploy: [`docs/deploy_stage_a.md`](docs/deploy_stage_a.md) |
 
 ---
 
@@ -245,6 +250,22 @@ Default retrieval is the self-contained SIGIR `FileIndex` (no database). Set
 `TG_DEMO_SOURCE=ctgov_live` to hit the production corpus (needs `DATABASE_URL`).
 Deploy to HF Spaces: [`docs/deploy.md`](docs/deploy.md).
 
+### Run Stage A (FastAPI + Next.js)
+
+```bash
+pip install -e ".[web]"
+export API_CORS_ORIGIN=http://localhost:3000
+python -m trialguard.api          # http://localhost:8000
+
+cd web && cp .env.example .env.local && npm install && npm run dev
+# → http://localhost:3000
+```
+
+Search and assess are separate: ranked `ctgov_live` hits first, then user-chosen
+NCT IDs stream over SSE. Trial detail highlights assessed quotes inside
+`eligibility_raw` only when they appear verbatim. Deploy:
+[`docs/deploy_stage_a.md`](docs/deploy_stage_a.md).
+
 ---
 
 ## Stack & cost
@@ -275,8 +296,9 @@ when the limit is throughput.
   split ([`phase5_vectorstore.md`](data/reports/phase5_vectorstore.md)).
 - **CI:** the regression gate runs on committed artifacts only, so it makes no LLM
   calls and stays free on GitHub Actions.
-- **Serving:** Gradio on a free HF Spaces CPU (numpy `FileIndex`, no database); MedCPT
-  runs on CPU, inference is hosted.
+- **Serving:** Gradio on a free HF Spaces CPU (SIGIR `FileIndex`, $0); Stage A
+  FastAPI + Next.js for the live `ctgov_live` corpus (quote-in-source UI), with
+  per-request / per-IP / daily USD caps. MedCPT runs on the API host.
 
 ---
 
@@ -306,7 +328,7 @@ when the limit is throughput.
 | AD-8 | Langfuse tracing from day one | Add logging later, print statements |
 | AD-9 | Kaggle/Colab for batch jobs only | Always-on GPU, local only |
 | AD-9 (unexercised) | Notebook GPU never needed through Phase 3 — MedCPT (110M) embeds on local CPU/MPS, and the eval bottleneck was Groq token quota (disk cache), not GPU hours. `notebooks/` stays empty; revisit only if Phase 4/5 batch work exceeds local compute | — |
-| AD-10 | Gradio on HF Spaces | FastAPI + React, Streamlit, local-only |
+| AD-10 | Gradio on HF Spaces ($0 SIGIR); Stage A FastAPI + Next.js for live corpus | Streamlit, local-only |
 | AD-11 | LLM keyword extraction before retrieval | Raw patient narrative as query (semantic mismatch, recall ceiling) |
 
 *When a decision is reversed during the build, the reversal and reason are recorded here — not deleted.*
