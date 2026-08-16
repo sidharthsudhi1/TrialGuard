@@ -253,6 +253,7 @@ def coverage_curve(subset: list[dict], min_tokens_values=(1, 2, 3, 4)) -> list[d
     """
     from trialguard.agent.analyst import CACHE_DIR as ACACHE
     from trialguard.agent.analyst import _cache_key, analyze_trial
+    from trialguard.agent.schema import attach_kinds, normalize_criteria
     from trialguard.verify.grounding import ground_assessments
 
     cached = []
@@ -260,13 +261,18 @@ def coverage_curve(subset: list[dict], min_tokens_values=(1, 2, 3, 4)) -> list[d
         for tr in p["trials"]:
             if (ACACHE / f"{_cache_key(p['note'], tr['nct_id'])}.json").exists():
                 raw = analyze_trial(p["note"], tr["nct_id"], tr["criteria"])
-                cached.append((raw, p["note"] + "\n" + tr["source_text"]))
+                # Kinds and the bare note are carried so the curve sweeps the same
+                # verifier the graph ships (absence path included), not a variant.
+                typed = normalize_criteria(tr["criteria"])
+                cached.append(
+                    (attach_kinds(raw, typed), p["note"] + "\n" + tr["source_text"], p["note"])
+                )
 
     curve = []
     for mt in min_tokens_values:
         decisive = grounded = total = 0
-        for raw, source in cached:
-            for a in ground_assessments(raw, source, min_tokens=mt):
+        for raw, source, note in cached:
+            for a in ground_assessments(raw, source, min_tokens=mt, patient_text=note):
                 total += 1
                 v = a.get("verdict")
                 if v in ("met", "not_met"):

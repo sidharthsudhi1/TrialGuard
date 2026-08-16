@@ -69,8 +69,14 @@ def _analyst_node(state: State) -> State:
     # the trial's eligibility text or the patient note. "met"/"not_met" verdicts
     # legitimately cite patient facts ("58-year-old woman") as well as trial text.
     combined_source = state["patient_note"] + "\n" + state["source_text"]
-    grounded = ground_assessments(raw, combined_source)
-    return {"assessments": attach_kinds(grounded, typed)}
+    # Kinds are attached before grounding: an exclusion "not_met" asserts absence
+    # and is verified against the note rather than by a verbatim span, so the
+    # verifier has to know the criterion's kind to pick the right check.
+    typed_raw = attach_kinds(raw, typed)
+    grounded = ground_assessments(
+        typed_raw, combined_source, patient_text=state["patient_note"]
+    )
+    return {"assessments": grounded}
 
 
 def _needs_retry(state: State) -> str:
