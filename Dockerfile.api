@@ -10,6 +10,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY pyproject.toml README.md ./
 COPY src ./src
+# Preset notes are read from this fixture to decide the analyst cache-write policy
+# (WS-4). Small and tracked; without it every note is treated as free text.
+COPY data/eval/sigir/queries.jsonl ./data/eval/sigir/queries.jsonl
 
 RUN pip install --no-cache-dir -e ".[web]"
 

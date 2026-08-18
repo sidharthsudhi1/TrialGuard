@@ -65,9 +65,14 @@ def client(monkeypatch):
     monkeypatch.setattr("trialguard.config.settings.api_max_assess_trials", 5)
     monkeypatch.setattr("trialguard.config.settings.api_search_rate_per_min", 1000)
     monkeypatch.setattr("trialguard.config.settings.api_assess_rate_per_min", 1000)
+    # Preset lookup is process-cached; clear it so each test sees its own patch.
+    from trialguard.api.routes import _preset_notes
+
+    _preset_notes.cache_clear()
     app = create_app()
     with TestClient(app) as c:
         yield c
+    _preset_notes.cache_clear()
 
 
 def test_health_200(client):
@@ -282,3 +287,36 @@ def test_cors_rejects_star(monkeypatch):
     monkeypatch.setattr("trialguard.config.settings.api_cors_origin", "*")
     with pytest.raises(RuntimeError, match="concrete origin"):
         create_app()
+
+
+def test_assess_works_without_eval_fixtures(client):
+    """Regression: the deployed image ships only src/, so the preset lookup must
+    not raise when data/eval is absent. This 500'd every assess request in prod."""
+    from trialguard.api.routes import _preset_notes
+
+    _preset_notes.cache_clear()
+    with (
+        patch("trialguard.agent.sanitize.detect_injection", return_value=False),
+        patch("trialguard.db.queries.get_trial", return_value=STUB_ROWS["NCT0001"]),
+        patch("trialguard.agent.graph.assess", return_value=STUB_ASSESS),
+        patch("trialguard.demo.presets", side_effect=FileNotFoundError(
+            "data/eval/sigir/queries.jsonl")),
+        patch("trialguard.llm.cost.active_ledger") as ledger,
+    ):
+        ledger.return_value.exhausted.return_value = False
+        r = client.post(
+            "/api/assess", json={"note": "synthetic note", "nct_ids": ["NCT0001"]}
+        )
+    assert r.status_code == 200, r.text
+    assert r.json()["job_id"]
+    _preset_notes.cache_clear()
+
+
+def test_missing_fixtures_treated_as_freetext(client):
+    """With no fixtures nothing is a preset, so the cache write is skipped."""
+    from trialguard.api.routes import _is_preset, _preset_notes
+
+    _preset_notes.cache_clear()
+    with patch("trialguard.demo.presets", side_effect=FileNotFoundError):
+        assert _is_preset("anything at all") is False
+    _preset_notes.cache_clear()

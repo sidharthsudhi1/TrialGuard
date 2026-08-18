@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+from functools import lru_cache
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
@@ -57,10 +58,26 @@ def _cap_top_k(top_k: int) -> int:
     return max(1, min(int(top_k), settings.demo_max_top_k))
 
 
-def _is_preset(note: str) -> bool:
+@lru_cache(maxsize=1)
+def _preset_notes() -> frozenset[str]:
+    """Preset notes, or empty when the eval fixtures are not on disk.
+
+    Presets come from the SIGIR queries file, which is a repo fixture rather than
+    a serving dependency. A deploy that ships only `src/` must not 500 on every
+    assess request because of it: with no fixtures nothing matches, every note is
+    treated as free text, and the cache write is skipped — the conservative side
+    of the WS-4 policy. Cached because the answer cannot change within a process.
+    """
     from trialguard.demo import presets
 
-    return note.strip() in set(presets().values())
+    try:
+        return frozenset(presets().values())
+    except (FileNotFoundError, OSError):
+        return frozenset()
+
+
+def _is_preset(note: str) -> bool:
+    return note.strip() in _preset_notes()
 
 
 def _budget_exhausted_detail(exc: BaseException) -> dict[str, Any]:
