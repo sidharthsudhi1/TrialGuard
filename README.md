@@ -165,11 +165,43 @@ TREC 2021 is the cohort that contains exclusion text
 Retry vs single-pass on that mix is not significant (−10%, Fisher p=0.2514).
 About 71% of remaining unsupported decisive verdicts are exclusion. Inclusion
 on TREC (9.2%) matches SIGIR v4 inclusion (9.7%); the aggregate drop is
-exclusion quoting, not a harder inclusion task. Trial accuracy 0.433 (verified)
-is above Phase 8 TREC 2021's 0.271 because the roll-up can now exclude on a met
-exclusion criterion. The CI gate stays anchored to Phase 8 SIGIR
-(`verified.unsupported_verdict_rate` 0.0287, threshold 0.05); this report
-(0.184) would fail that floor and is not a new baseline.
+exclusion quoting, not a harder inclusion task.
+
+**Diagnosed and fixed in v5** ([`phase9v5_exclusion_grounding.md`](data/reports/phase9v5_exclusion_grounding.md)).
+Every exclusion failure in a sampled trace was one pattern, and none were
+hallucinations: an exclusion criterion answered `not_met` asserts the patient does
+*not* match a disqualifier, which is a claim about **absence of evidence** that no
+verbatim span can support. The analyst could only return an empty quote or write a
+negation like "No mention of hepatocellular carcinoma", and the verbatim check
+scored correct reasoning as unfaithful. Verbatim grounding is well defined for
+presence claims and undefined for absence claims.
+
+Absence is now verified mechanically rather than exempted (exempting it would be a
+hallucination loophole): the criterion's distinctive terms must be genuinely
+absent from the patient note. If a term is present a quotable span exists and the
+verbatim requirement still applies, so a fabricated negation cannot pass. Same
+cohort, 180 trials, verified arm:
+
+| Kind | Criteria | Unsupported v4 → v5 | Precision v4 → v5 |
+|---|---|---|---|
+| Inclusion | 1294 | 9.2% → 8.0% | 0.908 → 0.920 |
+| Exclusion | 696 | **31.2% → 8.9%** | 0.688 → **0.911** |
+
+Exclusion now matches inclusion instead of trailing it threefold, and **retry
+significance is restored on TREC 2021**: −10.1% (p=0.2514, ns) → **−31.9%
+(p=0.0048)**, matched n=176. Trial accuracy 0.433 → 0.450, now above the baseline
+arm (0.444) rather than below it. Both arms improve because the change is to the
+verifier, which runs in the baseline arm too; significance returns because the
+retry now has groundable failures to work on instead of structurally unfixable
+ones. v5 is a fresh run (the v4 analyst cache was lost with the EC2 instance), so
+inclusion's +1.2pp with no logic change affecting it marks the run-to-run noise
+floor — the exclusion move is an order of magnitude outside it.
+
+SIGIR is unaffected by construction: it yields zero exclusion criteria, so the
+absence path never fires and every committed inclusion-only result is untouched.
+The CI gate stays anchored to Phase 8 SIGIR
+(`verified.unsupported_verdict_rate` 0.0287, threshold 0.05); the TREC reports
+(v4 0.184, v5 0.084) are not a new baseline.
 
 **Provider parity.** Inference moved to an FP8-quantized build, which changes numerical precision on the model that produces verbatim quotes — a failure that would be *silent*, since a paraphrased quote just fails grounding and downgrades to *unverifiable*, a legitimate output. Measured rather than assumed: on a matched 180-trial baseline arm, citation precision was unchanged (0.9057 → 0.9086). [`phase8_provider_parity.md`](data/reports/phase8_provider_parity.md)
 

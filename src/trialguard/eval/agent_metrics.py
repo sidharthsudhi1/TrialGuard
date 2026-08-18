@@ -31,15 +31,23 @@ def _build_subset(cohort: str, n_patients: int, per_class: int) -> list[dict]:
     from trialguard.eval.file_index import _load_sigir_trials, _load_trec_trials
     from trialguard.ingestion.normalise import normalise_trial
 
-    raw = _load_sigir_trials() if cohort == "sigir" else _load_trec_trials(cohort)
-    by_id = {t["nct_id"]: normalise_trial(t) for t in raw}
-    corpus_ids = set(by_id)
-
     patients = {p["patient_id"]: p for p in load_patients(cohort)}
     labels = load_labels(cohort)
     per_patient: dict[str, dict[str, str]] = {}
     for lbl in labels:
         per_patient.setdefault(lbl["patient_id"], {})[lbl["nct_id"]] = lbl["label"]
+
+    # Only labelled trials can ever be selected below, so load only those. On TREC
+    # the unfiltered load is ~26k trials held twice and does not fit in memory on a
+    # small machine; the selection is identical either way.
+    labelled = {
+        lbl["nct_id"]
+        for lbl in labels
+        if lbl["label"] in ("eligible", "excluded") and lbl["patient_id"] in patients
+    }
+    raw = _load_sigir_trials() if cohort == "sigir" else _load_trec_trials(cohort, labelled)
+    by_id = {t["nct_id"]: normalise_trial(t) for t in raw}
+    corpus_ids = set(by_id)
 
     subset = []
     for pid, lab in per_patient.items():

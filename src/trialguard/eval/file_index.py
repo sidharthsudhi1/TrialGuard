@@ -174,7 +174,15 @@ def _load_sigir_trials() -> list[dict]:
     return trials
 
 
-def _load_trec_trials(source: str) -> list[dict]:
+def _load_trec_trials(source: str, keep_ids: set[str] | None = None) -> list[dict]:
+    """Load TREC trials, optionally keeping only `keep_ids`.
+
+    The agent eval needs a few hundred labelled trials, not the whole 26k corpus;
+    materialising all of them (then normalising a second copy) is what makes a
+    TREC agent run exceed memory on a small machine. Filtering while streaming
+    keeps the selection identical and the footprint proportional to what is used.
+    Retrieval eval passes no filter and still gets the full corpus.
+    """
     path = EVAL_DIR / source / f"{source}_corpus.jsonl"
     if not path.exists():
         raise FileNotFoundError(
@@ -187,8 +195,11 @@ def _load_trec_trials(source: str) -> list[dict]:
             if not line:
                 continue
             obj = json.loads(line)
+            nct_id = obj.get("_id", "")
+            if keep_ids is not None and nct_id not in keep_ids:
+                continue
             trials.append({
-                "nct_id": obj.get("_id", ""),
+                "nct_id": nct_id,
                 "title": obj.get("title", ""),
                 "eligibility_raw": obj.get("text", ""),
             })

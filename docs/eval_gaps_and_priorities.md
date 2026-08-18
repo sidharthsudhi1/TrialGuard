@@ -63,7 +63,25 @@ this is unmeasurable on the live deployment.
 
 This is the only gap that is about the deployed system rather than the reports.
 
-### G-4 — Exclusion grounding is the open technical problem
+### G-4 — Exclusion grounding — RESOLVED 2026-08-17
+
+Fixed in v5; full write-up in
+[`data/reports/phase9v5_exclusion_grounding.md`](../data/reports/phase9v5_exclusion_grounding.md).
+
+Diagnosis was none of the three hypotheses below. Reading the cached traces, every
+exclusion failure was one pattern: exclusion `not_met` asserts *absence of
+evidence*, which no verbatim span can support, so the analyst returned an empty
+quote or an invented negation and the verifier scored correct reasoning as
+unfaithful. Absence is now verified mechanically against the patient note instead
+of exempted. Exclusion unsupported rate 31.2% → 8.9%; TREC 2021 retry significance
+restored (p=0.2514 → p=0.0048).
+
+G-2 is partly addressed as a side effect: the verified arm now beats baseline on
+trial accuracy (0.450 vs 0.444) instead of trailing it.
+
+Original framing, kept for the record:
+
+
 
 Recorded in README as a finding; not yet recorded as a work item. 31.2%
 unsupported on exclusion means roughly one in three decisive exclusion verdicts

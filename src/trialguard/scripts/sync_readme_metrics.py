@@ -33,6 +33,7 @@ def main() -> None:
         "phase8v2_agent_sigir.json",
         "phase9v4_agent_sigir.json",
         "phase9v4_agent_trec_2021.json",
+        "phase9v5_agent_trec_2021.json",
     ):
         path = REPORTS / name
         if not path.exists():
