@@ -73,3 +73,40 @@ def test_retrieve_then_assess_end_to_end():
     assert state["trial_verdict"] == "eligible"
     kinds = {a["criterion"]: a["kind"] for a in state["assessments"]}
     assert kinds["Active brain metastases"] == "exclusion"
+
+
+def test_fanout_ranking_is_deterministic():
+    """Concurrent per-keyword search must not let thread scheduling pick winners.
+
+    RRF sums over lists so order cannot change a score, but sorted() is stable:
+    if rankings were appended as tasks completed, exact ties would resolve by
+    whichever query returned first. Backends here return tied scores and finish
+    in deliberately jumbled order.
+    """
+    import time
+    from unittest.mock import patch
+
+    import trialguard.retrieval.query_transform as QT
+
+    delays = {"kw-a": 0.03, "kw-b": 0.0, "kw-c": 0.015}
+
+    def _dense(q, top_k=50, source=None):
+        time.sleep(delays[q])
+        return [(f"NCT-{q}-1", 0.9), ("NCT-TIE", 0.5)]
+
+    def _bm25(q, top_k=50, source=None):
+        time.sleep(delays[q] / 2)
+        return [("NCT-TIE", 0.8), (f"NCT-{q}-2", 0.4)]
+
+    with (
+        patch.object(QT, "generate_keywords", return_value=["kw-a", "kw-b", "kw-c"]),
+        patch.object(P, "dense_search", side_effect=_dense),
+        patch.object(P, "bm25_search", side_effect=_bm25),
+    ):
+        runs = [
+            P.retrieve("note", top_k=8, source="ctgov_live", use_keywords=True)[0]
+            for _ in range(5)
+        ]
+
+    assert all(r == runs[0] for r in runs), "fan-out ranking varied across runs"
+    assert runs[0][0][0] == "NCT-TIE"  # appears in all six lists

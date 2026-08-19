@@ -70,10 +70,14 @@ CREATE TABLE IF NOT EXISTS eval_labels (
 );
 """
 
-# Neon serverless proxies connections; a small pool is correct. One retrieve()
-# leases two connections (dense + FTS); keep headroom for a few concurrent users.
+# Neon serverless proxies connections; a modest pool is correct. One retrieve()
+# now fans its (keyword x backend) searches out concurrently, leasing up to
+# settings.retrieval_fanout_workers connections at once, so the ceiling has to
+# clear that with headroom for a few concurrent users. psycopg2's pool raises
+# rather than waits when exhausted, so this is a correctness bound, not a tuning
+# knob: too low turns a slow search into a failed one.
 _POOL_MIN = 1
-_POOL_MAX = 10
+_POOL_MAX = 20
 
 _pool: pool.ThreadedConnectionPool | None = None
 

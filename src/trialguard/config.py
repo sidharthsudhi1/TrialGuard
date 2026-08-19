@@ -34,7 +34,15 @@ class Settings(BaseSettings):
 
     # Vector store
     database_url: str = ""
-    # ivfflat probes for the ctgov_live corpus (lists=161). Bench (PHASE7 WS-4,
+    # Concurrent (keyword x backend) searches per retrieve(). Every task leases a
+    # pooled connection, so this must stay under the pool ceiling in db/schema.py.
+    # 4 is measured, not guessed: against ctgov_live (12 keywords, 24 tasks) the
+    # wall clock bottoms out there — 1 worker 5927ms, 4 workers 2625ms, 8 workers
+    # 2882ms. Past 4, concurrent full-table vector scans contend for Neon's
+    # compute and each query slows by more than the overlap wins back.
+    retrieval_fanout_workers: int = 4
+
+    # ivfflat probes for the ctgov_live corpus (lists=161). Bench (data/reports/phase7_retrieval.md,
     # recall vs exact top-100 on 26k trials): probes=20 recovered only ~62%, the
     # knee is ~40 (~full recall, <200ms warm). Eval-cohort scopes seq-scan the
     # source subset (ivfflat bypassed) so this only affects production ctgov_live.

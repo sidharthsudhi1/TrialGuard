@@ -18,6 +18,7 @@ against a changed config.
 from __future__ import annotations
 
 import os
+import threading
 
 EMBEDDING_DIM = 768
 
@@ -31,6 +32,11 @@ MEDCPT_ARTICLE_MAXLEN = 512
 
 _bge_model = None
 _medcpt = {}
+# retrieve() fans its per-keyword searches out across threads, so first use can be
+# concurrent. Without this, every thread that misses the cache loads its own copy
+# of a 440 MB encoder — an out-of-memory kill on a 2 GB machine, and duplicated
+# weights everywhere else.
+_model_lock = threading.Lock()
 
 
 def _backend() -> str:
@@ -62,11 +68,13 @@ def _device() -> str:
 def _get_bge():
     global _bge_model
     if _bge_model is None:
-        from trialguard.config import settings
-        if settings.hf_token:
-            os.environ.setdefault("HF_TOKEN", settings.hf_token)
-        from sentence_transformers import SentenceTransformer
-        _bge_model = SentenceTransformer(BGE_MODEL, device=_device())
+        with _model_lock:
+            if _bge_model is None:  # re-check: another thread may have loaded it
+                from trialguard.config import settings
+                if settings.hf_token:
+                    os.environ.setdefault("HF_TOKEN", settings.hf_token)
+                from sentence_transformers import SentenceTransformer
+                _bge_model = SentenceTransformer(BGE_MODEL, device=_device())
     return _bge_model
 
 
@@ -87,14 +95,16 @@ def _bge_encode(texts: list[str], is_query: bool, batch_size: int) -> list[list[
 def _get_medcpt(is_query: bool):
     key = "query" if is_query else "article"
     if key not in _medcpt:
-        from trialguard.config import settings
-        if settings.hf_token:
-            os.environ.setdefault("HF_TOKEN", settings.hf_token)
-        from transformers import AutoModel, AutoTokenizer
-        name = MEDCPT_QUERY_MODEL if is_query else MEDCPT_ARTICLE_MODEL
-        tok = AutoTokenizer.from_pretrained(name)
-        model = AutoModel.from_pretrained(name).to(_device()).eval()
-        _medcpt[key] = (tok, model)
+        with _model_lock:
+            if key not in _medcpt:  # re-check: another thread may have loaded it
+                from trialguard.config import settings
+                if settings.hf_token:
+                    os.environ.setdefault("HF_TOKEN", settings.hf_token)
+                from transformers import AutoModel, AutoTokenizer
+                name = MEDCPT_QUERY_MODEL if is_query else MEDCPT_ARTICLE_MODEL
+                tok = AutoTokenizer.from_pretrained(name)
+                model = AutoModel.from_pretrained(name).to(_device()).eval()
+                _medcpt[key] = (tok, model)
     return _medcpt[key]
 
 
