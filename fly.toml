@@ -4,7 +4,7 @@
 #          API_CORS_ORIGIN (Vercel frontend origin), LLM_PROVIDER
 
 app = "trialguard-api"
-primary_region = "iad"
+primary_region = "syd"
 
 [build]
   dockerfile = "Dockerfile.api"
