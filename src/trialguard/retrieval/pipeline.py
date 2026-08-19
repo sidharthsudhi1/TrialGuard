@@ -10,6 +10,35 @@ from trialguard.retrieval.dense import dense_search
 from trialguard.retrieval.fusion import rrf
 
 
+def _apply_demographics(query, rankings, fused, top_k, source):
+    """Drop candidates a hard age or sex gate rules out. Returns (hits, n_dropped).
+
+    Re-fuses wider before filtering so the caller still gets top_k results rather
+    than a short list — dropping from an already-sliced list would silently shrink
+    the page. Fails open: any error here degrades to unfiltered results, because a
+    ranking with a few impossible candidates beats no ranking at all.
+    """
+    from trialguard.config import settings
+
+    if not (settings.retrieval_demographic_filter and source and settings.database_url):
+        return fused, 0
+    try:
+        from trialguard.retrieval.demographics import filter_candidates, parse_patient
+
+        patient = parse_patient(query)
+        if patient["age"] is None and not patient["sex"]:
+            return fused, 0
+
+        from trialguard.db.queries import get_trials
+
+        wide = rrf(rankings, top_k=top_k * 4)
+        meta = get_trials([n for n, _ in wide], source=source)
+        kept, dropped = filter_candidates(wide, meta, patient)
+        return kept[:top_k], len(dropped)
+    except Exception:  # noqa: BLE001 — never fail a search over a filter
+        return fused, 0
+
+
 def retrieve(
     query: str,
     top_k: int = 10,
@@ -80,6 +109,10 @@ def retrieve(
     fused = rrf(rankings, top_k=top_k)
     fusion_ms = (time.perf_counter() - t3) * 1000
 
+    t4 = time.perf_counter()
+    fused, n_dropped = _apply_demographics(query, rankings, fused, top_k, source)
+    demographics_ms = (time.perf_counter() - t4) * 1000
+
     total_ms = (time.perf_counter() - t0) * 1000
 
     latency = {
@@ -92,6 +125,8 @@ def retrieve(
         "bm25_ms": round(bm25_ms_total, 1),
         "fanout_ms": round(fanout_ms, 1),
         "fusion_ms": round(fusion_ms, 1),
+        "demographics_ms": round(demographics_ms, 1),
+        "demographics_dropped": n_dropped,
         "total_ms": round(total_ms, 1),
     }
     return fused, latency

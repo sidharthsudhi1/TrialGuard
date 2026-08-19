@@ -42,6 +42,12 @@ class Settings(BaseSettings):
     # compute and each query slows by more than the overlap wins back.
     retrieval_fanout_workers: int = 4
 
+    # Drop candidates a hard demographic gate rules out before they reach the
+    # analyst. Deterministic, no LLM. Measured on ctgov_live: 12% of candidates
+    # ruled out for a 58-year-old woman, 92% for an 8-year-old, since an adult
+    # oncology corpus is almost entirely age-inappropriate for a child.
+    retrieval_demographic_filter: bool = True
+
     # Serve dense retrieval from an in-memory matrix instead of pgvector. At 26k
     # rows the planner declines the ivfflat index anyway and scans the table, so
     # this moves an exact scan to where it is cheap. Falls back to SQL whenever
