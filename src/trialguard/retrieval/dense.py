@@ -20,8 +20,20 @@ def dense_search(
     top_k: int = 50,
     source: str | None = None,
 ) -> list[tuple[str, float]]:
-    """Return (nct_id, cosine_similarity) sorted descending."""
+    """Return (nct_id, cosine_similarity) sorted descending.
+
+    Served from the in-memory matrix when it is resident (see
+    retrieval/vector_cache.py); otherwise this falls through to pgvector, which
+    is what runs during startup and whenever the cache is disabled or failed.
+    """
     vec = embed_text(query_text, is_query=True)
+
+    from trialguard.retrieval.vector_cache import cached_search
+
+    hits = cached_search(vec, top_k, source)
+    if hits is not None:
+        return hits
+
     source_clause = "AND source = %(source)s" if source else ""
     sql = SQL.format(source_clause=source_clause)
 

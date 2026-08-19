@@ -129,6 +129,12 @@ def _budget_exhausted_detail(exc: BaseException) -> dict[str, Any]:
     }
 
 
+def _vector_cache_status() -> dict[str, Any]:
+    from trialguard.retrieval.vector_cache import status
+
+    return status()
+
+
 @router.get("/health")
 def health(request: Request) -> dict[str, Any]:
     """Process up + pool leasable + MedCPT warm flag."""
@@ -149,6 +155,7 @@ def health(request: Request) -> dict[str, Any]:
         "pool_ok": pool_ok,
         "pool_error": pool_error,
         "medcpt_warm": bool(request.app.state.medcpt_warm),
+        "vector_cache": _vector_cache_status(),
         "prompt_version": os.environ.get("TG_PROMPT_VERSION", "v1"),
         "synthetic_only": True,
         "notice": SYNTHETIC_NOTICE,

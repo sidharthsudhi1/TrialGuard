@@ -46,6 +46,11 @@ async def lifespan(app: FastAPI):
 
         warm_models()
         app.state.medcpt_warm = True
+        # Not awaited: an 80 MB fetch must not extend a boot that already takes
+        # over a minute. Dense search runs on pgvector until this lands.
+        from trialguard.retrieval.vector_cache import warm_in_background
+
+        warm_in_background(settings.retrieval_vector_cache_source)
     yield
     app.state.assess_executor.shutdown(wait=False, cancel_futures=True)
     from trialguard.db.schema import close_pool

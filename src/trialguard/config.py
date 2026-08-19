@@ -42,6 +42,13 @@ class Settings(BaseSettings):
     # compute and each query slows by more than the overlap wins back.
     retrieval_fanout_workers: int = 4
 
+    # Serve dense retrieval from an in-memory matrix instead of pgvector. At 26k
+    # rows the planner declines the ivfflat index anyway and scans the table, so
+    # this moves an exact scan to where it is cheap. Falls back to SQL whenever
+    # the matrix is not resident, so turning it off only costs speed.
+    retrieval_vector_cache: bool = True
+    retrieval_vector_cache_source: str = "ctgov_live"
+
     # ivfflat probes for the ctgov_live corpus (lists=161). Bench (data/reports/phase7_retrieval.md,
     # recall vs exact top-100 on 26k trials): probes=20 recovered only ~62%, the
     # knee is ~40 (~full recall, <200ms warm). Eval-cohort scopes seq-scan the

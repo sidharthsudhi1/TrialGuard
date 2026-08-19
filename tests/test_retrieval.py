@@ -424,3 +424,63 @@ def test_cached_note_still_served_when_the_budget_is_spent(tmp_path, monkeypatch
 
     assert QT.generate_keywords("known") == ["cached kw"]
     assert not ledger.check.called
+
+
+def test_vector_cache_returns_none_until_resident(monkeypatch):
+    """Dense search must run on pgvector while the matrix is still loading."""
+    from trialguard.retrieval import vector_cache as VC
+
+    monkeypatch.setattr("trialguard.config.settings.retrieval_vector_cache", True)
+    monkeypatch.setattr("trialguard.config.settings.retrieval_vector_cache_source", "ctgov_live")
+    monkeypatch.setattr(VC, "_caches", {})
+
+    assert VC.cached_search([0.1] * 768, 10, "ctgov_live") is None
+
+
+def test_vector_cache_ignores_sources_it_does_not_hold(monkeypatch):
+    """An eval cohort must never be answered from the production matrix."""
+    import numpy as np
+
+    from trialguard.retrieval import vector_cache as VC
+
+    monkeypatch.setattr("trialguard.config.settings.retrieval_vector_cache", True)
+    monkeypatch.setattr("trialguard.config.settings.retrieval_vector_cache_source", "ctgov_live")
+    monkeypatch.setattr(VC, "_caches", {})
+    cache = VC.get_cache("ctgov_live")
+    cache._ids = ["NCT1", "NCT2"]
+    cache._matrix = np.eye(2, 768, dtype=np.float32)
+
+    assert VC.cached_search([1.0] + [0.0] * 767, 2, "ctgov_live") is not None
+    assert VC.cached_search([1.0] + [0.0] * 767, 2, "sigir") is None
+    assert VC.cached_search([1.0] + [0.0] * 767, 2, None) is None
+
+
+def test_vector_cache_can_be_disabled(monkeypatch):
+    import numpy as np
+
+    from trialguard.retrieval import vector_cache as VC
+
+    monkeypatch.setattr(VC, "_caches", {})
+    cache = VC.get_cache("ctgov_live")
+    cache._ids = ["NCT1"]
+    cache._matrix = np.ones((1, 768), dtype=np.float32)
+
+    monkeypatch.setattr("trialguard.config.settings.retrieval_vector_cache", False)
+    assert VC.cached_search([1.0] * 768, 1, "ctgov_live") is None
+    assert VC.status() == {"enabled": False}
+
+
+def test_vector_cache_ranks_by_cosine_similarity(monkeypatch):
+    import numpy as np
+
+    from trialguard.retrieval.vector_cache import VectorCache
+
+    cache = VectorCache("ctgov_live")
+    cache._ids = ["far", "near", "mid"]
+    cache._matrix = np.array(
+        [[0.0, 1.0], [1.0, 0.0], [0.7071, 0.7071]], dtype=np.float32
+    )
+
+    hits = cache.search([1.0, 0.0], top_k=3)
+    assert [n for n, _ in hits] == ["near", "mid", "far"]
+    assert hits[0][1] == pytest.approx(1.0, abs=1e-6)
