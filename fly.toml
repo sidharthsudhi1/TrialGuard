@@ -23,7 +23,11 @@ primary_region = "syd"
     method = "GET"
     path = "/api/health"
 
+# performance, not shared: MedCPT loads inside the FastAPI lifespan hook, so the
+# machine serves nothing until torch has imported and the encoder is resident.
+# On throttled shared vCPUs that took 113s against a 120s health-check grace
+# period, so every cold boot was a coin flip between ready and restarted.
 [[vm]]
-  memory = "2gb"
-  cpu_kind = "shared"
+  memory = "4gb"
+  cpu_kind = "performance"
   cpus = 2
