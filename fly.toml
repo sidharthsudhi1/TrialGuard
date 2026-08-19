@@ -25,7 +25,10 @@ primary_region = "syd"
   [[http_service.checks]]
     interval = "30s"
     timeout = "5s"
-    grace_period = "2m"
+    # Insurance, not a fix: boot should now be well under this. Kept generous so a
+    # slow cold start never flaps the machine into a restart loop the way a 113s
+    # boot against a 120s budget did.
+    grace_period = "5m"
     method = "GET"
     path = "/api/health"
 

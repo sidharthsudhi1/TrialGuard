@@ -14,6 +14,13 @@ COPY src ./src
 # (WS-4). Small and tracked; without it every note is treated as free text.
 COPY data/eval/sigir/queries.jsonl ./data/eval/sigir/queries.jsonl
 
+# CPU-only torch, installed first so the project resolve sees it satisfied. The
+# default linux wheel bundles ~2 GB of NVIDIA CUDA libraries; this machine has no
+# GPU, so none of it ever executes, but every byte still has to page in from the
+# image at boot. That is why startup took ~114s on shared and performance CPUs
+# alike: the cost was I/O, not compute.
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
 RUN pip install --no-cache-dir -e ".[web]"
 
 # Bake MedCPT into the image. Without this, the first request after every cold
@@ -22,6 +29,12 @@ RUN pip install --no-cache-dir -e ".[web]"
 # critical and restarts it, and it never escapes the loop.
 ENV TG_EMBED_BACKEND=medcpt
 RUN python -c "from trialguard.ingestion.embed import embed_text; embed_text('warmup', is_query=True)"
+
+# Set after the bake, which needs the network. From here every weight is local,
+# so a Hub round trip on each from_pretrained is pure boot latency — and if a
+# model were ever missing, failing loudly beats silently pulling 440 MB during
+# the health-check grace period.
+ENV HF_HUB_OFFLINE=1
 
 ENV TG_PROMPT_VERSION=v4
 ENV TG_ANALYST_DELAY=0
