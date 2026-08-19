@@ -66,6 +66,12 @@ class Settings(BaseSettings):
     api_cors_origin: str = "http://localhost:3000"
     # Hard cap on nct_ids per /api/assess (LLM cost bound).
     api_max_assess_trials: int = 5
+    # Trust X-Forwarded-For for rate-limit identity. Off by default: whether a
+    # proxy is in front is a deployment fact, and if none is, every entry in that
+    # header is attacker-typed. Fly-Client-IP is always trusted where present
+    # because Fly's edge overwrites it. Enable only behind a proxy that appends.
+    api_trust_forwarded_for: bool = False
+
     # Per-IP sliding-window limits (keyword extract / analyst spend).
     api_search_rate_per_min: int = 10
     api_assess_rate_per_min: int = 5

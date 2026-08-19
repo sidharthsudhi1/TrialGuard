@@ -22,9 +22,30 @@ MAX_CRITERIA = 24
 
 
 def _client_ip(request: Request) -> str:
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
+    """Best available client identity for rate limiting.
+
+    X-Forwarded-For is a list the client can prepend to, so its *leftmost* entry
+    is whatever the caller typed. Reading it made both rate limits free to
+    bypass: send a different value each request and every request lands in its
+    own bucket.
+
+    Fly-Client-IP is written by Fly's edge and overwritten on every hop, so the
+    client cannot forge it, and it is trusted wherever present. X-Forwarded-For
+    is consulted only when the deployment says a proxy is in front
+    (api_trust_forwarded_for), and then only its *rightmost* entry, which is the
+    hop appended closest to us; everything left of it is attacker-supplied. With
+    no proxy there is nothing trustworthy in either header, so the socket peer is
+    the only honest answer.
+    """
+    fly_ip = request.headers.get("fly-client-ip")
+    if fly_ip:
+        return fly_ip.strip()
+    if settings.api_trust_forwarded_for:
+        forwarded = request.headers.get("x-forwarded-for")
+        if forwarded:
+            hops = [h.strip() for h in forwarded.split(",") if h.strip()]
+            if hops:
+                return hops[-1]
     if request.client:
         return request.client.host
     return "unknown"

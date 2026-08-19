@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import MagicMock, patch
 
@@ -393,3 +394,69 @@ def test_assess_traces_under_the_job_id(client):
     assert seen["handler"] == "HANDLER"
     assert gh.call_args.kwargs["session_id"] == job_id
     assert gh.call_args.kwargs["tags"] == ["served", "assess"]
+
+
+def test_spoofed_forwarded_header_cannot_buy_a_fresh_bucket(monkeypatch):
+    """A client-supplied X-Forwarded-For must not create a new rate-limit key."""
+    monkeypatch.setattr("trialguard.config.settings.database_url", "")
+    monkeypatch.setattr("trialguard.config.settings.api_cors_origin", "http://localhost:3000")
+    monkeypatch.setattr("trialguard.config.settings.api_search_rate_per_min", 2)
+    from trialguard.api.routes import _preset_notes
+
+    _preset_notes.cache_clear()
+    app = create_app()
+
+    with TestClient(app) as c, patch(
+        "trialguard.agent.sanitize.detect_injection", return_value=False
+    ), patch("trialguard.retrieval.pipeline.retrieve", return_value=(STUB_HITS, STUB_LATENCY)), patch(
+        "trialguard.db.queries.get_trials", return_value=STUB_ROWS
+    ):
+        codes = [
+            c.post(
+                "/api/search",
+                json={"note": "synthetic note", "top_k": 2},
+                headers={"X-Forwarded-For": f"10.0.0.{i}"},
+            ).status_code
+            for i in range(5)
+        ]
+
+    assert codes[:2] == [200, 200]
+    assert 429 in codes, f"rotating X-Forwarded-For bypassed the limit: {codes}"
+    _preset_notes.cache_clear()
+
+
+def test_client_ip_prefers_the_proxy_set_header(monkeypatch):
+    from unittest.mock import MagicMock
+
+    from trialguard.api.routes import _client_ip
+
+    req = MagicMock()
+    req.client.host = "127.0.0.1"
+
+    # Fly writes this one and overwrites it per hop, so it wins outright.
+    req.headers = {"fly-client-ip": "203.0.113.9", "x-forwarded-for": "1.2.3.4, 203.0.113.9"}
+    assert _client_ip(req) == "203.0.113.9"
+
+    # No proxy declared: X-Forwarded-For is entirely attacker-typed, so ignore it.
+    req.headers = {"x-forwarded-for": "1.2.3.4"}
+    monkeypatch.setattr("trialguard.config.settings.api_trust_forwarded_for", False)
+    assert _client_ip(req) == "127.0.0.1"
+
+    # Proxy declared: trust only the rightmost hop, the one appended closest to us.
+    monkeypatch.setattr("trialguard.config.settings.api_trust_forwarded_for", True)
+    req.headers = {"x-forwarded-for": "1.2.3.4, 198.51.100.7"}
+    assert _client_ip(req) == "198.51.100.7"
+
+
+def test_rate_limiter_evicts_idle_keys():
+    """Keys come from headers, so an ever-growing map is attacker-controlled memory."""
+    from trialguard.api.rate_limit import RateLimiter
+
+    limiter = RateLimiter(limit=5, window_seconds=0.05)
+    for i in range(500):
+        limiter.allow(f"key-{i}")
+    assert len(limiter._hits) == 500
+
+    time.sleep(0.06)
+    limiter.allow("someone-new")
+    assert len(limiter._hits) < 10, f"stale keys retained: {len(limiter._hits)}"
