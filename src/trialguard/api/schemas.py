@@ -19,7 +19,13 @@ class AssessCreated(BaseModel):
     job_id: str
 
 
+# Says what the system actually does, not what it wishes it did. The synthetic
+# rule is procedural — nothing stops a real note being typed — and the served
+# path traces full prompts to Langfuse, so submitted text leaves this
+# infrastructure. Claiming otherwise would be the one dishonest string in a
+# project about faithfulness.
 SYNTHETIC_NOTICE = (
     "TrialGuard accepts synthetic patient notes only. Do not submit real PHI. "
+    "Submitted notes and model prompts are logged to Langfuse for debugging. "
     "This is a research demo, not a clinical decision tool."
 )

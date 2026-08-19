@@ -47,6 +47,13 @@ Every free-text note is checked with `detect_injection` server-side (reject, do
 not sanitize). The UI and `/api/health` state that only synthetic notes are
 accepted. Free-text assessments skip analyst cache writes; presets may write.
 
+The synthetic-only rule is **procedural, not enforced**: nothing in the code can
+tell a synthetic note from a real one. Served requests are traced to Langfuse
+with full prompts, so submitted text leaves this infrastructure — `/api/search`
+under session `request_id`, `/api/assess` under the `job_id`, both tagged
+`served`. Say this plainly rather than implying a guarantee the code does not
+provide.
+
 ## Cost bounds
 
 Per-request trial cap (`API_MAX_ASSESS_TRIALS`, default 5), per-IP rate limits on

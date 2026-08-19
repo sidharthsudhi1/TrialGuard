@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import uuid
 from functools import lru_cache
 from typing import Any
 
@@ -80,6 +81,19 @@ def _is_preset(note: str) -> bool:
     return note.strip() in _preset_notes()
 
 
+def _trace_handler(session_id: str, kind: str):
+    """Langfuse handler for one served request, or None when tracing is off.
+
+    The serving path built no handler at all, so `trace_config` took its
+    `handler is None` no-op branch and every live assessment ran untraced while
+    the eval harness traced everything. `session_id` is the job id for assess and
+    a per-request id for search, so a user-reported result can be found later.
+    """
+    from trialguard.tracing import get_langchain_handler
+
+    return get_langchain_handler(session_id=session_id, tags=["served", kind])
+
+
 def _budget_exhausted_detail(exc: BaseException) -> dict[str, Any]:
     from trialguard.llm.cost import active_ledger
 
@@ -151,9 +165,14 @@ def search(body: SearchRequest, request: Request) -> dict[str, Any]:
     # A note that misses the keyword cache costs one LLM call, so search can trip
     # the daily cap just as assess can. Notes already cached never reach the
     # model, so they keep working after the budget is spent.
+    request_id = uuid.uuid4().hex[:12]
     try:
         hits, latency = retrieve(
-            body.note.strip(), top_k=top_k, source=SOURCE, use_keywords=True
+            body.note.strip(),
+            top_k=top_k,
+            source=SOURCE,
+            use_keywords=True,
+            handler=_trace_handler(request_id, "search"),
         )
     except BudgetExhausted as e:
         raise HTTPException(status_code=402, detail=_budget_exhausted_detail(e)) from e
@@ -177,6 +196,7 @@ def search(body: SearchRequest, request: Request) -> dict[str, Any]:
         "trials": trials,
         "top_k": top_k,
         "latency_ms": latency,
+        "request_id": request_id,
         "notice": SYNTHETIC_NOTICE,
     }
 
@@ -240,7 +260,7 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
         for nct_id in job.nct_ids:
             try:
                 event = await asyncio.get_running_loop().run_in_executor(
-                    executor, _assess_one, job.note, nct_id
+                    executor, _assess_one, job.note, nct_id, job_id
                 )
                 store.append(job_id, event)
             except Exception as e:  # noqa: BLE001 — per-trial failure must not kill the job
@@ -281,7 +301,7 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
                 os.environ["TG_SKIP_ANALYST_CACHE_WRITE"] = prev_skip
 
 
-def _assess_one(note: str, nct_id: str) -> dict[str, Any]:
+def _assess_one(note: str, nct_id: str, job_id: str) -> dict[str, Any]:
     """Sync worker: load trial, build typed criteria, call assess() unchanged."""
     from trialguard.agent.graph import assess
     from trialguard.agent.schema import build_typed_criteria
@@ -312,6 +332,7 @@ def _assess_one(note: str, nct_id: str) -> dict[str, Any]:
         criteria,
         trial.get("eligibility_raw") or "",
         max_retries=2,
+        handler=_trace_handler(job_id, "assess"),
         criteria_truncated=truncated,
     )
     return {

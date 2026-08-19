@@ -342,3 +342,54 @@ def test_budget_exhausted_on_search(client):
 
     assert r.status_code == 402
     assert r.json()["detail"]["error"] == "BudgetExhausted"
+
+
+def test_search_passes_a_trace_handler(client):
+    """CLAUDE.md non-negotiable: invocations carry tracing. The served path did not."""
+    seen = {}
+
+    def _retrieve(note, top_k=5, source=None, use_keywords=False, handler=None):
+        seen["handler"] = handler
+        return STUB_HITS, STUB_LATENCY
+
+    with (
+        patch("trialguard.agent.sanitize.detect_injection", return_value=False),
+        patch("trialguard.retrieval.pipeline.retrieve", side_effect=_retrieve),
+        patch("trialguard.db.queries.get_trials", return_value=STUB_ROWS),
+        patch("trialguard.tracing.get_langchain_handler", return_value="HANDLER") as gh,
+    ):
+        r = client.post("/api/search", json={"note": "synthetic note", "top_k": 2})
+
+    assert r.status_code == 200
+    assert seen["handler"] == "HANDLER"
+    assert gh.call_args.kwargs["tags"] == ["served", "search"]
+    # Findable later: the id the trace is filed under comes back to the caller.
+    assert gh.call_args.kwargs["session_id"] == r.json()["request_id"]
+
+
+def test_assess_traces_under_the_job_id(client):
+    """WS-6: a user-reported bad result must be locatable by the id they were given."""
+    seen = {}
+
+    def _assess(note, nct_id, criteria, source, **kw):
+        seen["handler"] = kw.get("handler")
+        return STUB_ASSESS
+
+    with (
+        patch("trialguard.agent.sanitize.detect_injection", return_value=False),
+        patch("trialguard.db.queries.get_trial", return_value=STUB_ROWS["NCT0001"]),
+        patch("trialguard.agent.graph.assess", side_effect=_assess),
+        patch("trialguard.llm.cost.active_ledger") as ledger,
+        patch("trialguard.tracing.get_langchain_handler", return_value="HANDLER") as gh,
+    ):
+        ledger.return_value.exhausted.return_value = False
+        created = client.post(
+            "/api/assess", json={"note": "synthetic note", "nct_ids": ["NCT0001"]}
+        )
+        job_id = created.json()["job_id"]
+        with client.stream("GET", f"/api/assess/{job_id}") as stream:
+            "".join(stream.iter_text())
+
+    assert seen["handler"] == "HANDLER"
+    assert gh.call_args.kwargs["session_id"] == job_id
+    assert gh.call_args.kwargs["tags"] == ["served", "assess"]
