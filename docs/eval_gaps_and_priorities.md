@@ -55,7 +55,7 @@ that verification improves every metric.
 
 ### G-3 — Served-path abstention is unmeasured
 
-PHASE9 WS-6 calls for measuring what fraction of *served* assessments return
+Serving-path observability calls for measuring what fraction of *served* assessments return
 `cannot_determine`, on the grounds that a divergence from the eval rate means
 either the live corpus differs from the cohorts or the serving path is broken.
 `src/trialguard/api/routes.py` currently emits no verdict-outcome logging, so

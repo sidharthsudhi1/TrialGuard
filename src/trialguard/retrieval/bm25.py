@@ -7,7 +7,7 @@ every cold start. Keeps the (nct_id, score) contract the RRF fusion expects.
 
 Named bm25_search for the fusion interface; ts_rank_cd is not Okapi BM25 (no IDF
 saturation / length normalization), so ranking is re-validated against gold before
-it is trusted (PHASE7 WS-4).
+it is trusted (data/reports/phase7_retrieval.md).
 """
 
 from __future__ import annotations

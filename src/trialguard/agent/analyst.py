@@ -350,7 +350,7 @@ def analyze_trial(
     assessments = _parse(str(resp.content))
     # Free-text public traffic: skip the write so attacker-controlled notes cannot
     # grow data/cache/analyst unboundedly on an ephemeral filesystem. Reads still
-    # hit existing entries (presets). See PHASE9.md WS-4.
+    # hit existing entries (presets).
     if os.environ.get("TG_SKIP_ANALYST_CACHE_WRITE") != "1":
         from trialguard.llm.cost import _atomic_write
 
