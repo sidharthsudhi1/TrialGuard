@@ -56,7 +56,10 @@ routes on its failures. Criteria are typed: inclusion `not_met` or exclusion
 `met` excludes the trial; eligible only if every inclusion is `met` and every
 exclusion is `not_met`. Prompt v4 labels each criterion with its kind. A Gradio
 UI sits in front of this; retrieval is `FileIndex` (SIGIR) or the live
-`ctgov_live` corpus, selected by `TG_DEMO_SOURCE`.
+`ctgov_live` corpus, selected by `TG_DEMO_SOURCE`. On the production corpus the
+per-keyword searches run concurrently, dense against an in-memory matrix and
+lexical against Postgres FTS, falling back to pgvector until the matrix is
+resident.
 
 ### Component map
 
@@ -66,7 +69,7 @@ UI sits in front of this; retrieval is `FileIndex` (SIGIR) or the live
 | LLM inference | DeepInfra (Llama 3.3 70B, FP8) — Groq free tier still runnable | **paid (~$0.10/$0.32 per 1M)** |
 | Embeddings | MedCPT (768-dim, NCBI) on CPU/MPS | free (local) |
 | Lexical retrieval | Postgres FTS (production); BM25 `rank-bm25` (eval); RRF fusion | free |
-| Vector store | pgvector on Neon (production); numpy file index (eval/demo) | **paid (Neon)** |
+| Vector store | in-memory numpy matrix for dense search, pgvector on Neon as the store of record (production); numpy file index (eval/demo) | **paid (Neon)** |
 | Verification | deterministic quote grounding (pure Python) | free |
 | Tracing | Langfuse free tier | free tier |
 | Demo hosting | Gradio on HF Spaces ($0 SIGIR); FastAPI + Next.js Stage A (live corpus) | free / small metered |
@@ -207,6 +210,57 @@ The CI gate stays anchored to Phase 8 SIGIR
 
 > **Note on `recall@10 ≥ 90%`:** retired as a target. It is mathematically capped at `min(10, |gold|)/|gold|` per patient — TREC patients average 60+ eligible trials (ceiling ~0.25). TrialGPT's ">90% recall" was measured at large depth. Primary retrieval metric is now **recall@pool** (recall@50/100).
 
+### Serving latency (Stage A, live `ctgov_live`)
+
+Measured end to end against the deployed API, same synthetic note and same 12
+extracted keywords throughout, so each figure is comparable to the one above it.
+
+| Change | Search (warm) |
+|---|---|
+| Starting point | 24,382 ms |
+| API moved to `syd`, beside Neon (`ap-southeast-2`) | 3,800 ms |
+| Per-keyword searches fanned out concurrently | 2,796 ms |
+| Dense retrieval served from an in-memory matrix | **780 ms** |
+
+**31× overall**, and the rankings are byte-identical at every step — verified by
+re-running the same query across each switch, because a speedup that changes
+which trials a patient is shown is a regression wearing a win's clothing.
+
+Four causes, each measured rather than guessed, and none of them the first
+suspect:
+
+- **Geography, not query cost.** The app ran in `iad` while Neon sat in Sydney.
+  One search issues 60 round trips — 12 keywords × (dense + lexical), each with
+  its `SET LOCAL`, `SELECT` and `COMMIT` — so ~250 ms of distance was ~15 s of
+  the 24 s. Isolated by timing `/api/health` (one `SELECT 1`) against
+  `/api/budget` (no database): the gap was 940 ms, and is now ~0.
+- **Serialisation.** The per-keyword loop waited on each round trip in turn.
+  Worth 2.26× locally but only 1.49× deployed: once the network was gone the
+  queries were bound by Neon's CPU, not by latency, and past four concurrent
+  workers contention cost more than overlap won.
+- **The vector index was never used.** `EXPLAIN` shows a sequential scan: the
+  planner declines ivfflat at `probes=40`, because probing 40 of 161 lists costs
+  more than reading the table. pgvector was doing exact search all along, so
+  moving that scan into an 80 MB in-process matrix computes the same answer
+  60–85× faster per query (3.8–6.7 ms vs 320–413 ms) — identical ordering, scores
+  agreeing to 2.8e-07.
+- **Image weight at boot.** `sentence-transformers` pulls torch, whose default
+  Linux wheel bundles ~2 GB of CUDA libraries that a GPU-less machine never
+  executes but must still page in. Boot 114 s → 79 s; image 3.2 GB → 893 MB.
+  Diagnosed by noticing boot was identical on shared and performance CPUs, which
+  rules out compute.
+
+Dense retrieval no longer touches Postgres, which keeps the lexical half where a
+GIN index answers in 7 ms. The matrix loads on a background thread in ~33 s and
+search falls back to pgvector until it is resident, so the fast path is an
+optimisation rather than a dependency; `/api/health` reports which one is
+serving. It is a snapshot, so trials ingested after startup appear on the next
+restart — right for a corpus refreshed on a schedule, wrong for live-updating
+data. Past roughly a million rows the matrix stops fitting and a real ANN index
+earns its keep.
+
+---
+
 ## Metric targets
 
 | Metric | Target | Status |
@@ -231,7 +285,7 @@ The CI gate stays anchored to Phase 8 SIGIR
 | 6 — Demo & docs | ✅ Done | Gradio demo (`app.py`) + cost-engineering write-up + deploy guide; HF Spaces deploy + recorded walkthrough user-gated |
 | 7 — Production corpus | ✅ Done | 25,965 recruiting oncology trials in pgvector; lexical BM25 → Postgres FTS (tsvector + GIN, indexes exclusion too); hybrid stack validated vs gold (recall@100 non-regressing, recall@10 +0.043); ivfflat probes retuned 20→40; resumable ingest + safe corpus refresh. Report: [`data/reports/phase7_retrieval.md`](data/reports/phase7_retrieval.md) |
 | 8 — Provider migration & cost ops | ✅ Done | Provider-agnostic LLM layer; analyst cache keyed by (provider, model) with a legacy carve-out so committed Phase 3/4 entries are never orphaned; USD cost ledger with a daily circuit breaker, billed from the provider's reported cost; FP8 parity gate before adopting the new host; the two quota-blocked Phase 4 A/Bs completed for $0.10. Reports: [`phase8_provider_parity.md`](data/reports/phase8_provider_parity.md), [`phase8_carryover.md`](data/reports/phase8_carryover.md) |
-| 9 — Close the production loop | 🔄 In progress | Typed inclusion+exclusion (prompt v4) and inverted trial roll-up; Gradio hits `ctgov_live` behind `TG_DEMO_SOURCE` (SIGIR `FileIndex` remains the $0 default); FastAPI Stage A (`src/trialguard/api/`) + Next.js (`web/`) wrap `retrieve()` / `assess()` unchanged with search/assess split, SSE, and quote-in-source highlighting. TREC 2021 v4 caveat: exclusion unsupported-rate 31.2% vs inclusion 9.2%, retry not significant (p=0.2514), report [`phase9v4_agent_trec_2021.json`](data/reports/phase9v4_agent_trec_2021.json). Deploy: [`docs/deploy_stage_a.md`](docs/deploy_stage_a.md) |
+| 9 — Close the production loop | 🔄 In progress | Typed inclusion+exclusion (prompt v4) and inverted trial roll-up; Gradio hits `ctgov_live` behind `TG_DEMO_SOURCE` (SIGIR `FileIndex` remains the $0 default); FastAPI Stage A (`src/trialguard/api/`) + Next.js (`web/`) wrap `retrieve()` / `assess()` unchanged with search/assess split, SSE, and quote-in-source highlighting. TREC 2021 v4 caveat: exclusion unsupported-rate 31.2% vs inclusion 9.2%, retry not significant (p=0.2514), report [`phase9v4_agent_trec_2021.json`](data/reports/phase9v4_agent_trec_2021.json). Deploy: [`docs/deploy_stage_a.md`](docs/deploy_stage_a.md); retrieval latency 24.4 s → 780 ms end to end (region, concurrency, in-memory dense index) with rankings unchanged; spend ledger and keyword cache moved to Postgres; served path traced to Langfuse |
 
 ---
 
@@ -323,15 +377,25 @@ when the limit is throughput.
 - **Embeddings:** MedCPT (110M) on CPU/MPS — a one-time offline job, cached to `.npy`.
 - **Verification:** deterministic quote grounding is pure Python. The faithfulness
   guarantee costs nothing and cannot be rate-limited.
-- **Vector store:** pgvector on a paid Neon instance for production (the 26k-trial
-  corpus is 531 MB, over the 512 MB free ceiling); numpy `FileIndex` for eval and the
-  demo, which stay free. The size ceiling — not query speed — is why the two are
-  split ([`phase5_vectorstore.md`](data/reports/phase5_vectorstore.md)).
+- **Vector store:** pgvector on a paid Neon instance is the store of record for
+  production (the 26k-trial corpus is 531 MB, over the 512 MB free ceiling), and
+  serves the lexical half via Postgres FTS. Dense search runs against an 80 MB
+  in-process matrix, because at 26k rows the planner declines the ivfflat index
+  and scans the table anyway — so the same exact search is 60–85× faster done
+  locally. Eval and the demo use numpy `FileIndex` and stay free. The size
+  ceiling — not query speed — is why the corpora were split in the first place
+  ([`phase5_vectorstore.md`](data/reports/phase5_vectorstore.md)).
 - **CI:** the regression gate runs on committed artifacts only, so it makes no LLM
   calls and stays free on GitHub Actions.
 - **Serving:** Gradio on a free HF Spaces CPU (SIGIR `FileIndex`, $0); Stage A
   FastAPI + Next.js for the live `ctgov_live` corpus (quote-in-source UI), with
-  per-request / per-IP / daily USD caps. MedCPT runs on the API host.
+  per-request / per-IP / daily USD caps. MedCPT runs on the API host, baked into
+  the image so a cold boot does not download it. The API is pinned to `syd`
+  beside Neon — the same machine in `iad` spent ~15 s per search on nothing but
+  distance — and suspends when idle, snapshotting RAM so a resume skips the model
+  load entirely. The daily spend ledger lives in Postgres and accumulates through
+  an atomic upsert: as a JSON file behind a per-instance lock it lost 88% of
+  concurrent spend, and reset on every deploy.
 
 ---
 
@@ -363,5 +427,7 @@ when the limit is throughput.
 | AD-9 (unexercised) | Notebook GPU never needed through Phase 3 — MedCPT (110M) embeds on local CPU/MPS, and the eval bottleneck was Groq token quota (disk cache), not GPU hours. `notebooks/` stays empty; revisit only if Phase 4/5 batch work exceeds local compute | — |
 | AD-10 | Gradio on HF Spaces ($0 SIGIR); Stage A FastAPI + Next.js for live corpus | Streamlit, local-only |
 | AD-11 | LLM keyword extraction before retrieval | Raw patient narrative as query (semantic mismatch, recall ceiling) |
+| AD-6 (amended again, Phase 9) | pgvector stays the store of record, but dense search is served from an 80 MB in-process matrix. `EXPLAIN` showed the planner declining ivfflat at `probes=40` and scanning the table, so production had been running exact search at 320–413 ms per query; the same exact search takes 3.8–6.7 ms locally, with identical rankings. `eval/file_index.py` had always done this — the two paths differed by label, not by measurement | Keeping dense search in Postgres; tuning `probes` further, which the planner ignores |
+| AD-12 | API pinned to `syd`, beside Neon in `ap-southeast-2` | Leaving it in `iad`, where 60 round trips per search cost ~15 s in distance alone |
 
 *When a decision is reversed during the build, the reversal and reason are recorded here — not deleted.*
