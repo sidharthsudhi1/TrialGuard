@@ -47,6 +47,9 @@ class FileIndex:
     def __init__(self, source: str) -> None:
         self.source = source
         self._nct_ids: list[str] = []
+        # Owner trial id per matrix row. Equal to _nct_ids when chunking is off;
+        # longer than it when a trial contributes several passages.
+        self._chunk_owners: list[str] = []
         self._matrix: np.ndarray | None = None
         self._bm25 = None
         self._trial_texts: dict[str, str] = {}
@@ -75,16 +78,37 @@ class FileIndex:
         nct_ids_from_trials = [t["nct_id"] for t in normalised]
         self._trial_texts = dict(zip(nct_ids_from_trials, texts))
 
+        self._nct_ids = nct_ids_from_trials
+
         if ids_path.exists() and emb_path.exists():
             print(f"  Loading cached index for {self.source}...")
-            self._nct_ids = json.loads(ids_path.read_text())
+            self._chunk_owners = json.loads(ids_path.read_text())
             self._matrix = np.load(emb_path)
         else:
-            print(f"  Building index for {self.source} ({len(trials)} trials)...")
-            self._nct_ids = nct_ids_from_trials
-            vecs = embed_batch(texts)
+            from trialguard.ingestion.embed import _chunking_enabled, chunk_document
+
+            if _chunking_enabled():
+                # One row per passage. The encoder truncates at 512 tokens, so a
+                # single vector per trial leaves everything past the window
+                # unsearchable; the embed tag carries the chunked flag so this
+                # never loads against an unchunked cache.
+                chunk_texts, owners = [], []
+                for t in normalised:
+                    for c in chunk_document(t):
+                        chunk_texts.append(c)
+                        owners.append(t["nct_id"])
+                print(
+                    f"  Building chunked index for {self.source} "
+                    f"({len(trials)} trials -> {len(chunk_texts)} passages)..."
+                )
+            else:
+                chunk_texts, owners = texts, nct_ids_from_trials
+                print(f"  Building index for {self.source} ({len(trials)} trials)...")
+
+            self._chunk_owners = owners
+            vecs = embed_batch(chunk_texts)
             self._matrix = np.array(vecs, dtype=np.float32)
-            ids_path.write_text(json.dumps(self._nct_ids))
+            ids_path.write_text(json.dumps(self._chunk_owners))
             np.save(emb_path, self._matrix)
             print(f"  Index cached: {emb_path}")
 
@@ -110,6 +134,25 @@ class FileIndex:
         assert self._loaded, "Call build() first."
         return set(self._nct_ids)
 
+    def _dense(self, query_vec: np.ndarray, pool: int) -> list[tuple[str, float]]:
+        """Dense hits as trials, not passages.
+
+        A trial scores as its best-matching passage: max, not sum, because a long
+        trial would otherwise outrank a precise short one purely by having more
+        chances to match. Over-fetch before collapsing, since several passages of
+        the same trial can occupy the head of the list.
+        """
+        over = pool * 4 if len(self._chunk_owners) > len(self._nct_ids) else pool
+        # Never ask for more rows than exist: argpartition raises rather than
+        # clamping, so a small corpus would take down the search.
+        over = min(over, self._matrix.shape[0])
+        hits = _cosine_search(query_vec, self._matrix, self._chunk_owners, over)
+        best: dict[str, float] = {}
+        for nct, sc in hits:
+            if sc > best.get(nct, float("-inf")):
+                best[nct] = sc
+        return sorted(best.items(), key=lambda x: x[1], reverse=True)[:pool]
+
     def search(
         self,
         query: str,
@@ -131,7 +174,7 @@ class FileIndex:
         all_rankings: list[list[tuple[str, float]]] = []
         for q in queries:
             query_vec = np.array(embed_text(q, is_query=True), dtype=np.float32)
-            all_rankings.append(_cosine_search(query_vec, self._matrix, self._nct_ids, dense_pool))
+            all_rankings.append(self._dense(query_vec, dense_pool))
 
             tokens = _tokenize(q)
             bm25_scores = self._bm25.get_scores(tokens)

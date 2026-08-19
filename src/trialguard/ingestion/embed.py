@@ -48,10 +48,78 @@ def _index_exclusion() -> bool:
     return os.environ.get("TG_INDEX_EXCLUSION", "1") == "1"
 
 
+# Chunking. MedCPT's article encoder truncates at 512 tokens, and 42% of the
+# ctgov_live corpus is longer than that — the document is built title | inclusion
+# | exclusion, so what gets silently discarded is the exclusion criteria. A trial
+# whose distinguishing text sits past the window is invisible to dense retrieval
+# however good the query is.
+#
+# Chunks are packed on criterion boundaries rather than cut blindly at a token
+# count: eligibility text is already a list of self-contained statements, and
+# splitting one mid-sentence would produce a passage that matches nothing. The
+# budget is in characters because it has to hold before the tokenizer runs;
+# ~1800 chars is roughly 450 tokens, leaving room for the title and specials.
+CHUNK_MAX_CHARS = 1800
+
+
+def _chunking_enabled() -> bool:
+    """Opt-in until the decisive measurement lands.
+
+    Chunking is directionally right — 42% of ctgov_live breaches the window — but
+    on SIGIR it bought recall@10 +6.1% at MRR -4.0%, which is not enough to adopt
+    on, and SIGIR barely has the problem (1.30x expansion against TREC's 1.51x
+    over 27.6% of trials). Defaulting it on would also silently invalidate every
+    cached eval index, which is an expensive surprise for a change still being
+    argued. Flip to "1" once TREC confirms.
+    """
+    return os.environ.get("TG_CHUNK_DOCS", "0") == "1"
+
+
+def _hard_split(text: str, budget: int) -> list[str]:
+    """Last resort for a single criterion longer than the whole budget."""
+    return [text[i : i + budget] for i in range(0, len(text), budget)] or [text]
+
+
+def chunk_document(trial: dict, max_chars: int = CHUNK_MAX_CHARS) -> list[str]:
+    """Split one trial into passages that survive the encoder's window.
+
+    The title is repeated in every chunk: it is short, and without it a passage of
+    bare exclusion criteria has no indication of what disease it belongs to.
+    """
+    title = (trial.get("title") or "").strip()
+    parts = [p for p in (trial.get("inclusion_criteria") or []) if p]
+    if _index_exclusion():
+        parts += [p for p in (trial.get("exclusion_criteria") or []) if p]
+
+    head = f"{title} | " if title else ""
+    budget = max(200, max_chars - len(head))
+    chunks: list[str] = []
+    cur: list[str] = []
+    cur_len = 0
+
+    for part in parts:
+        if len(part) > budget:
+            if cur:
+                chunks.append(head + " | ".join(cur))
+                cur, cur_len = [], 0
+            chunks.extend(head + piece for piece in _hard_split(part, budget))
+            continue
+        if cur and cur_len + len(part) + 3 > budget:
+            chunks.append(head + " | ".join(cur))
+            cur, cur_len = [], 0
+        cur.append(part)
+        cur_len += len(part) + 3
+
+    if cur:
+        chunks.append(head + " | ".join(cur))
+    return chunks or [title or ""]
+
+
 def embed_tag() -> str:
     """Cache-versioning tag: distinguishes model + doc-text config on disk."""
     incl = "excl" if _index_exclusion() else "noexcl"
-    return f"{_backend()}_{incl}"
+    chunked = "_chunked" if _chunking_enabled() else ""
+    return f"{_backend()}_{incl}{chunked}"
 
 
 def _device() -> str:
