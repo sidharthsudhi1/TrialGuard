@@ -64,3 +64,4 @@ trace_cache/
 CLAUDE.md
 .agents/
 skills-lock.json
+/docs/pipeline_review.md
