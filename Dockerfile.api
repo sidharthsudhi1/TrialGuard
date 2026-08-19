@@ -16,6 +16,13 @@ COPY data/eval/sigir/queries.jsonl ./data/eval/sigir/queries.jsonl
 
 RUN pip install --no-cache-dir -e ".[web]"
 
+# Bake MedCPT into the image. Without this, the first request after every cold
+# boot downloads ~440 MB from HuggingFace inside the FastAPI lifespan hook, which
+# outlasts the health-check grace period: the machine never answers, Fly marks it
+# critical and restarts it, and it never escapes the loop.
+ENV TG_EMBED_BACKEND=medcpt
+RUN python -c "from trialguard.ingestion.embed import embed_text; embed_text('warmup', is_query=True)"
+
 ENV TG_PROMPT_VERSION=v4
 ENV TG_ANALYST_DELAY=0
 ENV PORT=8000
