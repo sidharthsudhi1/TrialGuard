@@ -35,7 +35,7 @@ def test_retrieve_then_assess_end_to_end():
         "exclusion_criteria": ["Active brain metastases"],
     }
 
-    def _analyst(note, nct_id, criteria, handler=None):
+    def _analyst(note, nct_id, criteria, handler=None, **kw):
         # Return grounded quotes for inclusion met / exclusion not_met → eligible
         return [
             {

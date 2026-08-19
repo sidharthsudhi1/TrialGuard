@@ -140,7 +140,7 @@ def retrieve_trials(note: str, top_k: int = TOP_K) -> list[dict]:
     return out
 
 
-def assess_note(note: str, top_k: int = TOP_K) -> dict:
+def assess_note(note: str, top_k: int = TOP_K, skip_cache_write: bool = False) -> dict:
     """Retrieve candidate trials and run the self-verifying agent on each."""
     from trialguard.agent.graph import assess
 
@@ -154,6 +154,7 @@ def assess_note(note: str, top_k: int = TOP_K) -> dict:
             tr["source_text"],
             max_retries=2,
             criteria_truncated=tr.get("criteria_truncated", False),
+            skip_cache_write=skip_cache_write,
         )
         results.append(
             {
@@ -231,11 +232,8 @@ def run(note: str, top_k: int = TOP_K) -> str:
     # analyst cache unboundedly on an ephemeral Space filesystem.
     preset_notes = set(presets().values())
     skip_write = note.strip() not in preset_notes
-    prev = os.environ.get("TG_SKIP_ANALYST_CACHE_WRITE")
-    if skip_write:
-        os.environ["TG_SKIP_ANALYST_CACHE_WRITE"] = "1"
     try:
-        return render(assess_note(note, top_k))
+        return render(assess_note(note, top_k, skip_cache_write=skip_write))
     except BudgetExhausted:
         return (
             "⚠️ The free Groq daily token budget is spent. Try a preset (its result "
@@ -245,12 +243,6 @@ def run(note: str, top_k: int = TOP_K) -> str:
         if "rate_limit" in str(e) or "429" in str(e):
             return "⚠️ Groq rate limit hit — wait a moment and retry, or use a preset."
         raise
-    finally:
-        if skip_write:
-            if prev is None:
-                os.environ.pop("TG_SKIP_ANALYST_CACHE_WRITE", None)
-            else:
-                os.environ["TG_SKIP_ANALYST_CACHE_WRITE"] = prev
 
 
 def build_ui():

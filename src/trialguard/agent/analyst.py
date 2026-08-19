@@ -295,6 +295,7 @@ def analyze_trial(
     nct_id: str,
     criteria: list,
     handler=None,
+    skip_cache_write: bool = False,
 ) -> list[dict]:
     """Return raw per-criterion assessments (pre-grounding). Cached to disk.
 
@@ -351,7 +352,14 @@ def analyze_trial(
     # Free-text public traffic: skip the write so attacker-controlled notes cannot
     # grow data/cache/analyst unboundedly on an ephemeral filesystem. Reads still
     # hit existing entries (presets).
-    if os.environ.get("TG_SKIP_ANALYST_CACHE_WRITE") != "1":
+    #
+    # The decision arrives per call. It used to be read from an environment
+    # variable the caller set and unset around each request, which is process
+    # state: with two assessments in flight, one finishing would clear the flag
+    # out from under the other and write its free-text note to disk anyway. The
+    # env var still works as a process-wide policy for CLI and eval runs.
+    env_skip = os.environ.get("TG_SKIP_ANALYST_CACHE_WRITE") == "1"
+    if not (skip_cache_write or env_skip):
         from trialguard.llm.cost import _atomic_write
 
         # Atomic: a killed run must not leave a half-written entry that a later

@@ -34,6 +34,7 @@ class State(TypedDict, total=False):
     assessments: list[dict]
     trial_verdict: str
     criteria_truncated: bool
+    skip_cache_write: bool
 
 
 def _analyst_node(state: State) -> State:
@@ -64,7 +65,13 @@ def _analyst_node(state: State) -> State:
             key = _cache_key(note, state["nct_id"])
             if not (ANALYST_CACHE / f"{key}.json").exists():
                 return {"assessments": prior}
-    raw = analyze_trial(note, state["nct_id"], typed, handler=state.get("handler"))
+    raw = analyze_trial(
+        note,
+        state["nct_id"],
+        typed,
+        handler=state.get("handler"),
+        skip_cache_write=state.get("skip_cache_write", False),
+    )
     # A citation is grounded if it is a verbatim span of ANY provided source:
     # the trial's eligibility text or the patient note. "met"/"not_met" verdicts
     # legitimately cite patient facts ("58-year-old woman") as well as trial text.
@@ -118,6 +125,7 @@ def assess(
     max_retries: int = 2,
     handler=None,
     criteria_truncated: bool = False,
+    skip_cache_write: bool = False,
 ) -> dict:
     """Run the graph for one (patient, trial). Returns final State dict."""
     global _GRAPH
@@ -136,6 +144,7 @@ def assess(
             "handler": handler,
             "retries": 0,
             "criteria_truncated": criteria_truncated,
+            "skip_cache_write": skip_cache_write,
         },
         config=config,
     )

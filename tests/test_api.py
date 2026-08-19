@@ -207,7 +207,7 @@ def test_assess_sets_skip_cache_for_freetext(client, monkeypatch):
     seen = {}
 
     def fake_assess(*args, **kwargs):
-        seen["skip"] = __import__("os").environ.get("TG_SKIP_ANALYST_CACHE_WRITE")
+        seen["skip"] = kwargs.get("skip_cache_write")
         return STUB_ASSESS
 
     with (
@@ -226,7 +226,7 @@ def test_assess_sets_skip_cache_for_freetext(client, monkeypatch):
         with client.stream("GET", f"/api/assess/{job_id}") as stream:
             list(stream.iter_text())
 
-    assert seen.get("skip") == "1"
+    assert seen.get("skip") is True
 
 
 def test_budget_exhausted_on_assess_start(client):

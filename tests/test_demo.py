@@ -93,17 +93,18 @@ def test_cap_top_k():
 
 
 def test_free_text_skips_cache_write():
-    """Arbitrary free-text must set TG_SKIP_ANALYST_CACHE_WRITE for the request."""
+    """Arbitrary free-text must skip the cache write, per request rather than per process."""
     seen = {}
 
-    def _fake_assess(note, top_k=3):
-        seen["skip"] = os.environ.get("TG_SKIP_ANALYST_CACHE_WRITE")
+    def _fake_assess(note, top_k=3, skip_cache_write=False):
+        seen["skip"] = skip_cache_write
         return RESULT
 
     with patch.object(demo, "assess_note", side_effect=_fake_assess):
         with patch.object(demo, "presets", return_value={"p": "preset note only"}):
             demo.run("some free-text synthetic note that is not a preset")
-    assert seen["skip"] == "1"
+    assert seen["skip"] is True
+    # Nothing global was touched, so a concurrent request cannot inherit or clear it.
     assert os.environ.get("TG_SKIP_ANALYST_CACHE_WRITE") != "1"
 
 

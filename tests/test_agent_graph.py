@@ -6,7 +6,7 @@ SRC = "Inclusion Criteria: Histologically confirmed melanoma. Age 18 or older."
 
 
 def _fake_analyst(grounded_quote):
-    def _fn(note, nct_id, criteria, handler=None):
+    def _fn(note, nct_id, criteria, handler=None, **kw):
         # First attempt returns an ungrounded quote; retries return a grounded one.
         if "Retry" in note:
             return [{"criterion": "dx", "verdict": "met", "quote": "Histologically confirmed melanoma"}]
@@ -34,7 +34,7 @@ def test_verified_retry_recovers_grounding(monkeypatch):
 
 def test_retry_capped(monkeypatch):
     G._GRAPH = None
-    def always_bad(note, nct, crit, handler=None):
+    def always_bad(note, nct, crit, handler=None, **kw):
         return [{"criterion": "dx", "verdict": "met", "quote": "never in source at all here"}]
     with patch.object(G, "analyze_trial", always_bad):
         state = G.assess("patient", "NCT1", ["dx"], SRC, max_retries=2)
@@ -48,7 +48,7 @@ def test_retry_is_retrieval_aware(monkeypatch):
     G._GRAPH = None
     seen_notes = []
 
-    def _capture(note, nct_id, criteria, handler=None):
+    def _capture(note, nct_id, criteria, handler=None, **kw):
         seen_notes.append(note)
         if "Retry" in note:
             return [{"criterion": "dx", "verdict": "met", "quote": "Histologically confirmed melanoma"}]
@@ -136,3 +136,46 @@ def test_criteria_truncation_flagged():
     assert truncated
     assert len(crit) == MAX_CRITERIA
     assert all(c["kind"] == "inclusion" for c in crit)
+
+
+def test_cache_write_policy_does_not_leak_between_concurrent_assessments():
+    """Two assessments in flight must not inherit each other's cache-write policy.
+
+    This was process state: the caller set TG_SKIP_ANALYST_CACHE_WRITE around a
+    request and cleared it afterwards. With a second request overlapping, the
+    first one finishing cleared the flag out from under it, and a free-text note
+    the policy said to never persist got written to disk anyway. The barrier
+    forces exactly that overlap.
+    """
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    seen: dict[str, bool] = {}
+    both_inside = threading.Barrier(2, timeout=10)
+
+    def _analyst(note, nct_id, criteria, handler=None, skip_cache_write=False):
+        both_inside.wait()  # neither returns until both are mid-flight
+        seen[nct_id] = skip_cache_write
+        return [
+            {
+                "criterion": "Histologically confirmed melanoma",
+                "verdict": "met",
+                "quote": "Histologically confirmed melanoma",
+                "rationale": "stated",
+            }
+        ]
+
+    with patch.object(G, "analyze_trial", _analyst), ThreadPoolExecutor(2) as ex:
+        futures = [
+            ex.submit(
+                G.assess, "free text", "NCT-FREE", ["c"], SRC,
+                max_retries=0, skip_cache_write=True,
+            ),
+            ex.submit(
+                G.assess, "preset", "NCT-PRESET", ["c"], SRC,
+                max_retries=0, skip_cache_write=False,
+            ),
+        ]
+        [f.result() for f in futures]
+
+    assert seen == {"NCT-FREE": True, "NCT-PRESET": False}, seen

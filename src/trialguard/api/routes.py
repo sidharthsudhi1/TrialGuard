@@ -274,14 +274,11 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
         return
 
     executor = app.state.assess_executor
-    prev_skip = os.environ.get("TG_SKIP_ANALYST_CACHE_WRITE")
-    if job.skip_cache_write:
-        os.environ["TG_SKIP_ANALYST_CACHE_WRITE"] = "1"
     try:
         for nct_id in job.nct_ids:
             try:
                 event = await asyncio.get_running_loop().run_in_executor(
-                    executor, _assess_one, job.note, nct_id, job_id
+                    executor, _assess_one, job.note, nct_id, job_id, job.skip_cache_write
                 )
                 store.append(job_id, event)
             except Exception as e:  # noqa: BLE001 — per-trial failure must not kill the job
@@ -314,15 +311,11 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
             store.fail(job_id, json.dumps(_budget_exhausted_detail(e)))
         else:
             store.fail(job_id, str(e))
-    finally:
-        if job.skip_cache_write:
-            if prev_skip is None:
-                os.environ.pop("TG_SKIP_ANALYST_CACHE_WRITE", None)
-            else:
-                os.environ["TG_SKIP_ANALYST_CACHE_WRITE"] = prev_skip
 
 
-def _assess_one(note: str, nct_id: str, job_id: str) -> dict[str, Any]:
+def _assess_one(
+    note: str, nct_id: str, job_id: str, skip_cache_write: bool
+) -> dict[str, Any]:
     """Sync worker: load trial, build typed criteria, call assess() unchanged."""
     from trialguard.agent.graph import assess
     from trialguard.agent.schema import build_typed_criteria
@@ -355,6 +348,7 @@ def _assess_one(note: str, nct_id: str, job_id: str) -> dict[str, Any]:
         max_retries=2,
         handler=_trace_handler(job_id, "assess"),
         criteria_truncated=truncated,
+        skip_cache_write=skip_cache_write,
     )
     return {
         "type": "trial",
