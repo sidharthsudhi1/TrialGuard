@@ -53,6 +53,41 @@ CREATE INDEX IF NOT EXISTS trials_embedding_idx
 CREATE INDEX IF NOT EXISTS trials_doc_tsv_idx
     ON trials USING gin (doc_tsv);
 
+-- Durable cache. The disk caches under data/cache/ live on the container's
+-- ephemeral rootfs, so every deploy silently re-rolled them: keyword regeneration
+-- changes the queries that drive ranking, which made served retrieval
+-- irreproducible across deploys. Rows survive deploys and can be capped or
+-- expired, which attacker-controlled filenames cannot.
+CREATE TABLE IF NOT EXISTS cache_entries (
+    namespace   TEXT NOT NULL,
+    key         TEXT NOT NULL,
+    value       JSONB NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (namespace, key)
+);
+
+-- Spend accounting. The JSON ledger was read-modify-write behind a lock that was
+-- recreated per call, so concurrent workers lost spend; it also lived on the
+-- ephemeral rootfs, so the daily cap reset on deploy and was per-machine. Both
+-- go away here: the upsert below is atomic in the database, so no application
+-- lock is needed at all.
+CREATE TABLE IF NOT EXISTS spend_ledger (
+    day     DATE PRIMARY KEY,
+    usd     NUMERIC(16,8) NOT NULL DEFAULT 0,
+    tokens  BIGINT        NOT NULL DEFAULT 0,
+    calls   INTEGER       NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS spend_by_model (
+    day        DATE NOT NULL,
+    model_key  TEXT NOT NULL,          -- "provider|served_model"
+    usd        NUMERIC(16,8) NOT NULL DEFAULT 0,
+    tokens     BIGINT        NOT NULL DEFAULT 0,
+    calls      INTEGER       NOT NULL DEFAULT 0,
+    source     TEXT,
+    PRIMARY KEY (day, model_key)
+);
+
 CREATE TABLE IF NOT EXISTS eval_patients (
     patient_id   TEXT,
     cohort       TEXT,

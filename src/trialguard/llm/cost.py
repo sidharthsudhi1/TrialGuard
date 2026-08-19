@@ -268,14 +268,112 @@ class CostLedger:
         }
 
 
+class PostgresLedger(CostLedger):
+    """The same ledger, kept in Postgres instead of a JSON file.
+
+    Two defects of the file-backed version are structural rather than tunable:
+
+    - `record()` was read-modify-write, and `active_ledger()` builds a fresh
+      instance per call, so every caller got its own `threading.Lock` and the
+      lock guarded nothing. Concurrent workers lost spend, which quietly turned
+      the cap into a suggestion.
+    - The file lives on the container's ephemeral filesystem, so the daily total
+      reset on every deploy, and with more than one machine each had its own.
+
+    Both disappear here because the accumulate happens inside one atomic upsert:
+    there is no read-modify-write to interleave, and no application lock at all.
+    Reads and the cap logic are inherited unchanged — only storage differs.
+    """
+
+    def __init__(self, usd_cap: float | None = None, token_cap: int | None = None):
+        super().__init__(path=LEDGER_PATH, usd_cap=usd_cap, token_cap=token_cap)
+
+    def _load(self) -> dict:
+        from trialguard.db.schema import get_conn
+
+        today = ratelimit._today()
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute("SELECT day, usd, tokens, calls FROM spend_ledger ORDER BY day")
+            rows = cur.fetchall()
+            cur.execute(
+                "SELECT model_key, usd, tokens, calls, source FROM spend_by_model "
+                "WHERE day = %s",
+                (today,),
+            )
+            model_rows = cur.fetchall()
+
+        current = {"date": today, "usd": 0.0, "tokens": 0, "calls": 0}
+        history: dict[str, dict] = {}
+        for day, usd, tokens, calls in rows:
+            day_s = day.isoformat()
+            entry = {"usd": float(usd), "tokens": int(tokens), "calls": int(calls)}
+            if day_s == today:
+                current.update(entry)
+            else:
+                history[day_s] = entry
+
+        by_model = {
+            key: {
+                "usd": float(usd),
+                "tokens": int(tokens),
+                "calls": int(calls),
+                "source": source,
+            }
+            for key, usd, tokens, calls, source in model_rows
+        }
+        return {**current, "by_model": by_model, "history": history}
+
+    def record(self, usage: dict, provider: str, model: str) -> float:
+        """Bill one completed call. The accumulate is atomic in the database."""
+        usd, source = call_usd(usage, provider, model)
+        tokens = int(usage.get("total_tokens") or 0)
+        served = usage.get("served_model") or model
+        today = ratelimit._today()
+
+        from trialguard.db.schema import get_conn
+
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO spend_ledger (day, usd, tokens, calls)
+                VALUES (%s, %s, %s, 1)
+                ON CONFLICT (day) DO UPDATE SET
+                    usd    = spend_ledger.usd + EXCLUDED.usd,
+                    tokens = spend_ledger.tokens + EXCLUDED.tokens,
+                    calls  = spend_ledger.calls + 1
+                """,
+                (today, usd, tokens),
+            )
+            cur.execute(
+                """
+                INSERT INTO spend_by_model (day, model_key, usd, tokens, calls, source)
+                VALUES (%s, %s, %s, %s, 1, %s)
+                ON CONFLICT (day, model_key) DO UPDATE SET
+                    usd    = spend_by_model.usd + EXCLUDED.usd,
+                    tokens = spend_by_model.tokens + EXCLUDED.tokens,
+                    calls  = spend_by_model.calls + 1,
+                    source = EXCLUDED.source
+                """,
+                (today, f"{provider}|{served}", usd, tokens, source),
+            )
+        return usd
+
+
 def active_ledger() -> CostLedger:
     """Ledger configured for the active provider.
+
+    Postgres when one is configured, so the cap survives deploys and is shared
+    across machines; the JSON file otherwise, which keeps the eval CLI, CI and
+    the $0 Gradio demo working with no database.
 
     The Groq free tier's TPD ceiling is a real external limit, so it is enforced
     only on the Groq arm; a metered provider has no such wall and is bounded by
     the USD cap alone.
     """
+    from trialguard.config import settings
     from trialguard.llm.provider import active_provider
 
     token_cap = ratelimit.GROQ_TPD_CAP if active_provider() == "groq" else None
+    if settings.database_url:
+        return PostgresLedger(token_cap=token_cap)
     return CostLedger(token_cap=token_cap)

@@ -250,3 +250,37 @@ def test_active_ledger_applies_token_cap_only_on_groq(monkeypatch):
     assert cost.active_ledger().token_cap == ratelimit.GROQ_TPD_CAP
     monkeypatch.setattr(settings, "llm_provider", "deepinfra")
     assert cost.active_ledger().token_cap is None
+
+
+def test_active_ledger_uses_postgres_only_when_configured(monkeypatch):
+    """The cap must survive deploys and be shared across machines when it can be."""
+    from trialguard.llm.cost import CostLedger, PostgresLedger
+
+    monkeypatch.setattr("trialguard.config.settings.database_url", "postgresql://x/y")
+    assert isinstance(cost.active_ledger(), PostgresLedger)
+
+    monkeypatch.setattr("trialguard.config.settings.database_url", "")
+    led = cost.active_ledger()
+    assert isinstance(led, CostLedger) and not isinstance(led, PostgresLedger)
+
+
+def test_cache_helpers_are_inert_without_a_database(monkeypatch):
+    """CI, the eval CLI and the $0 demo run with no DATABASE_URL."""
+    from trialguard.db import cache
+
+    monkeypatch.setattr("trialguard.config.settings.database_url", "")
+    assert cache.cache_get("keywords", "abc") is None
+    assert cache.cache_put("keywords", "abc", ["x"]) is False
+
+
+def test_cache_read_failure_degrades_to_a_miss(monkeypatch):
+    """A cache that cannot be reached must not fail the request it serves."""
+    from trialguard.db import cache
+
+    monkeypatch.setattr("trialguard.config.settings.database_url", "postgresql://x/y")
+    monkeypatch.setattr(
+        "trialguard.db.schema.get_conn",
+        lambda *a, **k: (_ for _ in ()).throw(OSError("neon unreachable")),
+    )
+    assert cache.cache_get("keywords", "abc") is None
+    assert cache.cache_put("keywords", "abc", ["x"]) is False

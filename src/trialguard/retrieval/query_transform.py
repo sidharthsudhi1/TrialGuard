@@ -70,10 +70,22 @@ def generate_keywords(patient_note: str, n_max: int = 12, handler=None) -> list[
     for. The cost ledger is what surfaced it.
     """
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    cache_path = CACHE_DIR / f"{_note_hash(patient_note)}.json"
+    note_key = _note_hash(patient_note)
+    cache_path = CACHE_DIR / f"{note_key}.json"
 
+    # Disk first: those files back the committed Phase 2/7 retrieval numbers, so
+    # they stay authoritative and no existing result can shift. Postgres is the
+    # layer underneath, for the served path, where the container filesystem is
+    # replaced on every deploy — regenerated keywords change the queries that
+    # drive ranking, so a lost cache silently changes what users are shown.
     if cache_path.exists():
         return json.loads(cache_path.read_text())
+
+    from trialguard.db.cache import cache_get, cache_put
+
+    stored = cache_get("keywords", note_key)
+    if stored:
+        return stored
 
     try:
         from trialguard.llm.provider import active_model, active_provider, get_chat_model
@@ -90,6 +102,7 @@ def generate_keywords(patient_note: str, n_max: int = 12, handler=None) -> list[
         if not keywords:
             raise ValueError("empty keyword list")
         cache_path.write_text(json.dumps(keywords))
+        cache_put("keywords", note_key, keywords)
         return keywords
     except Exception:
         return [patient_note]

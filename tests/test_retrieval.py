@@ -314,3 +314,48 @@ def test_generate_keywords_cap_at_n_max(tmp_path, monkeypatch):
         result = query_transform.generate_keywords(note, n_max=5)
 
     assert len(result) == 5
+
+
+def test_keywords_prefer_disk_over_the_durable_store(tmp_path, monkeypatch):
+    """Committed keyword files back the Phase 2/7 numbers and must always win."""
+    from trialguard.retrieval import query_transform as QT
+
+    monkeypatch.setattr(QT, "CACHE_DIR", tmp_path)
+    (tmp_path / f"{QT._note_hash('note')}.json").write_text(json.dumps(["from disk"]))
+    monkeypatch.setattr("trialguard.db.cache.cache_get", lambda *a: ["from postgres"])
+
+    assert QT.generate_keywords("note") == ["from disk"]
+
+
+def test_keywords_fall_back_to_the_durable_store(tmp_path, monkeypatch):
+    """Deploy replaces the container filesystem; Postgres is what survives it."""
+    from trialguard.retrieval import query_transform as QT
+
+    monkeypatch.setattr(QT, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr("trialguard.db.cache.cache_get", lambda *a: ["from postgres"])
+
+    def _boom(*a, **k):
+        raise AssertionError("a durable-store hit must not call the LLM")
+
+    monkeypatch.setattr("trialguard.llm.provider.get_chat_model", _boom)
+    assert QT.generate_keywords("note") == ["from postgres"]
+
+
+def test_keywords_write_through_to_the_durable_store(tmp_path, monkeypatch):
+    from unittest.mock import MagicMock
+
+    from trialguard.retrieval import query_transform as QT
+
+    monkeypatch.setattr(QT, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr("trialguard.db.cache.cache_get", lambda *a: None)
+    written = {}
+    monkeypatch.setattr(
+        "trialguard.db.cache.cache_put",
+        lambda ns, key, val: written.update({"ns": ns, "val": val}) or True,
+    )
+    llm = MagicMock()
+    llm.invoke.return_value = MagicMock(content='{"keywords": ["stage iv nsclc"]}')
+    monkeypatch.setattr("trialguard.llm.provider.get_chat_model", lambda *a, **k: llm)
+
+    assert QT.generate_keywords("fresh note") == ["stage iv nsclc"]
+    assert written == {"ns": "keywords", "val": ["stage iv nsclc"]}
