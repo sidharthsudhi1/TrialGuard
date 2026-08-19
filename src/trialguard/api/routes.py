@@ -77,7 +77,7 @@ def _reject_empty_or_injection(note: str) -> None:
 
 
 def _cap_top_k(top_k: int) -> int:
-    return max(1, min(int(top_k), settings.demo_max_top_k))
+    return max(1, min(int(top_k), settings.api_max_search_results))
 
 
 @lru_cache(maxsize=1)
@@ -263,7 +263,12 @@ async def assess_start(body: AssessRequest, request: Request) -> AssessCreated:
     skip_cache = not _is_preset(note)
     store = request.app.state.jobs
     job = store.create(note, nct_ids, skip_cache_write=skip_cache)
-    asyncio.create_task(_run_assess_job(request.app, job.job_id))
+    # Keep a reference: asyncio holds only a weak one, so a fire-and-forget task
+    # can be garbage collected mid-await. The job would stop silently and its SSE
+    # stream would hang until the TTL expired, with nothing logged.
+    task = asyncio.create_task(_run_assess_job(request.app, job.job_id))
+    request.app.state.assess_tasks.add(task)
+    task.add_done_callback(request.app.state.assess_tasks.discard)
     return AssessCreated(job_id=job.job_id)
 
 

@@ -29,6 +29,8 @@ from trialguard.config import settings  # noqa: E402
 async def lifespan(app: FastAPI):
     app.state.medcpt_warm = False
     app.state.jobs = JobStore(ttl_seconds=settings.api_job_ttl_seconds)
+    # Strong references to in-flight assess tasks; see routes.assess_start.
+    app.state.assess_tasks = set()
     app.state.rate_limiters = {
         "search": RateLimiter(settings.api_search_rate_per_min),
         "assess": RateLimiter(settings.api_assess_rate_per_min),

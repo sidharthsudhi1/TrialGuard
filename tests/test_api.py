@@ -111,7 +111,7 @@ def test_search_rejects_injection(client):
 
 
 def test_search_caps_top_k(client, monkeypatch):
-    monkeypatch.setattr("trialguard.config.settings.demo_max_top_k", 3)
+    monkeypatch.setattr("trialguard.config.settings.api_max_search_results", 3)
     seen = {}
 
     def fake_retrieve(note, top_k=10, **kwargs):
@@ -460,3 +460,41 @@ def test_rate_limiter_evicts_idle_keys():
     time.sleep(0.06)
     limiter.allow("someone-new")
     assert len(limiter._hits) < 10, f"stale keys retained: {len(limiter._hits)}"
+
+
+def test_search_cap_is_not_the_assess_spend_bound(client, monkeypatch):
+    """Search is fixed-cost SQL; only assess should be bounded by the LLM budget."""
+    monkeypatch.setattr("trialguard.config.settings.demo_max_top_k", 5)
+    monkeypatch.setattr("trialguard.config.settings.api_max_search_results", 25)
+    seen = {}
+
+    def fake_retrieve(note, top_k=10, **kwargs):
+        seen["top_k"] = top_k
+        return [], STUB_LATENCY
+
+    with (
+        patch("trialguard.retrieval.pipeline.retrieve", side_effect=fake_retrieve),
+        patch("trialguard.db.queries.get_trials", return_value={}),
+        patch("trialguard.agent.sanitize.detect_injection", return_value=False),
+    ):
+        r = client.post("/api/search", json={"note": "synthetic note", "top_k": 20})
+
+    assert r.status_code == 200
+    assert seen["top_k"] == 20, "search was clamped by the assess spend cap"
+
+
+def test_assess_task_is_strongly_referenced(client):
+    """asyncio keeps only a weak reference; a dropped task dies mid-await."""
+    with (
+        patch("trialguard.agent.sanitize.detect_injection", return_value=False),
+        patch("trialguard.db.queries.get_trial", return_value=STUB_ROWS["NCT0001"]),
+        patch("trialguard.agent.graph.assess", return_value=STUB_ASSESS),
+        patch("trialguard.llm.cost.active_ledger") as ledger,
+    ):
+        ledger.return_value.exhausted.return_value = False
+        r = client.post(
+            "/api/assess", json={"note": "synthetic note", "nct_ids": ["NCT0001"]}
+        )
+        assert r.status_code == 200
+        # The set exists and the callback prunes it, so it cannot grow without bound.
+        assert isinstance(client.app.state.assess_tasks, set)

@@ -62,6 +62,13 @@ class Settings(BaseSettings):
     # Hard cap on trials assessed per demo request (cost bound).
     demo_max_top_k: int = 5
 
+    # Hard cap on /api/search results. Separate from demo_max_top_k, which bounds
+    # how many trials get *assessed* and therefore how much an LLM is asked to do.
+    # Search is a fixed amount of SQL whatever this is — retrieve() always fuses
+    # the same 50-deep pools — so borrowing the spend knob here only shortened the
+    # result list for no saving.
+    api_max_search_results: int = 25
+
     # Phase 9 Stage A API (FastAPI). CORS is a single origin — never "*".
     api_cors_origin: str = "http://localhost:3000"
     # Hard cap on nct_ids per /api/assess (LLM cost bound).
