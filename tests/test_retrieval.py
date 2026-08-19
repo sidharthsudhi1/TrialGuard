@@ -1,6 +1,8 @@
 import json
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from trialguard.eval.retrieval_metrics import mrr, ndcg_at_k, recall_at_k
 from trialguard.retrieval.fusion import rrf
 
@@ -359,3 +361,66 @@ def test_keywords_write_through_to_the_durable_store(tmp_path, monkeypatch):
 
     assert QT.generate_keywords("fresh note") == ["stage iv nsclc"]
     assert written == {"ns": "keywords", "val": ["stage iv nsclc"]}
+
+
+def _stub_llm(monkeypatch, content='{"keywords": ["stage iv nsclc"]}'):
+    from unittest.mock import MagicMock
+
+    llm = MagicMock()
+    resp = MagicMock(content=content)
+    resp.usage_metadata = {"input_tokens": 40, "output_tokens": 12, "total_tokens": 52}
+    resp.response_metadata = {"token_usage": {"estimated_cost": 0.000021}}
+    llm.invoke.return_value = resp
+    monkeypatch.setattr("trialguard.llm.provider.get_chat_model", lambda *a, **k: llm)
+    return llm
+
+
+def test_keyword_call_is_billed_to_the_ledger(tmp_path, monkeypatch):
+    """Search is not free: a cache-miss note costs one LLM call and must be billed."""
+    from unittest.mock import MagicMock
+
+    from trialguard.retrieval import query_transform as QT
+
+    monkeypatch.setattr(QT, "CACHE_DIR", tmp_path)
+    _stub_llm(monkeypatch)
+    ledger = MagicMock()
+    monkeypatch.setattr("trialguard.llm.cost.active_ledger", lambda: ledger)
+
+    QT.generate_keywords("a note the cache has never seen")
+
+    assert ledger.check.called, "budget must be gated before the call"
+    assert ledger.record.called, "spend must be recorded after the call"
+    assert ledger.record.call_args[0][0]["total_tokens"] == 52
+
+
+def test_exhausted_budget_is_not_swallowed_into_worse_retrieval(tmp_path, monkeypatch):
+    """Falling back to the raw note silently would hide a spent budget."""
+    from unittest.mock import MagicMock
+
+    from trialguard.agent.ratelimit import BudgetExhausted
+    from trialguard.retrieval import query_transform as QT
+
+    monkeypatch.setattr(QT, "CACHE_DIR", tmp_path)
+    ledger = MagicMock()
+    ledger.check.side_effect = BudgetExhausted("cap reached")
+    monkeypatch.setattr("trialguard.llm.cost.active_ledger", lambda: ledger)
+
+    with pytest.raises(BudgetExhausted):
+        QT.generate_keywords("a note the cache has never seen")
+
+
+def test_cached_note_still_served_when_the_budget_is_spent(tmp_path, monkeypatch):
+    """Cache hits never reach the model, so presets keep working after the cap."""
+    from unittest.mock import MagicMock
+
+    from trialguard.agent.ratelimit import BudgetExhausted
+    from trialguard.retrieval import query_transform as QT
+
+    monkeypatch.setattr(QT, "CACHE_DIR", tmp_path)
+    (tmp_path / f"{QT._note_hash('known')}.json").write_text(json.dumps(["cached kw"]))
+    ledger = MagicMock()
+    ledger.check.side_effect = BudgetExhausted("cap reached")
+    monkeypatch.setattr("trialguard.llm.cost.active_ledger", lambda: ledger)
+
+    assert QT.generate_keywords("known") == ["cached kw"]
+    assert not ledger.check.called

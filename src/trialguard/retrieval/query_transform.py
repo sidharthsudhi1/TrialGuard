@@ -4,12 +4,19 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
 from pathlib import Path
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
+log = logging.getLogger(__name__)
+
 CACHE_DIR = Path("data/cache/keywords")
+
+# Matches provider._MAX_TOKENS["keywords"]; the budget gate gets the same output
+# ceiling the client is configured with.
+_MAX_OUTPUT_TOKENS = 1024
 
 _SYSTEM_PROMPT = """\
 You are a clinical trial retrieval assistant. Given a patient summary, extract a
@@ -87,22 +94,63 @@ def generate_keywords(patient_note: str, n_max: int = 12, handler=None) -> list[
     if stored:
         return stored
 
-    try:
-        from trialguard.llm.provider import active_model, active_provider, get_chat_model
-        from trialguard.tracing import trace_config
+    from trialguard.agent.ratelimit import estimate_tokens
+    from trialguard.llm.cost import active_ledger
+    from trialguard.llm.provider import (
+        active_model,
+        active_provider,
+        extract_usage,
+        get_chat_model,
+    )
+    from trialguard.tracing import trace_config
 
+    provider, model = active_provider(), active_model()
+    ledger = active_ledger()
+    # Search is not free. A cache-miss note costs one LLM call, and this path used
+    # to make it without consulting the budget or recording what it spent, so the
+    # ledger under-reported every search and the cap could not stop a scripted
+    # client hitting /api/search. Deliberately outside the try below: a spent
+    # budget must propagate to the caller, not degrade silently into worse
+    # retrieval. Cache hits return before reaching here, so an exhausted budget
+    # still serves every preset and every note already seen.
+    ledger.check(
+        estimate_tokens(_SYSTEM_PROMPT + patient_note) + _MAX_OUTPUT_TOKENS,
+        provider=provider,
+        model=model,
+    )
+
+    try:
         llm = get_chat_model("keywords")
         response = llm.invoke([
             SystemMessage(content=_SYSTEM_PROMPT),
             HumanMessage(content=f"Patient summary:\n{patient_note}"),
         ], config=trace_config(
-            handler, provider=active_provider(), model=active_model(), purpose="keywords"
+            handler, provider=provider, model=model, purpose="keywords"
         ))
+        # Bill before parsing: the tokens were spent whether or not the response
+        # is usable. Guarded separately because the money is already gone by this
+        # point — losing the keywords over a bookkeeping failure would degrade
+        # retrieval for a reason the user cannot act on. Logged at error level
+        # because unbilled spend is exactly what this path was added to stop.
+        try:
+            ledger.record(extract_usage(response), provider, model)
+        except Exception as e:  # noqa: BLE001
+            log.error(
+                "keyword call completed but was not billed (%s); the daily ledger "
+                "is now under-reporting", type(e).__name__
+            )
         keywords = _parse_keywords(str(response.content), n_max)
         if not keywords:
             raise ValueError("empty keyword list")
         cache_path.write_text(json.dumps(keywords))
         cache_put("keywords", note_key, keywords)
         return keywords
-    except Exception:
+    except Exception as e:  # noqa: BLE001 — degrade, but never silently
+        # Falling back to the raw note is a real quality cliff: AD-11 measured
+        # keyword queries at +50% recall@10 over the narrative. Logged so the
+        # cliff is visible instead of looking like ordinary retrieval.
+        log.warning(
+            "keyword extraction failed (%s); falling back to the raw note, "
+            "which retrieves materially worse", type(e).__name__
+        )
         return [patient_note]

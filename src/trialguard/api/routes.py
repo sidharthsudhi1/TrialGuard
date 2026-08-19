@@ -144,12 +144,19 @@ def search(body: SearchRequest, request: Request) -> dict[str, Any]:
     _reject_empty_or_injection(body.note)
 
     top_k = _cap_top_k(body.top_k)
+    from trialguard.agent.ratelimit import BudgetExhausted
     from trialguard.db.queries import get_trials
     from trialguard.retrieval.pipeline import retrieve
 
-    hits, latency = retrieve(
-        body.note.strip(), top_k=top_k, source=SOURCE, use_keywords=True
-    )
+    # A note that misses the keyword cache costs one LLM call, so search can trip
+    # the daily cap just as assess can. Notes already cached never reach the
+    # model, so they keep working after the budget is spent.
+    try:
+        hits, latency = retrieve(
+            body.note.strip(), top_k=top_k, source=SOURCE, use_keywords=True
+        )
+    except BudgetExhausted as e:
+        raise HTTPException(status_code=402, detail=_budget_exhausted_detail(e)) from e
     rows = get_trials([nct for nct, _ in hits], source=SOURCE)
     trials = []
     for nct, score in hits:

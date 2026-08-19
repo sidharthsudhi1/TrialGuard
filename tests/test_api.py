@@ -320,3 +320,25 @@ def test_missing_fixtures_treated_as_freetext(client):
     with patch("trialguard.demo.presets", side_effect=FileNotFoundError):
         assert _is_preset("anything at all") is False
     _preset_notes.cache_clear()
+
+
+def test_budget_exhausted_on_search(client):
+    """A cache-miss note costs an LLM call, so search can trip the cap too."""
+    from trialguard.agent.ratelimit import BudgetExhausted
+
+    with (
+        patch("trialguard.agent.sanitize.detect_injection", return_value=False),
+        patch(
+            "trialguard.retrieval.pipeline.retrieve",
+            side_effect=BudgetExhausted("Daily spend cap reached."),
+        ),
+        patch("trialguard.llm.cost.active_ledger") as ledger,
+    ):
+        mock = MagicMock()
+        mock.summary.return_value = {"usd": 2.0, "usd_cap": 2.0, "calls": 10, "date": "2026-08-19"}
+        mock.remaining_usd.return_value = 0.0
+        ledger.return_value = mock
+        r = client.post("/api/search", json={"note": "an unseen note", "top_k": 5})
+
+    assert r.status_code == 402
+    assert r.json()["detail"]["error"] == "BudgetExhausted"
