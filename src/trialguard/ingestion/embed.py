@@ -146,7 +146,9 @@ def _get_bge():
     return _bge_model
 
 
-def _bge_encode(texts: list[str], is_query: bool, batch_size: int) -> list[list[float]]:
+def _bge_encode_array(texts: list[str], is_query: bool, batch_size: int):
+    import numpy as np
+
     model = _get_bge()
     inputs = [(QUERY_PREFIX + t) if is_query else t for t in texts]
     vecs = model.encode(
@@ -155,7 +157,11 @@ def _bge_encode(texts: list[str], is_query: bool, batch_size: int) -> list[list[
         normalize_embeddings=True,
         show_progress_bar=len(texts) > 256,
     )
-    return vecs.tolist()
+    return np.asarray(vecs, dtype=np.float32)
+
+
+def _bge_encode(texts: list[str], is_query: bool, batch_size: int) -> list[list[float]]:
+    return _bge_encode_array(texts, is_query, batch_size).tolist()
 
 
 # ---- MedCPT backend ----
@@ -176,12 +182,14 @@ def _get_medcpt(is_query: bool):
     return _medcpt[key]
 
 
-def _medcpt_encode(texts: list[str], is_query: bool, batch_size: int) -> list[list[float]]:
+def _medcpt_encode_array(texts: list[str], is_query: bool, batch_size: int):
+    import numpy as np
     import torch
+
     tok, model = _get_medcpt(is_query)
     maxlen = MEDCPT_QUERY_MAXLEN if is_query else MEDCPT_ARTICLE_MAXLEN
     device = _device()
-    out: list[list[float]] = []
+    out = np.empty((len(texts), EMBEDDING_DIM), dtype=np.float32)
     show = len(texts) > 256
     with torch.no_grad():
         for start in range(0, len(texts), batch_size):
@@ -196,10 +204,14 @@ def _medcpt_encode(texts: list[str], is_query: bool, batch_size: int) -> list[li
             # MedCPT pools on the [CLS] (first) token.
             embeds = model(**enc).last_hidden_state[:, 0, :]
             embeds = torch.nn.functional.normalize(embeds, p=2, dim=1)
-            out.extend(embeds.cpu().tolist())
+            out[start : start + len(batch)] = embeds.cpu().numpy()
             if show:
                 print(f"    embedded {min(start + batch_size, len(texts))}/{len(texts)}")
     return out
+
+
+def _medcpt_encode(texts: list[str], is_query: bool, batch_size: int) -> list[list[float]]:
+    return _medcpt_encode_array(texts, is_query, batch_size).tolist()
 
 
 # ---- public API ----
@@ -220,8 +232,29 @@ def embed_batch(
     batch_size: int = 32,
     is_query: bool = False,
 ) -> list[list[float]]:
-    """Embed a batch. Trial documents use is_query=False."""
+    """Embed a batch. Trial documents use is_query=False.
+
+    Returns Python lists, which is what the database ingestion path wants and
+    what psycopg2 adapts. Callers embedding a whole corpus should use
+    embed_matrix instead — see the note there.
+    """
     return _encode(texts, is_query=is_query, batch_size=batch_size)
+
+
+def embed_matrix(texts: list[str], batch_size: int = 32, is_query: bool = False):
+    """Embed a whole corpus into a preallocated float32 array.
+
+    embed_batch materialises one Python float object per dimension. For a 39,455
+    passage index that is 30 million objects — roughly 1 GB of interpreter
+    overhead before the numpy copy even begins, on top of the corpus itself. It
+    is what puts an 8 GB machine over the edge on TREC, and the array it is
+    immediately converted into is only 121 MB.
+
+    Same computation, same result, filled in place.
+    """
+    if _backend() == "medcpt":
+        return _medcpt_encode_array(texts, is_query, batch_size)
+    return _bge_encode_array(texts, is_query, batch_size)
 
 
 def eligibility_text_for_embedding(trial: dict) -> str:

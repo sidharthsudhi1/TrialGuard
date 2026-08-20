@@ -1,34 +1,30 @@
 # Phase 2 Retrieval Metrics
 
-Generated: 2026-06-26 23:42
+Generated: 2026-08-19 20:42
 
-Retriever: dense (BGE) + BM25 fused with RRF (k=60) — ablation: raw-note vs keyword-RRF
+Retriever: dense (BGE) + BM25 fused with RRF (k=60) — keyword-RRF
 
 ## Gold Coverage
 
 | Cohort | Config | Total gold | In corpus | Missing | Coverage |
 |---|---|---|---|---|---|
-| sigir | raw-note | 411 | 396 | 15 | 96.4% |
-| sigir | keyword | 411 | 396 | 15 | 96.4% |
+| trec_2021 | keyword | 5124 | 5123 | 1 | 100.0% |
 
 ## Recall@N Sweep
 
 | Cohort | Config | Recall@10 | Recall@20 | Recall@50 | Recall@100 | Recall@200 | MRR | p50 ms | p95 ms | n |
 |---|---|---|---|---|---|---|---|---|---|---|
-| sigir | raw-note | 0.0898 | 0.1307 | 0.2749 | 0.4001 | 0.4001 | 0.1911 | 74.0 | 151.2 | 53 |
-| sigir | keyword | 0.1345 | 0.3032 | 0.5335 | 0.6919 | 0.7840 | 0.2843 | 224.0 | 250.7 | 53 |
+| trec_2021 | keyword | 0.0798 | 0.1455 | 0.2859 | 0.4227 | 0.5453 | 0.6257 | 6061.5 | 15087.5 | 75 |
 
 ## Coverage-Adjusted Recall
 
 | Cohort | Config | Coverage | @50 raw | @50 adj | @100 raw | @100 adj | @200 raw | @200 adj |
 |---|---|---|---|---|---|---|---|---|
-| sigir | raw-note | 96.4% | 0.2749 | 0.2853 | 0.4001 | 0.4153 | 0.4001 | 0.4153 |
-| sigir | keyword | 96.4% | 0.5335 | 0.5537 | 0.6919 | 0.7181 | 0.7840 | 0.8137 |
+| trec_2021 | keyword | 100.0% | 0.2859 | 0.2860 | 0.4227 | 0.4228 | 0.5453 | 0.5454 |
 
 ## Agent Recall Ceiling (pool N=50)
 
-- **sigir / raw-note**: recall@50 = 0.2749 raw | 0.2853 coverage-adjusted
-- **sigir / keyword**: recall@50 = 0.5335 raw | 0.5537 coverage-adjusted
+- **trec_2021 / keyword**: recall@50 = 0.2859 raw | 0.2860 coverage-adjusted
 
 ## Notes
 - Coverage < 1.0 means some gold trials were never loaded into the eval corpus.

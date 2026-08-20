@@ -67,7 +67,7 @@ class FileIndex:
     def build(self, trials: list[dict]) -> None:
         from rank_bm25 import BM25Okapi
 
-        from trialguard.ingestion.embed import eligibility_text_for_embedding, embed_batch
+        from trialguard.ingestion.embed import eligibility_text_for_embedding, embed_matrix
         from trialguard.ingestion.normalise import normalise_trial
 
         ids_path, emb_path = self._cache_path()
@@ -106,8 +106,10 @@ class FileIndex:
                 print(f"  Building index for {self.source} ({len(trials)} trials)...")
 
             self._chunk_owners = owners
-            vecs = embed_batch(chunk_texts)
-            self._matrix = np.array(vecs, dtype=np.float32)
+            # embed_matrix, not embed_batch: a whole corpus through the list path
+            # costs ~1 GB of Python float objects before the array copy, which is
+            # what killed the 26k-trial TREC build on an 8 GB machine.
+            self._matrix = embed_matrix(chunk_texts)
             ids_path.write_text(json.dumps(self._chunk_owners))
             np.save(emb_path, self._matrix)
             print(f"  Index cached: {emb_path}")

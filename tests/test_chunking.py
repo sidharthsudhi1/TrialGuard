@@ -72,3 +72,33 @@ def test_trial_scores_as_its_best_passage_not_its_total():
     hits = idx._dense(np.array([1.0, 0.0], dtype=np.float32), pool=2)
     assert [n for n, _ in hits] == ["SHORT", "LONG"]
     assert len(hits) == 2, "passages of one trial must collapse to a single hit"
+
+
+def test_embed_matrix_returns_a_compact_array():
+    """embed_batch materialises a Python float per dimension; a whole corpus that
+    way is ~1 GB of interpreter overhead before the numpy copy begins."""
+    from unittest.mock import patch
+
+    from trialguard.ingestion import embed as E
+
+    fake = np.random.rand(64, E.EMBEDDING_DIM).astype(np.float32)
+    with patch.object(E, "_medcpt_encode_array", return_value=fake):
+        out = E.embed_matrix(["t"] * 64)
+
+    assert isinstance(out, np.ndarray)
+    assert out.dtype == np.float32
+    assert out.shape == (64, E.EMBEDDING_DIM)
+
+
+def test_embed_batch_still_returns_lists_for_the_database_path():
+    """psycopg2 adapts lists, not ndarrays — the ingestion path must keep working."""
+    from unittest.mock import patch
+
+    from trialguard.ingestion import embed as E
+
+    fake = np.random.rand(4, E.EMBEDDING_DIM).astype(np.float32)
+    with patch.object(E, "_medcpt_encode_array", return_value=fake):
+        out = E.embed_batch(["t"] * 4)
+
+    assert isinstance(out, list) and isinstance(out[0], list)
+    assert isinstance(out[0][0], float)
