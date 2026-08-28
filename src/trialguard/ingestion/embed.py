@@ -63,14 +63,23 @@ CHUNK_MAX_CHARS = 1800
 
 
 def _chunking_enabled() -> bool:
-    """Opt-in until the decisive measurement lands.
+    """Off. TREC measured it and it does not pay.
 
-    Chunking is directionally right — 42% of ctgov_live breaches the window — but
-    on SIGIR it bought recall@10 +6.1% at MRR -4.0%, which is not enough to adopt
-    on, and SIGIR barely has the problem (1.30x expansion against TREC's 1.51x
-    over 27.6% of trials). Defaulting it on would also silently invalidate every
-    cached eval index, which is an expensive surprise for a change still being
-    argued. Flip to "1" once TREC confirms.
+    The premise holds: 42% of ctgov_live breaches the 512-token window, chunking
+    does recover that text, and SIGIR hinted at recall@10 +6.1% (at MRR -4.0%).
+    TREC 2021 was the cohort that could settle it — 27.6% of trials truncate at
+    1.51x expansion — and it came back flat to negative at n=75 patients:
+
+        recall@10  0.0798 -> 0.0781      recall@50  0.2859 -> 0.2853
+        recall@100 0.4227 -> 0.4197      MRR        0.6257 -> 0.6197
+
+    Every delta is inside noise, and the two cohorts disagree even in sign, so
+    read it as no effect rather than a small loss. No effect is still a rejection:
+    the arm costs 50.9% more index rows (26,149 -> 39,455), ~93 min of CPU to
+    embed, and 6% p50 latency. Evidently the truncated tail was not carrying the
+    signal that separates trials.
+
+    Do not re-run this to check. See data/reports/chunkab_trec2021_*.json.
     """
     return os.environ.get("TG_CHUNK_DOCS", "0") == "1"
 

@@ -1,0 +1,37 @@
+{
+  "chunked": false,
+  "cohort": "trec_2021",
+  "embed_tag": "medcpt_excl",
+  "index_exclusion": true,
+  "results": [
+    {
+      "cohort": "trec_2021",
+      "config": "keyword",
+      "coverage_info": {
+        "coverage": 0.9998,
+        "missing_count": 1,
+        "missing_sample": [
+          "NCT03595566"
+        ],
+        "present_in_corpus": 5123,
+        "total_gold": 5124
+      },
+      "gold_coverage": 0.9998,
+      "latency_p50_ms": 974.0,
+      "latency_p95_ms": 1230.1,
+      "mrr": 0.6257,
+      "n_patients": 75,
+      "recall@10": 0.0798,
+      "recall@100": 0.4227,
+      "recall@100_adj": 0.4228,
+      "recall@10_adj": 0.0798,
+      "recall@20": 0.1455,
+      "recall@200": 0.5454,
+      "recall@200_adj": 0.5455,
+      "recall@20_adj": 0.1455,
+      "recall@50": 0.2859,
+      "recall@50_adj": 0.286
+    }
+  ],
+  "wall_s": 82.1
+}

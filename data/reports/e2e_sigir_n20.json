@@ -1,0 +1,36 @@
+{
+  "cached_only": false,
+  "cohort": "sigir",
+  "counts": {
+    "assess_s": 4099.7,
+    "assessed": 200,
+    "budget_stops": 0,
+    "cache_coverage": 1.0,
+    "skipped": 0,
+    "uncached_skipped": 0
+  },
+  "metrics": {
+    "agent_loss": 0.1597,
+    "criterion_unverifiable_rate": 0.0087,
+    "eligible_precision": 0.3333,
+    "end_to_end_recall": 0.0139,
+    "gold_eligible_total": 144,
+    "incomplete_patients": 0,
+    "patients": 20,
+    "retrieval_recall": 0.1736,
+    "trial_verdicts": {
+      "cannot_determine": 69,
+      "eligible": 6,
+      "excluded": 125
+    }
+  },
+  "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+  "prompt_version": "v1",
+  "provider": "deepinfra",
+  "run_usd": 0.028078,
+  "timing": {
+    "assess_s": 4099.7,
+    "retrieval_s": 19.5
+  },
+  "top_k": 10
+}
