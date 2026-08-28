@@ -14,6 +14,16 @@ def _strip_markdown(text: str) -> str:
     return text.strip()
 
 
+# The SIGIR corpus has the words "exclusion criteria" stripped out of its
+# headers, leaving a line holding nothing but ":" as the only boundary — 2,666 of
+# its 2,991 trials. Missing it files every exclusion criterion as an inclusion,
+# and the roll-up then reads a correct "patient does not have <disqualifier>"
+# as a failed requirement and excludes a trial the patient is eligible for.
+# CT.gov spells the header out, so this never fires on the production corpus
+# (measured: 0 of 25,965 ctgov_live trials carry such a line).
+_BARE_HEADER = re.compile(r"^[ \t]*:[ \t]*$", re.M)
+
+
 def _split_criteria(raw: str) -> tuple[list[str], list[str]]:
     """Split raw eligibility text into inclusion and exclusion criterion lists."""
     if not raw:
@@ -46,7 +56,13 @@ def _split_criteria(raw: str) -> tuple[list[str], list[str]]:
         return _parse_block(inclusion_text), _parse_block(exclusion_text)
 
     if inc_match:
-        return _parse_block(raw[inc_match.end():]), []
+        body = raw[inc_match.end():]
+        # Only trusted after a real inclusion header: a bare ":" with nothing
+        # before it says which side is which is not a boundary we can read.
+        bare = _BARE_HEADER.search(body)
+        if bare:
+            return _parse_block(body[: bare.start()]), _parse_block(body[bare.end():])
+        return _parse_block(body), []
 
     if exc_match:
         return [], _parse_block(raw[exc_match.end():])
