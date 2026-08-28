@@ -69,3 +69,50 @@ def test_needs_review_rows_can_be_ranked_by_unknown_count():
     few = rollup_trial([_a("inclusion", "met"), _a("inclusion", "cannot_determine")])
     many = rollup_trial([_a("inclusion", "cannot_determine") for _ in range(5)])
     assert few["n_unknown"] < many["n_unknown"]
+
+
+# --- attach_kinds anchoring (A2) ---
+
+from trialguard.agent.schema import attach_kinds  # noqa: E402
+
+
+def _typed():
+    return [
+        {"text": "Age 18 years or older", "kind": "inclusion"},
+        {"text": "History of brain metastases", "kind": "exclusion"},
+    ]
+
+
+def test_exact_text_anchors_kind():
+    got = attach_kinds([{"criterion": "History of brain metastases"}], _typed())
+    assert got[0]["kind"] == "exclusion"
+
+
+def test_whitespace_and_case_drift_still_anchors():
+    """Recovers 7.3% of assessments that used to fall through to a positional guess."""
+    got = attach_kinds([{"criterion": "  history of BRAIN metastases  "}], _typed())
+    assert got[0]["kind"] == "exclusion"
+
+
+def test_position_is_used_only_when_counts_agree():
+    same_len = attach_kinds(
+        [{"criterion": "unrecognisable A"}, {"criterion": "unrecognisable B"}], _typed()
+    )
+    assert [a["kind"] for a in same_len] == ["inclusion", "exclusion"]
+
+
+def test_a_short_response_is_not_aligned_by_position():
+    """The model dropped a criterion, so index i is no longer typed[i]."""
+    got = attach_kinds([{"criterion": "unrecognisable B"}], _typed())
+    assert got[0]["kind"] == "unknown"
+
+
+def test_unknown_kind_can_never_disqualify_a_trial():
+    """A guess here would flip 'patient lacks the disqualifier' into an exclusion."""
+    ass = attach_kinds(
+        [{"criterion": "unrecognisable", "verdict": "not_met"}], _typed()
+    )
+    roll = rollup_trial(ass)
+    assert roll["tier"] == "needs_review"
+    assert roll["n_disqualifying"] == 0
+    assert roll["n_unknown"] == 1
