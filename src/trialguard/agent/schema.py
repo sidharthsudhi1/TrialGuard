@@ -86,35 +86,66 @@ def attach_kinds(assessments: list[dict], typed: list[dict]) -> list[dict]:
     return out
 
 
-def rollup_trial_verdict(assessments: list[dict]) -> str:
-    """Trial roll-up with inverted exclusion semantics.
+def rollup_trial(assessments: list[dict]) -> dict:
+    """Tiered trial roll-up: the verdict, and what stands between it and eligible.
 
     Inclusion not_met → excluded. Exclusion met → excluded (patient matches a
     disqualifier). Eligible only when every inclusion is met and every exclusion
-    is not_met. Any abstention/unverifiable without a hard exclude → cannot_determine.
+    is not_met. Anything else is unresolved.
+
+    The tier exists because a single verdict cannot carry this system's shape.
+    Measured on SIGIR (A1/A5): the "eligible" tier is 100% precise but recovers
+    0.0208 of gold, while admitting every trial that merely lacks a disqualifier
+    reaches 0.1319 at 28.8% precision and surfaces 68% of the trials the cohort
+    marks *excluded*. Neither is the product on its own. A trial blocked only by
+    facts the note never stated is a different object from one the patient is
+    disqualified from, and the clinician is the right party to judge it — so the
+    count of unresolved criteria is reported rather than collapsed into a
+    verdict. `needs_review` rows are meant to be ranked by `n_unknown` ascending.
+
+    `verdict` is unchanged from the original three-way roll-up so the regression
+    gate and the committed faithfulness floors keep measuring what they measured.
     """
-    if not assessments:
-        return "cannot_determine"
-    excluded = False
-    unresolved = False
+    disqualifying: list[str] = []
+    unknown: list[str] = []
     for a in assessments:
         kind = a.get("kind", "inclusion")
         v = a.get("verdict")
+        text = str(a.get("criterion", ""))
         if kind == "exclusion":
             if v == "met":
-                excluded = True
+                disqualifying.append(text)
             elif v != "not_met":
-                unresolved = True
+                unknown.append(text)
         else:
             if v == "not_met":
-                excluded = True
+                disqualifying.append(text)
             elif v != "met":
-                unresolved = True
-    if excluded:
-        return "excluded"
-    if unresolved:
-        return "cannot_determine"
-    return "eligible"
+                unknown.append(text)
+
+    if not assessments:
+        verdict, tier = "cannot_determine", "needs_review"
+    elif disqualifying:
+        verdict, tier = "excluded", "excluded"
+    elif unknown:
+        verdict, tier = "cannot_determine", "needs_review"
+    else:
+        verdict, tier = "eligible", "eligible"
+
+    return {
+        "verdict": verdict,
+        "tier": tier,
+        "n_criteria": len(assessments),
+        "n_unknown": len(unknown),
+        "n_disqualifying": len(disqualifying),
+        "unknown": unknown,
+        "disqualifying": disqualifying,
+    }
+
+
+def rollup_trial_verdict(assessments: list[dict]) -> str:
+    """Three-way verdict. Thin wrapper on rollup_trial for existing callers."""
+    return rollup_trial(assessments)["verdict"]
 
 
 def validate_assessments(raw: object) -> list[dict]:

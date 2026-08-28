@@ -19,7 +19,7 @@ from langgraph.graph import END, StateGraph
 
 from trialguard.agent.analyst import CACHE_DIR as ANALYST_CACHE
 from trialguard.agent.analyst import _cache_key, analyze_trial
-from trialguard.agent.schema import attach_kinds, normalize_criteria, rollup_trial_verdict
+from trialguard.agent.schema import attach_kinds, normalize_criteria, rollup_trial
 from trialguard.verify.grounding import ground_assessments
 
 
@@ -33,6 +33,10 @@ class State(TypedDict, total=False):
     retries: int
     assessments: list[dict]
     trial_verdict: str
+    trial_tier: str
+    n_unknown: int
+    unknown_criteria: list[str]
+    disqualifying_criteria: list[str]
     criteria_truncated: bool
     skip_cache_write: bool
 
@@ -98,8 +102,15 @@ def _retry_node(state: State) -> State:
 
 
 def _report_node(state: State) -> State:
-    """Trial roll-up with inverted exclusion semantics (see rollup_trial_verdict)."""
-    return {"trial_verdict": rollup_trial_verdict(state["assessments"])}
+    """Trial roll-up with inverted exclusion semantics (see rollup_trial)."""
+    roll = rollup_trial(state["assessments"])
+    return {
+        "trial_verdict": roll["verdict"],
+        "trial_tier": roll["tier"],
+        "n_unknown": roll["n_unknown"],
+        "unknown_criteria": roll["unknown"],
+        "disqualifying_criteria": roll["disqualifying"],
+    }
 
 
 def build_graph():

@@ -153,6 +153,8 @@ def assess_retrieved(
             ass = state.get("assessments", [])
             r["verdicts"][nct] = {
                 "trial_verdict": state.get("trial_verdict", "cannot_determine"),
+                "trial_tier": state.get("trial_tier", "needs_review"),
+                "n_unknown": state.get("n_unknown", 0),
                 "n_criteria": len(ass),
                 "n_grounded": sum(1 for a in ass if a.get("grounded")),
                 "n_unverifiable": sum(1 for a in ass if a.get("verdict") == "unverifiable"),
@@ -200,9 +202,33 @@ def score(rows: list[dict]) -> dict:
     def _rate(a: int, b: int) -> float:
         return round(a / b, 4) if b else 0.0
 
+    # The tiered contract (A5) is scored as two operating points on one system,
+    # never averaged: the "eligible" tier trades recall for precision and the
+    # surfaced set does the reverse. A single F1 hides which one moved, and with
+    # recall hard-capped by retrieval it would reward surfacing everything.
+    surfaced_hit = surfaced_shown = surfaced_labelled = 0
+    for r in rows:
+        gold_elig = set(r["gold_eligible"])
+        for nct, v in r.get("verdicts", {}).items():
+            if v.get("trial_tier") == "excluded":
+                continue
+            surfaced_shown += 1
+            label = r["gold_labels"].get(nct)
+            if label:
+                surfaced_labelled += 1
+            if nct in gold_elig:
+                surfaced_hit += 1
+
     retrieval_recall = _rate(n_retrieved, n_gold)
     end_to_end = _rate(n_correct, n_gold)
     return {
+        "tier_surfaced": {
+            "shown": surfaced_shown,
+            "recall": _rate(surfaced_hit, n_gold),
+            # Over labelled rows only: an unlabelled row is an unjudged pool gap,
+            # not a false positive, and counting it as one understates every arm.
+            "precision": _rate(surfaced_hit, surfaced_labelled),
+        },
         "patients": len(rows),
         "gold_eligible_total": n_gold,
         "retrieval_recall": retrieval_recall,
@@ -274,7 +300,12 @@ def main() -> None:
     t.add_row("patients scored", str(m["patients"]))
     t.add_row("gold eligible trials", str(m["gold_eligible_total"]))
     t.add_row("retrieval recall (ceiling)", f"{m['retrieval_recall']:.4f}")
-    t.add_row("[bold]end-to-end recall[/bold]", f"[bold]{m['end_to_end_recall']:.4f}[/bold]")
+    t.add_row("[bold]end-to-end recall[/bold] (eligible tier)",
+              f"[bold]{m['end_to_end_recall']:.4f}[/bold]")
+    ts = m["tier_surfaced"]
+    t.add_row("surfaced recall (eligible + review)", f"{ts['recall']:.4f}")
+    t.add_row("surfaced precision", f"{ts['precision']:.4f}")
+    t.add_row("trials surfaced", str(ts["shown"]))
     t.add_row("agent loss", f"{m['agent_loss']:.4f}")
     t.add_row("precision of 'eligible'", f"{m['eligible_precision']:.4f}")
     t.add_row("criterion unverifiable rate", f"{m['criterion_unverifiable_rate']:.4f}")
