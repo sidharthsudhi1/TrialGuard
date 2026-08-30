@@ -77,3 +77,71 @@ def test_bare_colon_conserves_every_criterion():
     raw = "inclusion criteria:\n- alpha criterion text\n:\n- beta criterion text\n"
     inc, exc = _split_criteria(raw)
     assert inc + exc == ["alpha criterion text", "beta criterion text"]
+
+
+# --- disjunctive groups (A4) ---
+
+
+def test_indented_disjunction_becomes_one_criterion():
+    """Split into siblings these are ANDed, so a patient matching one fails the rest."""
+    raw = (
+        "Inclusion Criteria:\n"
+        "- Blunt traumatic event with any of the following:\n"
+        "   - Extremity paralysis\n"
+        "   - Multiple long bone fractures\n"
+        "- Separate unrelated criterion here\n"
+    )
+    inc, _ = _split_criteria(raw)
+    assert len(inc) == 2
+    assert "Extremity paralysis" in inc[0] and "Multiple long bone fractures" in inc[0]
+    assert inc[1] == "Separate unrelated criterion here"
+
+
+def test_a_dedented_sibling_is_not_swallowed_into_the_group():
+    raw = (
+        "Inclusion Criteria:\n"
+        "- Meets any of the following:\n"
+        "   - first alternative here\n"
+        "- back out at parent level\n"
+    )
+    inc, _ = _split_criteria(raw)
+    assert inc[-1] == "back out at parent level"
+
+
+def test_except_carve_out_stays_with_its_parent():
+    """Flattened, the exception is promoted into a disqualifier of its own."""
+    raw = (
+        "Exclusion Criteria:\n"
+        "- Any prior malignancy, except:\n"
+        "   - adequately treated non-melanoma skin cancer\n"
+    )
+    _, exc = _split_criteria(raw)
+    assert len(exc) == 1
+    assert "non-melanoma skin cancer" in exc[0]
+
+
+def test_flat_text_is_never_grouped():
+    """The eval corpora were flattened upstream; extent is then unknowable."""
+    raw = (
+        "inclusion criteria: \n\n Meets any of the following: \n\n"
+        " first alternative here \n\n second alternative here \n"
+    )
+    inc, _ = _split_criteria(raw)
+    assert len(inc) == 3
+
+
+def test_one_space_of_drift_is_not_nesting():
+    raw = "Inclusion Criteria:\n- Meets any of the following:\n - only one space in\n"
+    inc, _ = _split_criteria(raw)
+    assert len(inc) == 2
+
+
+def test_an_oversized_group_is_left_flat():
+    """A 9k-character criterion would crowd out the other 23 in the prompt."""
+    child = "x" * 400
+    raw = "Inclusion Criteria:\n- Meets any of the following:\n" + "".join(
+        f"   - {child}\n" for _ in range(5)
+    )
+    inc, _ = _split_criteria(raw)
+    assert len(inc) == 6
+    assert all(len(c) <= 1500 for c in inc)

@@ -23,6 +23,38 @@ def _strip_markdown(text: str) -> str:
 # (measured: 0 of 25,965 ctgov_live trials carry such a line).
 _BARE_HEADER = re.compile(r"^[ \t]*:[ \t]*$", re.M)
 
+# A criterion that ends by announcing a list owns the lines nested under it. Split
+# into siblings they are silently ANDed, which is wrong twice over: an inclusion
+# "any of the following" then demands every alternative at once, and an "except:"
+# carve-out is promoted into a disqualifier of its own. Both push a trial toward
+# excluded, which is the expensive direction. Measured on ctgov_live: 1,354 trials
+# (5.2%) carry an inclusion disjunction and 205 (0.8%) a carve-out.
+#
+# Exclusion disjunctions are deliberately not listed as a problem — "excluded if
+# any exclusion is met" already is the disjunction, so flattening those 2,416
+# trials happens to produce the right answer.
+_GROUP_HEADER = re.compile(
+    r"(?:any (?:one )?of the following|one or more of the following"
+    r"|at least one of the following|except|with the exception of|unless)"
+    r"[^.\n]{0,40}:\s*$",
+    re.IGNORECASE,
+)
+
+# Children must be indented at least this much deeper than their parent. CT.gov
+# nests at 2, 3 or 5 spaces; the eval corpora were flattened to a uniform single
+# leading space before they were packaged, so a 1-space delta is formatting noise
+# and must not be read as structure. Where the source carries no indentation the
+# extent of a list is unknowable and nothing is grouped — 76.8% of affected
+# ctgov_live trials have it, and the rest are left exactly as they parse today.
+_NEST = 2
+
+# A merged group replaces N prompt lines with one, so an unbounded merge can hand
+# the analyst a single 9k-character criterion and crowd out the other 23. Above
+# this budget the group is left flat: the disjunction stays mis-parsed, but a
+# criterion nobody can read is not an improvement on one that is merely wrong.
+# p95 of a parsed criterion is 365 characters, so this fires rarely.
+_GROUP_MAX_CHARS = 1500
+
 
 def _split_criteria(raw: str) -> tuple[list[str], list[str]]:
     """Split raw eligibility text into inclusion and exclusion criterion lists."""
@@ -38,12 +70,32 @@ def _split_criteria(raw: str) -> tuple[list[str], list[str]]:
     exc_match = exc_pattern.search(raw)
 
     def _parse_block(text: str) -> list[str]:
-        lines = [ln.strip() for ln in text.splitlines()]
-        criteria = []
-        for line in lines:
-            line = re.sub(r"^[\d\.\-\*\•]+\s*", "", line).strip()
+        rows: list[tuple[int, str]] = []
+        for raw_line in text.splitlines():
+            stripped = raw_line.strip()
+            if not stripped:
+                continue
+            indent = len(raw_line) - len(raw_line.lstrip())
+            line = re.sub(r"^[\d\.\-\*\•]+\s*", "", stripped).strip()
             if len(line) > 10:
-                criteria.append(line)
+                rows.append((indent, line))
+
+        criteria: list[str] = []
+        i = 0
+        while i < len(rows):
+            indent, line = rows[i]
+            if _GROUP_HEADER.search(line):
+                j = i + 1
+                while j < len(rows) and rows[j][0] >= indent + _NEST:
+                    j += 1
+                if j > i + 1:
+                    merged = line + " " + "; ".join(t for _, t in rows[i + 1 : j])
+                    if len(merged) <= _GROUP_MAX_CHARS:
+                        criteria.append(merged)
+                        i = j
+                        continue
+            criteria.append(line)
+            i += 1
         return criteria
 
     if inc_match and exc_match:
