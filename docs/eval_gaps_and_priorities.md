@@ -98,7 +98,14 @@ Hypotheses worth testing in order, cheapest first:
 3. The retrieval-aware retry does not carry the exclusion span the way it carries
    the inclusion one.
 
-### G-5 — The 87% criterion-matching target is unmeasurable as specified
+### G-5 — The 87% criterion-matching target is unmeasurable as specified  `[RESOLVED 2026-08-31]`
+
+> **Retired.** CLAUDE.md now records the target as retired with the reason, in
+> the same form as `recall@10`. The claim in its place is faithfulness (2.76%
+> unverifiable on SIGIR, 3.95% on TREC 2021) plus the tiered contract
+> (1.39x-1.60x lift over base rate). Revive only if TrialGPT's per-criterion
+> annotations are acquired. Independently rediscovered while running E1b, which
+> is evidence this file was right and under-read.
 
 The cohorts carry trial-level qrels (`eligible` / `excluded`), not criterion-level
 gold. Measuring criterion-matching accuracy against the TrialGPT benchmark number
@@ -116,7 +123,7 @@ it the way `recall@10` was retired, with the reason stated.
 | P1 | G-4 exclusion grounding | days | Largest technical lever; likely restores TREC significance |
 | P2 | G-3 served-path abstention | ~half day | Only gap about the live system; validates that eval transfers to `ctgov_live` |
 | P3 | G-2 trial-accuracy statement | ~1h | Documentation honesty, no code |
-| P4 | G-5 retire or rescope 87% | ~1h | Removes a target that cannot be met as written |
+| ~~P4~~ **DONE** | ~~G-5 retire or rescope 87%~~ | done | Retired in CLAUDE.md 2026-08-31 with the reason stated |
 
 G-2 and G-5 are documentation changes. G-1 is documentation with a public-facing
 consequence. G-3 is a small serving change. G-4 is the only one that is real

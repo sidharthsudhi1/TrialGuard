@@ -156,6 +156,17 @@ That rerun measures the `MAX_CRITERIA` 12→24 lift, not exclusion handling
 (verified trial accuracy 0.2611 → 0.3722; unsupported-verdict rate 0.0287 →
 0.0966; retry still significant, −34.7%, p=0.0132).
 
+> **Update 2026-08-31.** The missing header was worse than "SIGIR cannot measure
+> exclusions". SIGIR strips the words `exclusion criteria` and leaves a bare `:`
+> (2,666 of 2,991 trials), so all 36,826 criteria were filed as *inclusions* and a
+> correct "patient does not have <disqualifier>" verdict read as a failed
+> requirement — silently excluding trials the patient was eligible for. Fixed in
+> `c8d9779`; SIGIR now parses 17,090 inclusion + 19,736 exclusion, sum conserved.
+> **The trial-accuracy figures in this paragraph predate that fix and are not
+> reproducible against current code.** Faithfulness figures are unaffected —
+> grounding checks quotes against source text and never consults criterion kind.
+> TREC 2021 remains the cohort of record ([`e1b_findings.md`](data/reports/e1b_findings.md)).
+
 TREC 2021 is the cohort that contains exclusion text
 ([`phase9v4_agent_trec_2021.json`](data/reports/phase9v4_agent_trec_2021.json),
 30 patients, 180 trials, $0.083). Verified arm, split by kind:
@@ -207,6 +218,8 @@ The CI gate stays anchored to Phase 8 SIGIR
 (v4 0.184, v5 0.084) are not a new baseline.
 
 **Provider parity.** Inference moved to an FP8-quantized build, which changes numerical precision on the model that produces verbatim quotes — a failure that would be *silent*, since a paraphrased quote just fails grounding and downgrades to *unverifiable*, a legitimate output. Measured rather than assumed: on a matched 180-trial baseline arm, citation precision was unchanged (0.9057 → 0.9086). [`phase8_provider_parity.md`](data/reports/phase8_provider_parity.md)
+
+> **Note on `criterion-matching accuracy ≥ 87%`:** retired as a target (2026-08-31). It was never measurable here — every label in SIGIR and both TREC cohorts is trial-level (`qrels`: 0=irrelevant, 1=excluded, 2=eligible), and no criterion-level gold exists. Trial-level roll-up had been standing in for it, which answers a different question. The claim in its place is **faithfulness** (2.76% unverifiable on SIGIR, 3.95% on TREC 2021; verifier catch rate 100%) plus the **tiered contract** — trials separate into `eligible` / `needs_review` / `excluded`, where `needs_review` means no disqualifier and N unstated facts. Worth **1.60x lift over base rate on TREC, 1.39x on SIGIR** ([`e1b_findings.md`](data/reports/e1b_findings.md)); quote the lift, not raw precision, because TREC's retrieved pool is already 42.9% gold-eligible.
 
 > **Note on `recall@10 ≥ 90%`:** retired as a target. It is mathematically capped at `min(10, |gold|)/|gold|` per patient — TREC patients average 60+ eligible trials (ceiling ~0.25). TrialGPT's ">90% recall" was measured at large depth. Primary retrieval metric is now **recall@pool** (recall@50/100).
 
