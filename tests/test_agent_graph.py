@@ -1,3 +1,4 @@
+import json
 from unittest.mock import patch
 
 from trialguard.agent import graph as G
@@ -179,3 +180,100 @@ def test_cache_write_policy_does_not_leak_between_concurrent_assessments():
         [f.result() for f in futures]
 
     assert seen == {"NCT-FREE": True, "NCT-PRESET": False}, seen
+
+
+# --- L5: analyst cache survives a deploy via Postgres ---
+
+
+def _fake_llm(payload):
+    """Chat model stub. The analyst parses {"assessments": [...]}, not a bare list."""
+    from unittest.mock import MagicMock
+
+    m = MagicMock()
+    m.invoke.return_value.content = json.dumps({"assessments": payload})
+    return m
+
+
+def test_analyst_reads_postgres_when_disk_is_cold(tmp_path, monkeypatch):
+    """Fly replaces the filesystem on every deploy; disk-only meant every preset
+    became a fresh paid call after each release."""
+    from unittest.mock import patch as _patch
+
+    from trialguard.agent import analyst
+
+    monkeypatch.setattr(analyst, "CACHE_DIR", tmp_path / "cold")
+    rows = [{"criterion": "age >= 18", "verdict": "met", "quote": "40-year-old"}]
+    with (
+        _patch("trialguard.db.cache.cache_get", return_value=rows) as cg,
+        _patch.object(analyst, "_llm") as llm,
+    ):
+        got = analyst.analyze_trial("synthetic note", "NCT0001", ["age >= 18"])
+
+    assert got == rows
+    assert cg.call_args[0][0] == "analyst"
+    llm.assert_not_called()  # the whole point: no LLM call
+
+
+def test_analyst_ignores_a_postgres_row_of_the_wrong_shape(tmp_path, monkeypatch):
+    """A shared durable store must not hand grounding something that is not a
+    list of assessments; fall through to the model instead."""
+    from unittest.mock import patch as _patch
+
+    from trialguard.agent import analyst
+
+    monkeypatch.setattr(analyst, "CACHE_DIR", tmp_path / "cold2")
+    fresh = [{"criterion": "c", "verdict": "met", "quote": "q"}]
+    with (
+        _patch("trialguard.db.cache.cache_get", return_value={"not": "a list"}),
+        _patch("trialguard.db.cache.cache_put"),
+        _patch("trialguard.llm.cost.active_ledger"),
+        _patch.object(analyst, "_llm", return_value=_fake_llm(fresh)) as llm,
+    ):
+        got = analyst.analyze_trial("synthetic note", "NCT0001", ["c"])
+
+    # validate_assessments normalises the model's rows, so compare the fields
+    # that matter rather than object identity.
+    assert [a["criterion"] for a in got] == ["c"]
+    assert got[0]["verdict"] == "met"
+    llm.assert_called()  # it recomputed rather than trusting the bad row
+
+
+def test_analyst_postgres_write_honours_skip_cache_write(tmp_path, monkeypatch):
+    """skip_cache_write exists so a free-text note is never persisted. A shared
+    durable store is a stronger reason to honour it, not a weaker one."""
+    from unittest.mock import patch as _patch
+
+    from trialguard.agent import analyst
+
+    monkeypatch.setattr(analyst, "CACHE_DIR", tmp_path / "nowrite")
+    fresh = [{"criterion": "c", "verdict": "met", "quote": "q"}]
+    with (
+        _patch("trialguard.db.cache.cache_get", return_value=None),
+        _patch("trialguard.db.cache.cache_put") as cp,
+        _patch("trialguard.llm.cost.active_ledger"),
+        _patch.object(analyst, "_llm", return_value=_fake_llm(fresh)),
+    ):
+        analyst.analyze_trial("free text note", "NCT0002", ["c"], skip_cache_write=True)
+
+    cp.assert_not_called()
+
+
+def test_analyst_writes_both_stores_for_a_cacheable_note(tmp_path, monkeypatch):
+    from unittest.mock import patch as _patch
+
+    from trialguard.agent import analyst
+
+    cache_dir = tmp_path / "write"
+    monkeypatch.setattr(analyst, "CACHE_DIR", cache_dir)
+    monkeypatch.delenv("TG_SKIP_ANALYST_CACHE_WRITE", raising=False)
+    fresh = [{"criterion": "c", "verdict": "met", "quote": "q"}]
+    with (
+        _patch("trialguard.db.cache.cache_get", return_value=None),
+        _patch("trialguard.db.cache.cache_put") as cp,
+        _patch("trialguard.llm.cost.active_ledger"),
+        _patch.object(analyst, "_llm", return_value=_fake_llm(fresh)),
+    ):
+        analyst.analyze_trial("synthetic note", "NCT0003", ["c"])
+
+    assert list(cache_dir.glob("*.json")), "disk cache still authoritative"
+    assert cp.call_args[0][0] == "analyst"

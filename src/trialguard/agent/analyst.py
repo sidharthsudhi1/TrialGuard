@@ -306,9 +306,23 @@ def analyze_trial(
 
     typed = normalize_criteria(criteria)
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    cache_path = CACHE_DIR / f"{_cache_key(patient_note, nct_id)}.json"
+    cache_key = _cache_key(patient_note, nct_id)
+    cache_path = CACHE_DIR / f"{cache_key}.json"
+    # Disk first: those files back the committed Phase 3/4/8 results and stay
+    # authoritative, so no existing number can shift. Postgres is the layer
+    # underneath, for the served path, where the container filesystem is replaced
+    # on every deploy — without it every preset costs a fresh 29s call after each
+    # release, which is both the slow answer and the paid one.
     if cache_path.exists():
         return json.loads(cache_path.read_text())
+
+    from trialguard.db.cache import cache_get
+
+    stored = cache_get("analyst", cache_key)
+    # Shape-checked because this store is shared and durable: a row of the wrong
+    # type would otherwise reach grounding as if it were a real assessment list.
+    if isinstance(stored, list) and stored:
+        return stored
 
     version = prompt_version()
     if version == "v4":
@@ -365,6 +379,13 @@ def analyze_trial(
         # Atomic: a killed run must not leave a half-written entry that a later
         # resume would read back as a valid cached result.
         _atomic_write(cache_path, json.dumps(assessments))
+
+        from trialguard.db.cache import cache_put
+
+        # Behind the same guard, deliberately. skip_cache_write exists so a
+        # free-text patient note is never persisted; a shared durable store is a
+        # stronger reason to honour that, not a weaker one.
+        cache_put("analyst", cache_key, assessments)
     # Pace fresh calls under the free-tier TPM window; zero on a metered provider.
     # Cache hits skip this entirely.
     import time
