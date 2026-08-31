@@ -285,30 +285,46 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
     if job is None:
         return
 
-    executor = app.state.assess_executor
-    try:
-        for nct_id in job.nct_ids:
-            try:
-                event = await asyncio.get_running_loop().run_in_executor(
-                    executor, _assess_one, job.note, nct_id, job_id, job.skip_cache_write
-                )
-                store.append(job_id, event)
-            except Exception as e:  # noqa: BLE001 — per-trial failure must not kill the job
-                from trialguard.agent.ratelimit import BudgetExhausted
+    from trialguard.agent.ratelimit import BudgetExhausted
 
-                if isinstance(e, BudgetExhausted):
-                    store.fail(job_id, json.dumps(_budget_exhausted_detail(e)))
-                    return
-                store.append(
-                    job_id,
-                    {
-                        "type": "trial",
-                        "nct_id": nct_id,
-                        "error": str(e),
-                        "trial_verdict": "cannot_determine",
-                        "assessments": [],
-                    },
-                )
+    executor = app.state.assess_executor
+    loop = asyncio.get_running_loop()
+
+    async def _one(nct_id: str) -> dict[str, Any]:
+        """One trial. Only BudgetExhausted escapes; everything else is an event."""
+        try:
+            return await loop.run_in_executor(
+                executor, _assess_one, job.note, nct_id, job_id, job.skip_cache_write
+            )
+        except BudgetExhausted:
+            raise
+        except Exception as e:  # noqa: BLE001 — per-trial failure must not kill the job
+            return {
+                "type": "trial",
+                "nct_id": nct_id,
+                "error": str(e),
+                "trial_verdict": "cannot_determine",
+                "assessments": [],
+            }
+
+    # Every trial is submitted at once and streamed as it lands, rather than
+    # awaited one at a time. Concurrency is still bounded by the executor's
+    # worker count, which is deliberately also the spend concurrency limit
+    # (config.api_assess_workers), so this changes scheduling and not cost: it is
+    # the same calls, overlapped. Events carry nct_id and the SSE stream replays
+    # them in append order, so completion order is not load-bearing.
+    tasks = [asyncio.create_task(_one(n)) for n in job.nct_ids]
+    try:
+        try:
+            for completed in asyncio.as_completed(tasks):
+                store.append(job_id, await completed)
+        except BudgetExhausted as e:
+            # Cancel the rest: work still queued in the executor has not started
+            # and must not be paid for once the cap is hit.
+            for t in tasks:
+                t.cancel()
+            store.fail(job_id, json.dumps(_budget_exhausted_detail(e)))
+            return
         store.complete(
             job_id,
             {
@@ -317,8 +333,6 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
             },
         )
     except Exception as e:  # noqa: BLE001
-        from trialguard.agent.ratelimit import BudgetExhausted
-
         if isinstance(e, BudgetExhausted):
             store.fail(job_id, json.dumps(_budget_exhausted_detail(e)))
         else:

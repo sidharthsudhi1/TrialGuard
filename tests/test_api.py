@@ -498,3 +498,77 @@ def test_assess_task_is_strongly_referenced(client):
         assert r.status_code == 200
         # The set exists and the callback prunes it, so it cannot grow without bound.
         assert isinstance(client.app.state.assess_tasks, set)
+
+
+def test_assess_overlaps_trials_instead_of_serialising(client, monkeypatch):
+    """L2: trials are submitted together, so wall-clock is not the sum of parts.
+
+    Serially, four 150ms trials take >=600ms. Bounded at 2 workers they should
+    land in roughly two waves. The assertion is deliberately loose - it proves
+    overlap happened, not a specific schedule.
+    """
+    import threading
+    import time
+
+    monkeypatch.setattr("trialguard.config.settings.api_max_assess_trials", 10)
+    concurrent = []
+    live = {"n": 0}
+    lock = threading.Lock()
+
+    def slow_assess(note, nct_id, criteria, source_text, **kwargs):
+        with lock:
+            live["n"] += 1
+            concurrent.append(live["n"])
+        time.sleep(0.15)
+        with lock:
+            live["n"] -= 1
+        return {"trial_verdict": "excluded", "assessments": STUB_ASSESS["assessments"]}
+
+    ids = ["NCT0001", "NCT0002", "NCT0001", "NCT0002"]
+    with (
+        patch("trialguard.agent.sanitize.detect_injection", return_value=False),
+        patch("trialguard.db.queries.get_trial", side_effect=lambda nct, source=None: STUB_ROWS.get(nct)),
+        patch("trialguard.agent.graph.assess", side_effect=slow_assess),
+        patch("trialguard.llm.cost.active_ledger") as ledger,
+    ):
+        ledger.return_value.exhausted.return_value = False
+        t0 = time.perf_counter()
+        created = client.post("/api/assess", json={"note": "synthetic note", "nct_ids": ids})
+        job_id = created.json()["job_id"]
+        with client.stream("GET", f"/api/assess/{job_id}") as stream:
+            raw = "".join(stream.iter_text())
+        elapsed = time.perf_counter() - t0
+
+    assert raw.count("event: trial") == 4
+    # Two ran at once at some point, and it beat the serial floor.
+    assert max(concurrent) >= 2, f"never overlapped: {concurrent}"
+    assert elapsed < 0.55, f"looks serial: {elapsed:.2f}s for 4x150ms at 2 workers"
+
+
+def test_assess_budget_exhausted_still_fails_the_job(client, monkeypatch):
+    """Parallel submission must not lose the BudgetExhausted path."""
+    from trialguard.agent.ratelimit import BudgetExhausted
+
+    monkeypatch.setattr("trialguard.config.settings.api_max_assess_trials", 10)
+
+    def broke(note, nct_id, criteria, source_text, **kwargs):
+        raise BudgetExhausted("daily cap reached")
+
+    with (
+        patch("trialguard.agent.sanitize.detect_injection", return_value=False),
+        patch("trialguard.db.queries.get_trial", side_effect=lambda nct, source=None: STUB_ROWS.get(nct)),
+        patch("trialguard.agent.graph.assess", side_effect=broke),
+        patch("trialguard.llm.cost.active_ledger") as ledger,
+    ):
+        ledger.return_value.exhausted.return_value = False
+        ledger.return_value.summary.return_value = {"usd": 2.0, "usd_cap": 2.0, "calls": 1, "date": "x"}
+        ledger.return_value.remaining_usd.return_value = 0.0
+        created = client.post(
+            "/api/assess", json={"note": "synthetic note", "nct_ids": ["NCT0001", "NCT0002"]}
+        )
+        job_id = created.json()["job_id"]
+        with client.stream("GET", f"/api/assess/{job_id}") as stream:
+            raw = "".join(stream.iter_text())
+
+    assert "event: error" in raw
+    assert "BudgetExhausted" in raw
