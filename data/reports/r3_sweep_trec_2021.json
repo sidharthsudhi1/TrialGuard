@@ -1,0 +1,68 @@
+{
+  "cohort": "trec_2021",
+  "gold_coverage": 0.9998,
+  "pool": 50,
+  "rows": [
+    {
+      "mrr": 0.6257,
+      "recall@10": 0.0798,
+      "recall@50": 0.2859,
+      "scheme": "uniform (shipped)"
+    },
+    {
+      "mrr": 0.6583,
+      "recall@10": 0.0863,
+      "recall@50": 0.2955,
+      "scheme": "reciprocal 1/(1+i)"
+    },
+    {
+      "mrr": 0.6361,
+      "recall@10": 0.0862,
+      "recall@50": 0.2944,
+      "scheme": "log 1/log2(i+2)"
+    },
+    {
+      "mrr": 0.6512,
+      "recall@10": 0.0856,
+      "recall@50": 0.2886,
+      "scheme": "linear (n-i)/n"
+    },
+    {
+      "mrr": 0.6023,
+      "recall@10": 0.0851,
+      "recall@50": 0.2883,
+      "scheme": "exp 0.9^i"
+    },
+    {
+      "mrr": 0.6603,
+      "recall@10": 0.0831,
+      "recall@50": 0.2894,
+      "scheme": "exp 0.8^i"
+    },
+    {
+      "mrr": 0.6813,
+      "recall@10": 0.0824,
+      "recall@50": 0.2896,
+      "scheme": "exp 0.7^i"
+    },
+    {
+      "mrr": 0.6073,
+      "recall@10": 0.0737,
+      "recall@50": 0.2722,
+      "scheme": "top-4 only"
+    },
+    {
+      "mrr": 0.6399,
+      "recall@10": 0.0783,
+      "recall@50": 0.2726,
+      "scheme": "top-6 only"
+    },
+    {
+      "mrr": 0.6391,
+      "recall@10": 0.0865,
+      "recall@50": 0.2768,
+      "scheme": "top-8 only"
+    }
+  ],
+  "rrf_k": 60
+}

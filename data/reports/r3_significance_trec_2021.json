@@ -1,0 +1,15 @@
+{
+  "boot_ci95": [
+    -0.0072,
+    0.0266
+  ],
+  "cohort": "trec_2021",
+  "mean_delta": 0.0096,
+  "n_patients": 75,
+  "patients_better": 40,
+  "patients_tied": 11,
+  "patients_worse": 24,
+  "recall@50_reciprocal": 0.2956,
+  "recall@50_uniform": 0.286,
+  "wilcoxon_p": 0.30306
+}

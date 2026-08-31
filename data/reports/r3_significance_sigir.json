@@ -1,0 +1,15 @@
+{
+  "boot_ci95": [
+    -0.0019,
+    0.1177
+  ],
+  "cohort": "sigir",
+  "mean_delta": 0.057,
+  "n_patients": 52,
+  "patients_better": 23,
+  "patients_tied": 18,
+  "patients_worse": 11,
+  "recall@50_reciprocal": 0.6264,
+  "recall@50_uniform": 0.5693,
+  "wilcoxon_p": 0.06727
+}
