@@ -1,0 +1,41 @@
+{
+  "cached_only": false,
+  "cohort": "trec_2021",
+  "counts": {
+    "assess_s": 8950.5,
+    "assessed": 200,
+    "budget_stops": 0,
+    "cache_coverage": 1.0,
+    "skipped": 0,
+    "uncached_skipped": 0
+  },
+  "metrics": {
+    "agent_loss": 0.046,
+    "criterion_unverifiable_rate": 0.0395,
+    "eligible_precision": 0.4286,
+    "end_to_end_recall": 0.002,
+    "gold_eligible_total": 1520,
+    "incomplete_patients": 0,
+    "patients": 20,
+    "retrieval_recall": 0.048,
+    "tier_surfaced": {
+      "precision": 0.6885,
+      "recall": 0.0276,
+      "shown": 69
+    },
+    "trial_verdicts": {
+      "cannot_determine": 62,
+      "eligible": 7,
+      "excluded": 131
+    }
+  },
+  "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+  "prompt_version": "v4",
+  "provider": "deepinfra",
+  "run_usd": 0.084193,
+  "timing": {
+    "assess_s": 8950.5,
+    "retrieval_s": 30.9
+  },
+  "top_k": 10
+}
