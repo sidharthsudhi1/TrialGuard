@@ -1,0 +1,40 @@
+{
+  "cohort": "sigir",
+  "gold_coverage": 0.9635,
+  "pool": 50,
+  "retrieve_depth": 200,
+  "rows": [
+    {
+      "arm": "baseline (no rerank)",
+      "mrr": 0.3253,
+      "recall@10": 0.1827,
+      "recall@20": 0.2944,
+      "recall@50": 0.5235,
+      "wall_s": 55.9
+    },
+    {
+      "arm": "msmarco + note",
+      "mrr": 0.2501,
+      "recall@10": 0.1392,
+      "recall@20": 0.2407,
+      "recall@50": 0.3508,
+      "wall_s": 267.4
+    },
+    {
+      "arm": "medcpt + note",
+      "mrr": 0.3479,
+      "recall@10": 0.1816,
+      "recall@20": 0.2959,
+      "recall@50": 0.474,
+      "wall_s": 1260.1
+    },
+    {
+      "arm": "medcpt + keywords",
+      "mrr": 0.3043,
+      "recall@10": 0.1746,
+      "recall@20": 0.2904,
+      "recall@50": 0.4658,
+      "wall_s": 1096.6
+    }
+  ]
+}

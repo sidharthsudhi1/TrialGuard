@@ -151,7 +151,7 @@ def test_rerank_batches_predict(tmp_path, monkeypatch):
     import numpy as np
     mock_model = MagicMock()
     mock_model.predict.return_value = np.array([0.9, 0.5, 0.7])
-    monkeypatch.setattr(rerank_mod, "_model", mock_model)
+    monkeypatch.setattr(rerank_mod, "_get_model", lambda name: mock_model)
 
     candidates = [("NCT001", 0.8), ("NCT002", 0.6), ("NCT003", 0.7)]
     trial_texts = {"NCT001": "trial one text", "NCT002": "trial two text", "NCT003": "trial three text"}
@@ -171,7 +171,7 @@ def test_rerank_returns_top_k_sorted(tmp_path, monkeypatch):
     import numpy as np
     mock_model = MagicMock()
     mock_model.predict.return_value = np.array([0.3, 0.9, 0.6, 0.1])
-    monkeypatch.setattr(rerank_mod, "_model", mock_model)
+    monkeypatch.setattr(rerank_mod, "_get_model", lambda name: mock_model)
 
     candidates = [("A", 1.0), ("B", 0.9), ("C", 0.8), ("D", 0.7)]
     trial_texts = {k: f"text {k}" for k in "ABCD"}
@@ -189,12 +189,12 @@ def test_rerank_cache_hit_skips_model(tmp_path, monkeypatch):
     monkeypatch.setattr(rerank_mod, "CACHE_DIR", tmp_path)
 
     note = "cached patient note"
-    note_hash = rerank_mod._note_hash(note)
+    note_hash = rerank_mod._cache_key(note, rerank_mod.RERANK_MODEL)
     cached_scores = {"NCT001": 0.85, "NCT002": 0.42}
     (tmp_path / f"{note_hash}.json").write_text(json.dumps(cached_scores))
 
     mock_model = MagicMock()
-    monkeypatch.setattr(rerank_mod, "_model", mock_model)
+    monkeypatch.setattr(rerank_mod, "_get_model", lambda name: mock_model)
 
     candidates = [("NCT001", 0.7), ("NCT002", 0.5)]
     result = rerank_mod.rerank(note, candidates, {}, top_k=2)
@@ -212,7 +212,7 @@ def test_rerank_writes_cache(tmp_path, monkeypatch):
     import numpy as np
     mock_model = MagicMock()
     mock_model.predict.return_value = np.array([0.7, 0.3])
-    monkeypatch.setattr(rerank_mod, "_model", mock_model)
+    monkeypatch.setattr(rerank_mod, "_get_model", lambda name: mock_model)
 
     note = "new patient note"
     candidates = [("NCT001", 0.8), ("NCT002", 0.6)]
@@ -220,7 +220,7 @@ def test_rerank_writes_cache(tmp_path, monkeypatch):
 
     rerank_mod.rerank(note, candidates, trial_texts, top_k=2)
 
-    cache_path = tmp_path / f"{rerank_mod._note_hash(note)}.json"
+    cache_path = tmp_path / f"{rerank_mod._cache_key(note, rerank_mod.RERANK_MODEL)}.json"
     assert cache_path.exists()
     saved = json.loads(cache_path.read_text())
     assert "NCT001" in saved and "NCT002" in saved

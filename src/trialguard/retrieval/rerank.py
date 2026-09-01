@@ -1,8 +1,15 @@
 """Cross-encoder reranker for pool compression.
 
 Retrieve wide → rerank → slice small. Decouples retrieval depth from agent cost.
-Query: full patient note (not keywords — keywords cast wide, note judges richly).
-Model: cross-encoder/ms-marco-MiniLM-L-6-v2 (CPU, general-domain).
+
+Default model is cross-encoder/ms-marco-MiniLM-L-6-v2, general-domain, which
+lost 0.173 recall@50 on SIGIR (phase2_rerank.md). That run also used the full
+patient note as the query — the same narrative-vs-eligibility mismatch AD-11
+identified as the retrieval ceiling — so the model and the query form were never
+separated. `model_name` exists to test a clinical cross-encoder against the same
+baseline.
+
+Not on the production path: eval only.
 """
 
 from __future__ import annotations
@@ -14,19 +21,24 @@ from pathlib import Path
 CACHE_DIR = Path("data/cache/rerank")
 RERANK_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
-_model = None
+_models: dict = {}
 
 
-def _get_model():
-    global _model
-    if _model is None:
+def _get_model(model_name: str):
+    if model_name not in _models:
         from sentence_transformers import CrossEncoder
-        _model = CrossEncoder(RERANK_MODEL)
-    return _model
+
+        _models[model_name] = CrossEncoder(model_name)
+    return _models[model_name]
 
 
-def _note_hash(note: str) -> str:
-    return hashlib.sha256(note.encode()).hexdigest()[:16]
+def _cache_key(note: str, model_name: str) -> str:
+    """Scores are model-specific, so the model belongs in the key.
+
+    Without it a MedCPT run reads back ms-marco's cached scores and silently
+    reports the old model's ranking as the new one's.
+    """
+    return hashlib.sha256(f"{model_name}|{note}".encode()).hexdigest()[:16]
 
 
 def rerank(
@@ -34,6 +46,7 @@ def rerank(
     candidates: list[tuple[str, float]],
     trial_texts: dict[str, str],
     top_k: int,
+    model_name: str | None = None,
 ) -> list[tuple[str, float]]:
     """Rerank candidates with cross-encoder. Returns top_k (nct_id, score) sorted desc.
 
@@ -41,8 +54,9 @@ def rerank(
     trial_texts: nct_id → doc text (title + inclusion_criteria).
     Scores cached per query_note hash; re-runs cost zero model calls.
     """
+    model_name = model_name or RERANK_MODEL
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    cache_path = CACHE_DIR / f"{_note_hash(query_note)}.json"
+    cache_path = CACHE_DIR / f"{_cache_key(query_note, model_name)}.json"
 
     nct_ids = [nct for nct, _ in candidates]
 
@@ -52,7 +66,7 @@ def rerank(
         missing = [nct for nct in nct_ids if nct not in cached]
         if missing:
             # Partial cache hit — score missing candidates and merge.
-            model = _get_model()
+            model = _get_model(model_name)
             pairs = [(query_note, trial_texts.get(nct, "")) for nct in missing]
             new_scores = model.predict(pairs)
             new_pairs = list(zip(missing, new_scores.tolist()))
@@ -60,7 +74,7 @@ def rerank(
             cached.update(dict(new_pairs))
             cache_path.write_text(json.dumps(cached))
     else:
-        model = _get_model()
+        model = _get_model(model_name)
         pairs = [(query_note, trial_texts.get(nct, "")) for nct in nct_ids]
         scores = model.predict(pairs)  # single batch call — NOT a loop
         scored = list(zip(nct_ids, scores.tolist()))
