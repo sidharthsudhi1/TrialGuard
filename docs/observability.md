@@ -55,3 +55,19 @@ regression gate, which guards the committed report.
 Screenshot the finished board into `docs/observability_dashboard.png` for the
 README / Phase 6 walkthrough. (A live board needs real trace volume; capture it
 during the Phase 6 demo run.)
+
+## Served-metric monitor (E2)
+
+Eval numbers describe the cohorts; `eval/served_monitor.py` measures whether the
+served system still behaves like them. It reads `served`+`assess` traces from
+Langfuse, recomputes criterion abstention, unverifiable (grounding-failure) and
+retry rates from each trace's final graph state, and compares the first two
+against the wide divergence bands in `data/reports/served_baselines.json`.
+Divergence exits non-zero; `.github/workflows/served-monitor.yml` runs it daily
+and turns that into an alert (requires `LANGFUSE_*` repo secrets, skips cleanly
+without them). Below `min_trials` it reports but withholds judgment.
+
+First live reading (2026-09-02, 7 trials): abstention 0.22 against eval anchors
+of 0.56–0.61 — preset demo notes are richer than cohort notes, so the served
+rate runs low. Too little traffic to call divergence; worth rechecking once real
+notes dominate.

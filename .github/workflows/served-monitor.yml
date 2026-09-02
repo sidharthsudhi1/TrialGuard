@@ -1,0 +1,33 @@
+name: Served monitor
+
+on:
+  schedule:
+    - cron: "0 21 * * *"
+  workflow_dispatch:
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -e .
+
+      # E2 — compares served abstention / grounding-failure rates against the
+      # committed bands in data/reports/served_baselines.json. Exits non-zero on
+      # divergence, which fails the run and produces the alert email for free.
+      - name: Served metrics vs baselines
+        env:
+          LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+          LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+        run: |
+          if [ -z "$LANGFUSE_PUBLIC_KEY" ]; then
+            echo "Langfuse secrets not configured; skipping."; exit 0
+          fi
+          python -m trialguard.eval.served_monitor --days 7

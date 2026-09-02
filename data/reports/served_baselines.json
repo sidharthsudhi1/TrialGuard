@@ -1,0 +1,17 @@
+{
+  "_doc": "Divergence bands for the served-metric monitor (eval/served_monitor.py). Bands are deliberately wide: a served rate outside its band means the live system no longer behaves like the eval cohorts (corpus drift, a serving-path bug, or a prompt/verifier change that never went through the harness) and must be investigated, not tuned away. Eval anchors: criterion abstention 0.5558-0.6092 (TREC v5/v4, phase9v5_exclusion_grounding.md), 0.593 across the full analyst cache; unverifiable 0.0276-0.0471 across cohorts and pool depths (e1b_findings.md, h1_pool_curve_trec2021.md). min_trials guards against judging drift off a handful of requests.",
+  "min_trials": 20,
+  "bands": [
+    {
+      "metric": "abstention_rate",
+      "min": 0.35,
+      "max": 0.75,
+      "desc": "criteria answered cannot_determine or unverifiable; eval anchors sit at 0.56-0.61"
+    },
+    {
+      "metric": "unverifiable_rate",
+      "max": 0.1,
+      "desc": "criteria forced unverifiable by the verifier; eval anchors sit at 0.028-0.047"
+    }
+  ]
+}
