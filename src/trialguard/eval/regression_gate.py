@@ -86,15 +86,26 @@ def registry_check() -> dict:
     return {"prompt_registry_intact": 0.0 if violations else 1.0, "_violations": violations}
 
 
-def _resolve(metric: str, report: dict, stress: dict, registry: dict) -> float:
-    """Resolve a dotted metric path against the stress/registry results or report."""
+def _resolve(
+    metric: str, report: dict, stress: dict, registry: dict, retrieval: dict | None = None
+) -> float:
+    """Resolve a dotted metric path against the stress/registry results or a report.
+
+    A `retrieval.` prefix walks the committed retrieval report instead of the
+    faithfulness report; integer parts index into lists.
+    """
     if metric in stress:
         return float(stress[metric])
     if metric in registry:
         return float(registry[metric])
+    parts = metric.split(".")
     node: object = report
-    for part in metric.split("."):
-        node = node[part]  # type: ignore[index]
+    if parts[0] == "retrieval":
+        if retrieval is None:
+            raise KeyError("gate uses a retrieval. metric but baselines name no retrieval_report")
+        node, parts = retrieval, parts[1:]
+    for part in parts:
+        node = node[int(part)] if part.isdigit() else node[part]  # type: ignore[index]
     return float(node)  # type: ignore[arg-type]
 
 
@@ -112,12 +123,17 @@ def evaluate(baselines_path: Path = BASELINES, fixture_path: Path = FIXTURE) -> 
     baselines = json.loads(baselines_path.read_text())
     cases = json.loads(fixture_path.read_text())["cases"]
     report = json.loads((Path(baselines["report"])).read_text())
+    retrieval = (
+        json.loads(Path(baselines["retrieval_report"]).read_text())
+        if "retrieval_report" in baselines
+        else None
+    )
     stress = stress_test(cases)
     registry = registry_check()
 
     results = []
     for gate in baselines["gates"]:
-        value = _resolve(gate["metric"], report, stress, registry)
+        value = _resolve(gate["metric"], report, stress, registry, retrieval)
         ok = _passes(value, gate["op"], gate["threshold"])
         results.append(
             {

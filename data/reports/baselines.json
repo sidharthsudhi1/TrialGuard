@@ -50,6 +50,21 @@
       "op": ">=",
       "threshold": 1.0,
       "desc": "every live prompt registered and no frozen (v1/v2) prompt text has drifted from its recorded hash"
+    },
+    {
+      "metric": "retrieval.results.0.recall@50",
+      "source": "retrieval",
+      "op": ">=",
+      "threshold": 0.27,
+      "desc": "TREC 2021 keyword recall@50 floor; measured 0.2859 at n=75. Trips only when a newer committed retrieval report regresses; CI cannot re-run retrieval (indexes are gitignored)"
+    },
+    {
+      "metric": "retrieval.results.0.recall@100",
+      "source": "retrieval",
+      "op": ">=",
+      "threshold": 0.4,
+      "desc": "TREC 2021 keyword recall@100 floor; measured 0.4227 at n=75. Same caveat as recall@50"
     }
-  ]
+  ],
+  "retrieval_report": "data/reports/chunkab_trec2021_baseline.json"
 }

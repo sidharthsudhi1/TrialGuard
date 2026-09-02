@@ -55,3 +55,20 @@ def test_stress_artifact_matches_live():
     assert committed["n_genuine"] == live["n_genuine"]
     assert committed["verifier_catch_rate"] == live["verifier_catch_rate"]
     assert committed["verifier_false_rejection_rate"] == live["verifier_false_rejection_rate"]
+
+
+def test_gate_bites_on_regressed_retrieval_report(tmp_path):
+    baselines = json.loads(Path("data/reports/baselines.json").read_text())
+    good = json.loads(Path(baselines["retrieval_report"]).read_text())
+    good["results"][0]["recall@50"] = 0.15
+    bad_report = tmp_path / "regressed_retrieval.json"
+    bad_report.write_text(json.dumps(good))
+
+    baselines["retrieval_report"] = str(bad_report)
+    bad_baselines = tmp_path / "baselines.json"
+    bad_baselines.write_text(json.dumps(baselines))
+
+    outcome = evaluate(baselines_path=bad_baselines)
+    assert outcome["passed"] is False
+    failed = [r["metric"] for r in outcome["results"] if not r["passed"]]
+    assert "retrieval.results.0.recall@50" in failed
