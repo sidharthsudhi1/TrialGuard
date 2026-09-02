@@ -110,7 +110,18 @@ experiment measures.
 - **Kill:** surfaced precision collapses toward base rate as k grows — the
   agent's discrimination was a property of pool richness, not of the trials.
 
-### H2 — LLM listwise rerank: 500 → 50 before the agent  `[inferred]`
+### H2 — LLM listwise rerank: 500 → 50 before the agent  `[MEASURED 2026-09-02 — REJECTED]`
+
+> Built and run on both cohorts of record, $0.14 total. TREC 2021 recall@50
+> 0.1836 → 0.1737 (−0.0099, 10 better / 9 worse); TREC 2022 0.2413 → 0.2041
+> (−0.0372, 6 better / 11 worse). Both negative, agreeing in sign, against a
+> kill criterion of ≥ +0.05. Not a slicing artifact: at matched pool size the
+> screener's kept set holds 403 gold to retrieval's 422, so it discards 82% of
+> the pool and what survives is *less* gold-rich than a plain prefix. Cost was
+> never the blocker (~$0.0038/patient, inside the $0.01 budget) — it is
+> rejected on quality. The same model that filters at 1.6x lift when it
+> *assesses* one trial carries no signal when it glances at fifty.
+> `data/reports/h2_findings.md`.
 
 If H1's cost or latency profile is unacceptable for serving (100 assessments
 per patient is ~$0.07 and minutes of wall clock even parallelized), insert a
@@ -147,6 +158,12 @@ on. Run only after H1/H2 have an answer.
 2. **H2** — only if H1 says the agent's precision survives depth but the
    serving cost/latency at the required k is unacceptable.
 3. **H3** — background hygiene, $0, never blocking.
+
+> **Closed 2026-09-02.** H1 confirmed and replicated; H2 measured and
+> rejected on both cohorts. Total spend for the whole plan: ~$2.0. What
+> remains is not an experiment — it is the product decision of how deep a
+> pool to serve and who pays for it (see H2's "What it means for H1"). H3
+> is the only unrun item and stays $0 background hygiene.
 
 ## 4 — What this plan does not do
 
