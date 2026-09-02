@@ -1,0 +1,166 @@
+{
+  "10": {
+    "cached_only": true,
+    "cohort": "trec_2022",
+    "counts": {
+      "assess_s": 0.4,
+      "assessed": 200,
+      "budget_stops": 0,
+      "cache_coverage": 1.0,
+      "skipped": 0,
+      "uncached_skipped": 0
+    },
+    "metrics": {
+      "agent_loss": 0.0603,
+      "criterion_unverifiable_rate": 0.0132,
+      "eligible_precision": 0.7857,
+      "end_to_end_recall": 0.0071,
+      "gold_eligible_total": 1558,
+      "incomplete_patients": 0,
+      "patients": 20,
+      "retrieval_recall": 0.0674,
+      "tier_surfaced": {
+        "precision": 0.6979,
+        "recall": 0.043,
+        "shown": 103
+      },
+      "trial_verdicts": {
+        "cannot_determine": 89,
+        "eligible": 14,
+        "excluded": 97
+      }
+    },
+    "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    "prompt_version": "v4",
+    "provider": "deepinfra",
+    "run_usd": 0.0,
+    "timing": {
+      "assess_s": 0.4,
+      "retrieval_s": 21.2
+    },
+    "top_k": 10
+  },
+  "25": {
+    "cached_only": true,
+    "cohort": "trec_2022",
+    "counts": {
+      "assess_s": 1.0,
+      "assessed": 500,
+      "budget_stops": 0,
+      "cache_coverage": 1.0,
+      "skipped": 0,
+      "uncached_skipped": 0
+    },
+    "metrics": {
+      "agent_loss": 0.1238,
+      "criterion_unverifiable_rate": 0.0178,
+      "eligible_precision": 0.7188,
+      "end_to_end_recall": 0.0148,
+      "gold_eligible_total": 1558,
+      "incomplete_patients": 0,
+      "patients": 20,
+      "retrieval_recall": 0.1386,
+      "tier_surfaced": {
+        "precision": 0.6561,
+        "recall": 0.0931,
+        "shown": 248
+      },
+      "trial_verdicts": {
+        "cannot_determine": 216,
+        "eligible": 32,
+        "excluded": 252
+      }
+    },
+    "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    "prompt_version": "v4",
+    "provider": "deepinfra",
+    "run_usd": 0.0,
+    "timing": {
+      "assess_s": 1.0,
+      "retrieval_s": 9.9
+    },
+    "top_k": 25
+  },
+  "50": {
+    "cached_only": true,
+    "cohort": "trec_2022",
+    "counts": {
+      "assess_s": 1.6,
+      "assessed": 1000,
+      "budget_stops": 0,
+      "cache_coverage": 1.0,
+      "skipped": 0,
+      "uncached_skipped": 0
+    },
+    "metrics": {
+      "agent_loss": 0.2176,
+      "criterion_unverifiable_rate": 0.02,
+      "eligible_precision": 0.6981,
+      "end_to_end_recall": 0.0237,
+      "gold_eligible_total": 1558,
+      "incomplete_patients": 0,
+      "patients": 20,
+      "retrieval_recall": 0.2413,
+      "tier_surfaced": {
+        "precision": 0.5918,
+        "recall": 0.1675,
+        "shown": 509
+      },
+      "trial_verdicts": {
+        "cannot_determine": 456,
+        "eligible": 53,
+        "excluded": 491
+      }
+    },
+    "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    "prompt_version": "v4",
+    "provider": "deepinfra",
+    "run_usd": 0.0,
+    "timing": {
+      "assess_s": 1.6,
+      "retrieval_s": 10.2
+    },
+    "top_k": 50
+  },
+  "100": {
+    "cached_only": true,
+    "cohort": "trec_2022",
+    "counts": {
+      "assess_s": 3.5,
+      "assessed": 2000,
+      "budget_stops": 0,
+      "cache_coverage": 1.0,
+      "skipped": 0,
+      "uncached_skipped": 0
+    },
+    "metrics": {
+      "agent_loss": 0.3408,
+      "criterion_unverifiable_rate": 0.0207,
+      "eligible_precision": 0.6517,
+      "end_to_end_recall": 0.0372,
+      "gold_eligible_total": 1558,
+      "incomplete_patients": 0,
+      "patients": 20,
+      "retrieval_recall": 0.378,
+      "tier_surfaced": {
+        "precision": 0.5332,
+        "recall": 0.258,
+        "shown": 925
+      },
+      "trial_verdicts": {
+        "cannot_determine": 836,
+        "eligible": 89,
+        "excluded": 1075
+      }
+    },
+    "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    "prompt_version": "v4",
+    "provider": "deepinfra",
+    "run_usd": 0.0,
+    "timing": {
+      "assess_s": 3.5,
+      "retrieval_s": 10.2
+    },
+    "top_k": 100
+  }
+}

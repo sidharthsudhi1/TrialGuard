@@ -81,6 +81,13 @@ against a 0.43 base rate (1.60x lift, `e1b_findings.md`).
 > hand-off, not the retrieval representation. Remaining question is serving
 > economics (~$0.05, ~10 min/patient at k=100), which is H2's job.
 > `data/reports/h1_pool_curve_trec2021.md`.
+>
+> **REPLICATED on TREC 2022, 2026-09-02** ($0.85, 2,000 fresh assessments,
+> coverage 1.0): surfaced recall 0.0430 → **0.2580 (6.0x)**, conversion
+> 0.638 → 0.683 and lift 1.28x → 1.45x — both flat-to-rising through the same
+> 10x widening. Depth curve matches too (0.7875@500, 5.4% unranked). Two
+> independent cohorts agree; H1 survives the replication that killed A1 and
+> shrank R3/R5. `data/reports/h1_pool_curve_trec2022.md`.
 
 Stop treating top-10 as the hand-off. Retrieval delivers 0.34 recall at 100
 and 0.77 at 500; the tiered contract (A5) already separates what the agent
