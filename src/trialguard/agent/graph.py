@@ -41,6 +41,51 @@ class State(TypedDict, total=False):
     skip_cache_write: bool
 
 
+def _retry_failed_only() -> bool:
+    """L4: on retry, re-ask only the criteria whose quotes failed grounding.
+
+    Off by default. Turning it on changes the retry prompt, which changes the
+    analyst cache key for every retry entry — the committed v1–v4 results would
+    silently become cache misses. Same additive discipline as prompt versions:
+    the flag exists so the A/B can run without touching what is already
+    measured.
+    """
+    return os.environ.get("TG_RETRY_FAILED_ONLY") == "1"
+
+
+def _merge_retry(prior: list[dict], retried: list[dict]) -> list[dict]:
+    """Overlay retried assessments onto the criteria they were re-asked for.
+
+    Only entries that failed grounding are eligible for replacement, so a
+    passing verdict from attempt one can never be overwritten by a retry that
+    wandered onto a different criterion. Matching is by criterion text with a
+    positional fallback over the failed subset, mirroring attach_kinds: the
+    model does not always echo the criterion verbatim, and the alternative to a
+    fallback is dropping a recovered quote.
+    """
+    unconsumed = list(retried)
+    by_text: dict[str, dict] = {}
+    for a in retried:
+        text = a.get("criterion", "")
+        if text and text not in by_text:
+            by_text[text] = a
+
+    out = []
+    for a in prior:
+        if not a.get("grounding_failure"):
+            out.append(a)
+            continue
+        replacement = by_text.pop(a.get("criterion", ""), None)
+        if replacement is None and unconsumed:
+            # Echo did not match, so fall back to the next answer the model gave
+            # in order. Retried entries are asked in failed-criteria order.
+            replacement = unconsumed[0]
+        if replacement is not None and replacement in unconsumed:
+            unconsumed.remove(replacement)
+        out.append(replacement if replacement is not None else a)
+    return out
+
+
 def _analyst_node(state: State) -> State:
     attempt = state.get("retries", 0)
     note = state["patient_note"]
@@ -50,10 +95,19 @@ def _analyst_node(state: State) -> State:
     # criteria whose quotes failed grounding last attempt. The generic nudge only
     # recovered paraphrase failures (SIGIR); pointing at the source span gives the
     # model the characters to copy, the intended fix for TREC's verbatim misses.
+    prior: list[dict] = []
     if attempt > 0:
         prior = state.get("assessments", [])
         failed = [a.get("criterion", "") for a in prior if a.get("grounding_failure")]
         crit_list = "\n".join(f"- {c}" for c in failed)
+        # L4: re-ask only what failed. A median trial has 6 criteria and few
+        # fail, so the retry call shrinks to a fraction of the original instead
+        # of re-deciding verdicts that already grounded.
+        if _retry_failed_only():
+            failed_set = {c for c in failed if c}
+            subset = [c for c in typed if c["text"] in failed_set]
+            if subset:
+                typed = subset
         span = state["source_text"].strip()
         note = (
             f"{note}\n\n[Retry {attempt}] These criteria need a verbatim quote that "
@@ -87,6 +141,10 @@ def _analyst_node(state: State) -> State:
     grounded = ground_assessments(
         typed_raw, combined_source, patient_text=state["patient_note"]
     )
+    # A partial retry answered only the failed criteria, so its result is an
+    # overlay on attempt one rather than the whole trial.
+    if attempt > 0 and prior and _retry_failed_only() and len(grounded) < len(prior):
+        grounded = _merge_retry(prior, grounded)
     return {"assessments": grounded}
 
 

@@ -97,8 +97,11 @@ class Settings(BaseSettings):
     api_assess_rate_per_min: int = 5
     # In-process assess job TTL (seconds).
     api_job_ttl_seconds: int = 3600
-    # Bounded threadpool for assess() — also a spend concurrency limit.
-    api_assess_workers: int = 2
+    # Bounded threadpool for assess() — also a spend concurrency limit. Matched
+    # to api_max_assess_trials so a full request finishes in one wave instead of
+    # three; the per-request cap already bounds spend, and the trials are the
+    # same calls either way.
+    api_assess_workers: int = 5
 
     # Hugging Face
     hf_token: str = ""

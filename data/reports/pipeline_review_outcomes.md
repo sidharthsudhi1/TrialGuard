@@ -15,14 +15,14 @@ repo; this records what was measured and decided.
 | R5 | fusion constants never swept | **Defaults kept.** 40 cells, both cohorts. SIGIR's best cell (k=10) gains 5.9% and loses 3.3% on TREC — they disagree in sign. `r5_findings.md` |
 | R6 | `ts_rank_cd` is not Okapi BM25 | **Already validated** in `phase7_retrieval.md` WS-4a before the review was written. `r6_closure.md` |
 | L1 | most analyst output is not evidence | Open. Recount over 16,456 assessments: quote is 7.8% of output chars, criterion echo 43.4% |
-| L2 | trials assessed sequentially | **Shipped.** `c6ea39f` |
+| L2 | trials assessed sequentially | **Shipped.** `c6ea39f`, with the worker count raised to the per-request cap afterwards |
 | L3 | JSON requested in prose, not enforced | **Declined on measurement.** Output never approaches the 4096 cap (median 399, max 3783); recoverable failure class is 23 empty responses, 0.88%. `l3_findings.md` |
-| L4 | retries re-run every criterion | Open |
+| L4 | retries re-run every criterion | **Measured, rejected.** Partial retry cuts the unverifiable rate 26% but `grounded` falls (845 -> 838): the failures become abstentions, not recoveries, costing 11 decisive `not_met` verdicts and 0.38x of tier lift. `l4_findings.md` |
 | L5 | analyst cache does not survive a deploy | **Shipped.** `71bc29e` |
 | L6 | no per-criterion streaming | Open |
 | E1 | retrieval and agent never evaluated together | **Shipped**, and it exposed the parser bug below |
-| E2 | served abstention unmeasured | Open |
-| E3 | gate protects faithfulness only | Open |
+| E2 | served abstention unmeasured | **Shipped.** `served_monitor.py` reads the `served`-tagged traces nothing read before and diverges non-zero outside committed bands; daily workflow. First reading: abstention 0.22 on 7 trials vs eval 0.56-0.61, under the traffic floor |
+| E3 | gate protects faithfulness only | **Recall half shipped.** CI now fails below recall@50 0.27 / recall@100 0.40 against the committed TREC 2021 report, bite proven in tests. Latency and cost floors remain post-deploy concerns, as the review specified |
 
 ## Not in the review
 
