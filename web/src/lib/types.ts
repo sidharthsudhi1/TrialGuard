@@ -44,6 +44,17 @@ export interface TrialEvent {
   error?: string;
 }
 
+/** Provisional progress event: one criterion as the analyst emits it.
+ *  Pre-grounding, and a retry can supersede it — the TrialEvent for the same
+ *  nct_id is authoritative and replaces anything shown from these. */
+export interface CriterionEvent {
+  type: "criterion";
+  nct_id: string;
+  provisional: true;
+  criterion: string;
+  verdict: CriterionVerdict;
+}
+
 export interface TrialDetail {
   nct_id: string;
   title: string | null;

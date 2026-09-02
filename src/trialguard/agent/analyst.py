@@ -241,6 +241,45 @@ def _parse(raw: str) -> list[dict]:
     return validate_assessments(data)
 
 
+def _replay(assessments: list[dict], on_criterion) -> list[dict]:
+    """Feed already-known assessments through the progress callback.
+
+    A cache hit has nothing to stream, but the caller should not have to care
+    whether a result was paid for or remembered: same events, same order.
+    """
+    if on_criterion is not None:
+        for a in assessments:
+            on_criterion(a)
+    return assessments
+
+
+def _stream_assessments(llm, messages, config, on_criterion) -> str:
+    """Consume the response as a stream, emitting each criterion as it closes.
+
+    The model writes a JSON array, so a criterion is complete the moment its
+    object closes — long before the trial does. `_salvage` already knows how to
+    read complete objects out of an unfinished array (it exists for token-cap
+    truncation), so the same scanner is run over the growing buffer and anything
+    new is emitted. Returns the full raw text, which is parsed and cached
+    exactly as the non-streaming path does.
+    """
+    buffer = ""
+    emitted = 0
+    for chunk in llm.stream(messages, config=config):
+        text = getattr(chunk, "content", "") or ""
+        if not text:
+            continue
+        buffer += text
+        # Re-scanning the whole buffer each chunk is O(n^2) in principle; n is a
+        # few thousand characters and the alternative is a stateful parser that
+        # can disagree with _salvage about what counts as complete.
+        complete = _salvage(buffer)
+        for obj in complete[emitted:]:
+            on_criterion(obj)
+        emitted = len(complete)
+    return buffer
+
+
 def _salvage(raw: str) -> list[dict]:
     """Extract complete assessment objects from a truncated assessments array."""
     idx = raw.find('"assessments"')
@@ -296,11 +335,21 @@ def analyze_trial(
     criteria: list,
     handler=None,
     skip_cache_write: bool = False,
+    on_criterion=None,
 ) -> list[dict]:
     """Return raw per-criterion assessments (pre-grounding). Cached to disk.
 
     `criteria` may be list[str] (legacy, treated as inclusion) or list of
     {"text", "kind"} dicts. v4 labels each line with [inclusion]/[exclusion].
+
+    `on_criterion`, when given, is called with each assessment object as soon as
+    it closes in the model's output stream (L6). It is a progress signal only —
+    the objects are pre-grounding and a later retry can supersede them — so
+    nothing downstream may treat it as a result. The return value stays the
+    authoritative list. Passing it switches the call to streaming transport,
+    which does not change the prompt and therefore does not change the cache
+    key; a cache hit replays the stored assessments through the callback
+    instead, so the caller sees the same event sequence either way.
     """
     from trialguard.agent.schema import normalize_criteria
 
@@ -314,7 +363,7 @@ def analyze_trial(
     # on every deploy — without it every preset costs a fresh 29s call after each
     # release, which is both the slow answer and the paid one.
     if cache_path.exists():
-        return json.loads(cache_path.read_text())
+        return _replay(json.loads(cache_path.read_text()), on_criterion)
 
     from trialguard.db.cache import cache_get
 
@@ -322,7 +371,7 @@ def analyze_trial(
     # Shape-checked because this store is shared and durable: a row of the wrong
     # type would otherwise reach grounding as if it were a real assessment list.
     if isinstance(stored, list) and stored:
-        return stored
+        return _replay(stored, on_criterion)
 
     version = prompt_version()
     if version == "v4":
@@ -356,13 +405,33 @@ def analyze_trial(
     config = trace_config(
         handler, provider=provider, model=model, prompt_version=version, nct_id=nct_id
     )
-    resp = _llm().invoke([SystemMessage(content=system), HumanMessage(content=user)], config=config)
+    messages = [SystemMessage(content=system), HumanMessage(content=user)]
+    if on_criterion is not None:
+        llm = _llm()
+        # Streaming chunks do not carry usage, so bill from a follow-up count on
+        # the assembled text rather than silently under-reporting. Deliberately
+        # an estimate: the alternative is a second billed call.
+        raw = _stream_assessments(llm, messages, config, on_criterion)
+        in_tok = estimate_tokens(system + user)
+        out_tok = estimate_tokens(raw)
+        ledger.record(
+            {
+                "input_tokens": in_tok,
+                "output_tokens": out_tok,
+                "total_tokens": in_tok + out_tok,
+                "provider_usd": None,
+            },
+            provider,
+            model,
+        )
+    else:
+        resp = _llm().invoke(messages, config=config)
+        # Account on the actual: real token counts and, where the provider reports
+        # it, the provider's own cost figure rather than a local price table.
+        ledger.record(extract_usage(resp), provider, model)
+        raw = str(resp.content)
 
-    # Account on the actual: real token counts and, where the provider reports it,
-    # the provider's own cost figure rather than a local price table.
-    ledger.record(extract_usage(resp), provider, model)
-
-    assessments = _parse(str(resp.content))
+    assessments = _parse(raw)
     # Free-text public traffic: skip the write so attacker-controlled notes cannot
     # grow data/cache/analyst unboundedly on an ephemeral filesystem. Reads still
     # hit existing entries (presets).

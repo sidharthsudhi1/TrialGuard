@@ -7,12 +7,15 @@ import { CriterionRow } from "../../../components/CriterionRow";
 import { SyntheticNotice } from "../../../components/SyntheticNotice";
 import { TrialVerdictBadge } from "../../../components/VerdictBadge";
 import { assessStreamUrl } from "../../../lib/api";
-import type { TrialEvent } from "../../../lib/types";
+import type { CriterionEvent, TrialEvent } from "../../../lib/types";
 
 export default function AssessPage() {
   const params = useParams<{ jobId: string }>();
   const jobId = params.jobId;
   const [events, setEvents] = useState<TrialEvent[]>([]);
+  // Criteria streamed for trials that have not finished yet, keyed by nct_id.
+  // Dropped the moment that trial's authoritative event lands.
+  const [pending, setPending] = useState<Record<string, CriterionEvent[]>>({});
   const [status, setStatus] = useState("Connecting…");
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -25,11 +28,28 @@ export default function AssessPage() {
 
     const collected: TrialEvent[] = [];
 
+    const onCriterion = (ev: MessageEvent) => {
+      try {
+        const data = JSON.parse(ev.data) as CriterionEvent;
+        setPending((prev) => ({
+          ...prev,
+          [data.nct_id]: [...(prev[data.nct_id] || []), data],
+        }));
+      } catch {
+        /* ignore malformed */
+      }
+    };
     const onTrial = (ev: MessageEvent) => {
       try {
         const data = JSON.parse(ev.data) as TrialEvent;
         collected.push(data);
         setEvents([...collected]);
+        // The graded result supersedes everything streamed for this trial.
+        setPending((prev) => {
+          const next = { ...prev };
+          delete next[data.nct_id];
+          return next;
+        });
         sessionStorage.setItem(`tg-job-results-${jobId}`, JSON.stringify(collected));
       } catch {
         /* ignore malformed */
@@ -53,6 +73,7 @@ export default function AssessPage() {
       es.close();
     };
 
+    es.addEventListener("criterion", onCriterion);
     es.addEventListener("trial", onTrial);
     es.addEventListener("summary", onSummary);
     // Application terminal errors use event name "error" with a data payload.
@@ -99,6 +120,28 @@ export default function AssessPage() {
           </article>
         ))}
       </div>
+      {Object.entries(pending).map(([nctId, criteria]) => (
+        <article key={`pending-${nctId}`} className="assessment-block">
+          <div className="assessment-head">
+            <h2>{nctId}</h2>
+            <span className="muted">assessing…</span>
+          </div>
+          <ul className="criterion-list">
+            {criteria.map((c, i) => (
+              <li key={`${nctId}-p-${i}`} className="criterion">
+                <div className="criterion-head">
+                  <span className="muted">{c.verdict}</span>
+                  <span className="criterion-text">{c.criterion}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className="muted">
+            Provisional — shown as the analyst produces them. Quotes are not
+            verified until the trial completes.
+          </p>
+        </article>
+      ))}
       {done && events.length === 0 && !error && (
         <p className="muted">No trial events received.</p>
       )}

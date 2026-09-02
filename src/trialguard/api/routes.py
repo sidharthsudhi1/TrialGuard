@@ -294,7 +294,7 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
         """One trial. Only BudgetExhausted escapes; everything else is an event."""
         try:
             return await loop.run_in_executor(
-                executor, _assess_one, job.note, nct_id, job_id, job.skip_cache_write
+                executor, _assess_one, job.note, nct_id, job_id, job.skip_cache_write, store
             )
         except BudgetExhausted:
             raise
@@ -340,7 +340,7 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
 
 
 def _assess_one(
-    note: str, nct_id: str, job_id: str, skip_cache_write: bool
+    note: str, nct_id: str, job_id: str, skip_cache_write: bool, store=None
 ) -> dict[str, Any]:
     """Sync worker: load trial, build typed criteria, call assess() unchanged."""
     from trialguard.agent.graph import assess
@@ -366,6 +366,26 @@ def _assess_one(
             "assessments": [],
             "title": trial.get("title"),
         }
+    # L6: a trial is ~29 s of silence even though the model decides its first
+    # criterion within a second or two. Emitting each one as it closes makes the
+    # grounding check visible while it happens, which is the most persuasive
+    # thing this system does. Events are explicitly provisional — they are
+    # pre-grounding and a retry can supersede them — and the terminal trial
+    # event remains the authority.
+    def _emit(assessment: dict) -> None:
+        if store is None:
+            return
+        store.append(
+            job_id,
+            {
+                "type": "criterion",
+                "nct_id": nct_id,
+                "provisional": True,
+                "criterion": assessment.get("criterion", ""),
+                "verdict": assessment.get("verdict", "cannot_determine"),
+            },
+        )
+
     state = assess(
         note,
         nct_id,
@@ -375,6 +395,7 @@ def _assess_one(
         handler=_trace_handler(job_id, "assess"),
         criteria_truncated=truncated,
         skip_cache_write=skip_cache_write,
+        on_criterion=_emit,
     )
     return {
         "type": "trial",
@@ -389,7 +410,12 @@ def _assess_one(
 
 @router.get("/assess/{job_id}")
 async def assess_stream(job_id: str, request: Request) -> StreamingResponse:
-    """SSE: one event per trial, then a terminal summary (or BudgetExhausted)."""
+    """SSE: provisional criterion events, one event per trial, then a summary.
+
+    `criterion` events stream as the analyst produces them and carry
+    provisional=True; the `trial` event for the same nct_id is the authoritative
+    result and supersedes them.
+    """
     store = request.app.state.jobs
     job = store.get(job_id)
     if job is None:

@@ -19,7 +19,7 @@ repo; this records what was measured and decided.
 | L3 | JSON requested in prose, not enforced | **Declined on measurement.** Output never approaches the 4096 cap (median 399, max 3783); recoverable failure class is 23 empty responses, 0.88%. `l3_findings.md` |
 | L4 | retries re-run every criterion | **Measured, rejected.** Partial retry cuts the unverifiable rate 26% but `grounded` falls (845 -> 838): the failures become abstentions, not recoveries, costing 11 decisive `not_met` verdicts and 0.38x of tier lift. `l4_findings.md` |
 | L5 | analyst cache does not survive a deploy | **Shipped.** `71bc29e` |
-| L6 | no per-criterion streaming | Open |
+| L6 | no per-criterion streaming | **Shipped.** Analyst streams, `_salvage` reads complete criterion objects out of the growing buffer, and each is emitted as a provisional SSE `criterion` event that the trial event supersedes. Did not need L3: the partial-JSON scanner already existed |
 | E1 | retrieval and agent never evaluated together | **Shipped**, and it exposed the parser bug below |
 | E2 | served abstention unmeasured | **Shipped.** `served_monitor.py` reads the `served`-tagged traces nothing read before and diverges non-zero outside committed bands; daily workflow. First reading: abstention 0.22 on 7 trials vs eval 0.56-0.61, under the traffic floor |
 | E3 | gate protects faithfulness only | **Recall half shipped.** CI now fails below recall@50 0.27 / recall@100 0.40 against the committed TREC 2021 report, bite proven in tests. Latency and cost floors remain post-deploy concerns, as the review specified |

@@ -39,6 +39,7 @@ class State(TypedDict, total=False):
     disqualifying_criteria: list[str]
     criteria_truncated: bool
     skip_cache_write: bool
+    on_criterion: object
 
 
 def _retry_failed_only() -> bool:
@@ -123,12 +124,18 @@ def _analyst_node(state: State) -> State:
             key = _cache_key(note, state["nct_id"])
             if not (ANALYST_CACHE / f"{key}.json").exists():
                 return {"assessments": prior}
+    # on_criterion is passed only when a caller actually wants progress events,
+    # so the default path's call shape is unchanged.
+    extra = {}
+    if state.get("on_criterion") is not None:
+        extra["on_criterion"] = state["on_criterion"]
     raw = analyze_trial(
         note,
         state["nct_id"],
         typed,
         handler=state.get("handler"),
         skip_cache_write=state.get("skip_cache_write", False),
+        **extra,
     )
     # A citation is grounded if it is a verbatim span of ANY provided source:
     # the trial's eligibility text or the patient note. "met"/"not_met" verdicts
@@ -195,8 +202,14 @@ def assess(
     handler=None,
     criteria_truncated: bool = False,
     skip_cache_write: bool = False,
+    on_criterion=None,
 ) -> dict:
-    """Run the graph for one (patient, trial). Returns final State dict."""
+    """Run the graph for one (patient, trial). Returns final State dict.
+
+    `on_criterion` receives each assessment as the model emits it (L6). Progress
+    only: the objects are pre-grounding, and a retry can supersede them, so the
+    returned state stays the sole authority on what the system concluded.
+    """
     global _GRAPH
     if _GRAPH is None:
         _GRAPH = build_graph()
@@ -214,6 +227,7 @@ def assess(
             "retries": 0,
             "criteria_truncated": criteria_truncated,
             "skip_cache_write": skip_cache_write,
+            "on_criterion": on_criterion,
         },
         config=config,
     )
