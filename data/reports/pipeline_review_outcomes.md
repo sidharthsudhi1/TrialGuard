@@ -58,6 +58,22 @@ own 0.1316 top-10 ceiling, and the agent converts 12% of what it is handed
 (`e1b_findings.md`). Neither is addressable by rearranging how existing lists
 combine.
 
+> **ANSWERED 2026-09-02.** This paragraph named three candidate causes — a
+> different retrieval model, a different query representation, or a larger pool
+> passed to the agent — and called the question unopened. It was the third, and
+> it is now measured on both cohorts. Gold is not missing from the candidate
+> space (recall 0.766@500 on TREC 2021, 0.788@500 on TREC 2022, under 6%
+> unranked): it is present and misordered, so the binding constraint was the
+> arbitrary k=10 hand-off, not the representation. Widening the assessed pool
+> 10 -> 100 moves surfaced recall 0.0276 -> 0.1770 (6.4x) on 2021 and
+> 0.0430 -> 0.2580 (6.0x) on 2022, with conversion and lift over pool base rate
+> flat to rising through the full 10x dilution. The `0.048 of 0.1316` framing
+> above measures a top-10 slice of a ranking whose gold sits at median rank
+> ~130-180; it was never the system's ceiling. What is left is serving
+> economics, not recall. See `h1_pool_curve_trec2021.md`,
+> `h1_pool_curve_trec2022.md`, `gold_rank_depth_trec{2021,2022}.json`, and
+> `docs/structural_recall_plan.md`.
+
 **SIGIR-only conclusions have a poor record.** A1's abstention finding died on
 TREC; R5's +5.9% inverted to -3.3%; R3's +10.8% shrank to +3.4% and lost
 significance. TREC 2021 is the cohort of record, and every SIGIR trial-level
