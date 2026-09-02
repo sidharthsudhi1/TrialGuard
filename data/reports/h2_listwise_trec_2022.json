@@ -1,0 +1,159 @@
+{
+  "baseline_recall": 0.2413,
+  "batch_size": 50,
+  "cohort": "trec_2022",
+  "gold_total": 1558,
+  "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+  "patients": 20,
+  "patients_better": 6,
+  "patients_worse": 11,
+  "pool": 500,
+  "pool_ceiling": 0.6303,
+  "provider": "deepinfra",
+  "reranked_recall": 0.2041,
+  "rows": [
+    {
+      "baseline_hits": 23,
+      "n_gold": 76,
+      "patient_id": "trec-20221",
+      "pool_hits": 53,
+      "reranked_hits": 17
+    },
+    {
+      "baseline_hits": 18,
+      "n_gold": 59,
+      "patient_id": "trec-20222",
+      "pool_hits": 28,
+      "reranked_hits": 9
+    },
+    {
+      "baseline_hits": 20,
+      "n_gold": 25,
+      "patient_id": "trec-20223",
+      "pool_hits": 25,
+      "reranked_hits": 15
+    },
+    {
+      "baseline_hits": 30,
+      "n_gold": 268,
+      "patient_id": "trec-20224",
+      "pool_hits": 141,
+      "reranked_hits": 32
+    },
+    {
+      "baseline_hits": 21,
+      "n_gold": 59,
+      "patient_id": "trec-20225",
+      "pool_hits": 53,
+      "reranked_hits": 13
+    },
+    {
+      "baseline_hits": 30,
+      "n_gold": 118,
+      "patient_id": "trec-20226",
+      "pool_hits": 78,
+      "reranked_hits": 28
+    },
+    {
+      "baseline_hits": 12,
+      "n_gold": 15,
+      "patient_id": "trec-20227",
+      "pool_hits": 14,
+      "reranked_hits": 4
+    },
+    {
+      "baseline_hits": 7,
+      "n_gold": 14,
+      "patient_id": "trec-20228",
+      "pool_hits": 14,
+      "reranked_hits": 8
+    },
+    {
+      "baseline_hits": 10,
+      "n_gold": 77,
+      "patient_id": "trec-20229",
+      "pool_hits": 39,
+      "reranked_hits": 13
+    },
+    {
+      "baseline_hits": 8,
+      "n_gold": 113,
+      "patient_id": "trec-202210",
+      "pool_hits": 21,
+      "reranked_hits": 8
+    },
+    {
+      "baseline_hits": 43,
+      "n_gold": 235,
+      "patient_id": "trec-202211",
+      "pool_hits": 146,
+      "reranked_hits": 45
+    },
+    {
+      "baseline_hits": 14,
+      "n_gold": 51,
+      "patient_id": "trec-202212",
+      "pool_hits": 27,
+      "reranked_hits": 3
+    },
+    {
+      "baseline_hits": 7,
+      "n_gold": 14,
+      "patient_id": "trec-202213",
+      "pool_hits": 14,
+      "reranked_hits": 4
+    },
+    {
+      "baseline_hits": 13,
+      "n_gold": 33,
+      "patient_id": "trec-202214",
+      "pool_hits": 27,
+      "reranked_hits": 12
+    },
+    {
+      "baseline_hits": 37,
+      "n_gold": 122,
+      "patient_id": "trec-202215",
+      "pool_hits": 98,
+      "reranked_hits": 37
+    },
+    {
+      "baseline_hits": 23,
+      "n_gold": 36,
+      "patient_id": "trec-202216",
+      "pool_hits": 34,
+      "reranked_hits": 7
+    },
+    {
+      "baseline_hits": 7,
+      "n_gold": 24,
+      "patient_id": "trec-202217",
+      "pool_hits": 14,
+      "reranked_hits": 3
+    },
+    {
+      "baseline_hits": 15,
+      "n_gold": 36,
+      "patient_id": "trec-202218",
+      "pool_hits": 30,
+      "reranked_hits": 17
+    },
+    {
+      "baseline_hits": 3,
+      "n_gold": 10,
+      "patient_id": "trec-202219",
+      "pool_hits": 6,
+      "reranked_hits": 3
+    },
+    {
+      "baseline_hits": 35,
+      "n_gold": 173,
+      "patient_id": "trec-202220",
+      "pool_hits": 120,
+      "reranked_hits": 40
+    }
+  ],
+  "run_usd": 0.064029,
+  "top_k": 50,
+  "wall_s": 580.2
+}

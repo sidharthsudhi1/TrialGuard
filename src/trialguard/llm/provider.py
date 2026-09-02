@@ -20,12 +20,12 @@ from __future__ import annotations
 
 DEEPINFRA_BASE_URL = "https://api.deepinfra.com/v1/openai"
 
-_PURPOSES = ("analyst", "keywords")
+_PURPOSES = ("analyst", "keywords", "listwise")
 
 # Analyst output is a JSON array of per-criterion assessments; 4096 is the cap the
 # _salvage() truncation path in analyst.py is written against. Keyword extraction
 # returns at most 12 short phrases.
-_MAX_TOKENS = {"analyst": 4096, "keywords": 1024}
+_MAX_TOKENS = {"analyst": 4096, "keywords": 1024, "listwise": 1024}
 
 
 def active_provider() -> str:
@@ -68,6 +68,14 @@ def get_chat_model(purpose: str = "analyst"):
                 temperature=0,
                 max_tokens=_MAX_TOKENS["analyst"],
                 max_retries=MAX_RETRIES,
+            )
+        if purpose == "listwise":
+            # No committed cache to protect, so this one starts deterministic.
+            return ChatGroq(
+                api_key=settings.groq_api_key,
+                model=settings.groq_model,
+                temperature=0,
+                max_tokens=_MAX_TOKENS["listwise"],
             )
         return ChatGroq(api_key=settings.groq_api_key, model=settings.groq_model)
 
