@@ -6,6 +6,8 @@ build-backend = "setuptools.build_meta"
 name = "trialguard"
 version = "0.1.0"
 description = "Self-verifying multi-agent clinical-trial eligibility intelligence"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dependencies = [
     # Orchestration

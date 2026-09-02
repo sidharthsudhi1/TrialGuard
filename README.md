@@ -455,3 +455,18 @@ when the limit is throughput.
 | AD-12 | API pinned to `syd`, beside Neon in `ap-southeast-2` | Leaving it in `iad`, where 60 round trips per search cost ~15 s in distance alone |
 
 *When a decision is reversed during the build, the reversal and reason are recorded here — not deleted.*
+
+## License
+
+[MIT](LICENSE) — code and documentation.
+
+The evaluation data under `data/eval/` is redistributed from its original
+sources and stays under their terms: the SIGIR 2016 cohort from
+[TrialGPT](https://github.com/ncbi-nlp/TrialGPT) (NCBI/NLM), and TREC Clinical
+Trials 2021/2022 topics and qrels from [TREC-CDS](https://www.trec-cds.org/)
+(NIST). Trial records come from ClinicalTrials.gov (U.S. National Library of
+Medicine).
+
+**Not a clinical decision tool.** Every patient note here is synthetic. This is
+a research artifact and must not be used to make or inform decisions about the
+care of real patients.
