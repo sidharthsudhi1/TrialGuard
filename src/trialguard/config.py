@@ -97,11 +97,13 @@ class Settings(BaseSettings):
     api_assess_rate_per_min: int = 5
     # In-process assess job TTL (seconds).
     api_job_ttl_seconds: int = 3600
-    # Bounded threadpool for assess() — also a spend concurrency limit. Matched
-    # to api_max_assess_trials so a full request finishes in one wave instead of
-    # three; the per-request cap already bounds spend, and the trials are the
-    # same calls either way.
-    api_assess_workers: int = 5
+    # Bounded threadpool for assess() — also a spend concurrency limit. A standard
+    # request finishes in one wave; a deep one lands in three rather than five.
+    # 10 is the measured ceiling for this provider, not a guess: the H1 prewarm
+    # ran 1,095 calls at 10 concurrent with zero errors, while 16 pushed tail
+    # latency past the client timeout and failed 35 of 100. Spend is unchanged —
+    # the same calls, overlapped — and the daily ledger still bounds the total.
+    api_assess_workers: int = 10
 
     # Opt-in deep assessment. H1 measured surfaced recall rising 6x from a top-10
     # pool to top-100 (data/reports/h1_pool_curve_trec*.md), so depth is the one
