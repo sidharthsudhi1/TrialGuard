@@ -103,6 +103,17 @@ class Settings(BaseSettings):
     # same calls either way.
     api_assess_workers: int = 5
 
+    # Opt-in deep assessment. H1 measured surfaced recall rising 6x from a top-10
+    # pool to top-100 (data/reports/h1_pool_curve_trec*.md), so depth is the one
+    # lever that moves the headline number — but at ~29 s per trial it is minutes
+    # of wall clock, which is why it is a deliberate choice and not the default.
+    api_max_assess_trials_deep: int = 25
+    # Both measured, so the UI can quote a real number instead of a guess:
+    # $0.8496 over the 2,000-call TREC 2022 prewarm, and the median served
+    # assess latency from Langfuse traces.
+    api_assess_usd_per_trial: float = 0.000425
+    api_assess_seconds_per_trial: float = 29.2
+
     # Hugging Face
     hf_token: str = ""
 

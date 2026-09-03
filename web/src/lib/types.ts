@@ -74,3 +74,12 @@ export interface BudgetInfo {
   calls: number;
   date: string;
 }
+
+/** Caps and measured per-trial rates, so the UI can quote before spending. */
+export interface Limits {
+  max_assess_trials: number;
+  max_assess_trials_deep: number;
+  assess_workers: number;
+  usd_per_trial: number;
+  seconds_per_trial: number;
+}

@@ -572,3 +572,47 @@ def test_assess_budget_exhausted_still_fails_the_job(client, monkeypatch):
 
     assert "event: error" in raw
     assert "BudgetExhausted" in raw
+
+
+def test_limits_reports_caps_and_measured_rates(client):
+    r = client.get("/api/limits")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["max_assess_trials_deep"] > body["max_assess_trials"]
+    # The UI quotes these to the user before they spend, so they must be present
+    # and positive rather than defaulted to zero.
+    assert body["usd_per_trial"] > 0
+    assert body["seconds_per_trial"] > 0
+
+
+def test_assess_deep_raises_the_cap(client):
+    ids = [f"NCT{i:04d}" for i in range(6)]
+    with patch("trialguard.agent.sanitize.detect_injection", return_value=False):
+        shallow = client.post(
+            "/api/assess", json={"note": "synthetic note", "nct_ids": ids}
+        )
+        deep = client.post(
+            "/api/assess",
+            json={"note": "synthetic note", "nct_ids": ids, "deep": True},
+        )
+    assert shallow.status_code == 400
+    assert "deep=true" in shallow.json()["detail"]
+    assert deep.status_code == 200
+
+
+def test_assess_deep_is_still_capped(client):
+    from trialguard.config import settings
+
+    too_many = settings.api_max_assess_trials_deep + 1
+    with patch("trialguard.agent.sanitize.detect_injection", return_value=False):
+        r = client.post(
+            "/api/assess",
+            json={
+                "note": "synthetic note",
+                "nct_ids": [f"NCT{i:04d}" for i in range(too_many)],
+                "deep": True,
+            },
+        )
+    assert r.status_code == 400
+    # Already opted in, so telling them to opt in would be nonsense.
+    assert "deep=true" not in r.json()["detail"]

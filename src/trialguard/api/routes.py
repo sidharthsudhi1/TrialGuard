@@ -12,7 +12,13 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
-from trialguard.api.schemas import SYNTHETIC_NOTICE, AssessCreated, AssessRequest, SearchRequest
+from trialguard.api.schemas import (
+    SYNTHETIC_NOTICE,
+    AssessCreated,
+    AssessRequest,
+    LimitsResponse,
+    SearchRequest,
+)
 from trialguard.config import settings
 
 router = APIRouter(prefix="/api")
@@ -162,6 +168,24 @@ def health(request: Request) -> dict[str, Any]:
     }
 
 
+@router.get("/limits", response_model=LimitsResponse)
+def limits() -> LimitsResponse:
+    """Caps and measured per-trial cost, so a client can quote before it spends.
+
+    The two rate figures are measurements, not targets: the USD figure is the
+    2,000-call TREC 2022 prewarm divided by its trial count, and the latency is
+    the median served assess span. Quoting anything else would put a number in
+    front of a user that no run supports.
+    """
+    return LimitsResponse(
+        max_assess_trials=settings.api_max_assess_trials,
+        max_assess_trials_deep=settings.api_max_assess_trials_deep,
+        assess_workers=settings.api_assess_workers,
+        usd_per_trial=settings.api_assess_usd_per_trial,
+        seconds_per_trial=settings.api_assess_seconds_per_trial,
+    )
+
+
 @router.get("/budget")
 def budget() -> dict[str, Any]:
     """Surface the global daily USD ledger for the UI."""
@@ -249,12 +273,20 @@ async def assess_start(body: AssessRequest, request: Request) -> AssessCreated:
     nct_ids = [n.strip() for n in body.nct_ids if n and n.strip()]
     if not nct_ids:
         raise HTTPException(status_code=400, detail="At least one nct_id is required.")
-    if len(nct_ids) > settings.api_max_assess_trials:
+    # Depth is opt-in (H1: surfaced recall scales with the assessed pool). The
+    # standard cap still applies to anyone who does not ask for it, so a client
+    # cannot reach the expensive path by accident.
+    cap = (
+        settings.api_max_assess_trials_deep
+        if body.deep
+        else settings.api_max_assess_trials
+    )
+    if len(nct_ids) > cap:
         raise HTTPException(
             status_code=400,
             detail=(
-                f"At most {settings.api_max_assess_trials} trials per assess request "
-                f"(got {len(nct_ids)})."
+                f"At most {cap} trials per assess request (got {len(nct_ids)})."
+                + ("" if body.deep else " Set deep=true to raise the limit.")
             ),
         )
 

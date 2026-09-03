@@ -13,6 +13,20 @@ class SearchRequest(BaseModel):
 class AssessRequest(BaseModel):
     note: str = Field(..., min_length=1)
     nct_ids: list[str] = Field(..., min_length=1)
+    # Opt-in only. Depth is what moves surfaced recall (H1), and it is also what
+    # spends money and minutes, so the caller has to ask for it by name rather
+    # than reach it by sending a longer list.
+    deep: bool = False
+
+
+class LimitsResponse(BaseModel):
+    """What a client needs to quote an honest cost and wait before submitting."""
+
+    max_assess_trials: int
+    max_assess_trials_deep: int
+    assess_workers: int
+    usd_per_trial: float
+    seconds_per_trial: float
 
 
 class AssessCreated(BaseModel):

@@ -1,4 +1,4 @@
-import type { BudgetInfo, SearchResponse, TrialDetail } from "./types";
+import type { BudgetInfo, Limits, SearchResponse, TrialDetail } from "./types";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(
   /\/$/,
@@ -35,12 +35,13 @@ export async function searchTrials(note: string, topK = 5): Promise<SearchRespon
 
 export async function startAssess(
   note: string,
-  nctIds: string[]
+  nctIds: string[],
+  deep = false
 ): Promise<{ job_id: string }> {
   const res = await fetch(`${API_URL}/api/assess`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ note, nct_ids: nctIds }),
+    body: JSON.stringify({ note, nct_ids: nctIds, deep }),
   });
   if (!res.ok) throw new Error(await parseError(res));
   return res.json();
@@ -60,4 +61,10 @@ export async function fetchBudget(): Promise<BudgetInfo> {
 
 export function assessStreamUrl(jobId: string): string {
   return `${API_URL}/api/assess/${encodeURIComponent(jobId)}`;
+}
+
+export async function fetchLimits(): Promise<Limits> {
+  const res = await fetch(`${API_URL}/api/limits`);
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json();
 }

@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SyntheticNotice } from "../components/SyntheticNotice";
-import { searchTrials, startAssess } from "../lib/api";
-import type { SearchTrial } from "../lib/types";
+import { fetchLimits, searchTrials, startAssess } from "../lib/api";
+import type { Limits, SearchTrial } from "../lib/types";
 
 const PRESETS: { label: string; note: string }[] = [
   {
@@ -26,13 +26,36 @@ export default function SearchPage() {
   const [busy, setBusy] = useState<"search" | "assess" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [latency, setLatency] = useState<string | null>(null);
+  // Depth is opt-in: assessing a wider pool is what raises how many eligible
+  // trials surface (measured 6x from top-10 to top-100), and it is also what
+  // costs money and minutes. The user makes that trade explicitly.
+  const [deep, setDeep] = useState(false);
+  const [limits, setLimits] = useState<Limits | null>(null);
+
+  useEffect(() => {
+    fetchLimits()
+      .then(setLimits)
+      .catch(() => setLimits(null));
+  }, []);
+
+  const searchTopK = deep && limits ? limits.max_assess_trials_deep : 5;
+  const quote =
+    limits && selected.size
+      ? {
+          usd: selected.size * limits.usd_per_trial,
+          minutes:
+            (Math.ceil(selected.size / limits.assess_workers) *
+              limits.seconds_per_trial) /
+            60,
+        }
+      : null;
 
   async function onSearch() {
     setError(null);
     setBusy("search");
     setSelected(new Set());
     try {
-      const res = await searchTrials(note, 5);
+      const res = await searchTrials(note, searchTopK);
       setTrials(res.trials);
       setLatency(
         res.latency_ms?.total_ms != null
@@ -63,7 +86,7 @@ export default function SearchPage() {
     setBusy("assess");
     try {
       const ids = [...selected];
-      const { job_id } = await startAssess(note, ids);
+      const { job_id } = await startAssess(note, ids, deep);
       sessionStorage.setItem(
         `tg-job-${job_id}`,
         JSON.stringify({ note, nct_ids: ids })
@@ -106,6 +129,20 @@ export default function SearchPage() {
             {busy === "search" ? "Searching…" : "Search trials"}
           </button>
         </div>
+        {limits && (
+          <label className="muted" style={{ display: "block", marginTop: "0.5rem" }}>
+            <input
+              type="checkbox"
+              checked={deep}
+              disabled={busy !== null}
+              onChange={(e) => setDeep(e.target.checked)}
+            />{" "}
+            Deep search — return up to {limits.max_assess_trials_deep} candidates
+            instead of 5. A wider assessed pool surfaces roughly 6x more eligible
+            trials (measured on TREC 2021/2022), and costs proportionally more
+            time and money. You still choose which trials to assess.
+          </label>
+        )}
         {error && <p className="error">{error}</p>}
       </section>
 
@@ -127,6 +164,16 @@ export default function SearchPage() {
                 : `Assess selected (${selected.size})`}
             </button>
           </div>
+          {quote && (
+            <p className="muted">
+              {selected.size} trial{selected.size === 1 ? "" : "s"} ≈ $
+              {quote.usd.toFixed(4)}, about{" "}
+              {quote.minutes < 1
+                ? `${Math.round(quote.minutes * 60)} s`
+                : `${quote.minutes.toFixed(1)} min`}
+              . Results stream as each trial finishes.
+            </p>
+          )}
           <div className="results">
             {trials.map((t) => (
               <label key={t.nct_id} className="trial-row">
