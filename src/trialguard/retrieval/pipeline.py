@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from trialguard.retrieval.bm25 import bm25_search
 from trialguard.retrieval.dense import dense_search
-from trialguard.retrieval.fusion import rrf
+from trialguard.retrieval.fusion import importance_weights, rrf
 
 
 def _apply_demographics(query, rankings, fused, top_k, source):
@@ -31,7 +31,7 @@ def _apply_demographics(query, rankings, fused, top_k, source):
 
         from trialguard.db.queries import get_trials
 
-        wide = rrf(rankings, top_k=top_k * 4)
+        wide = rrf(rankings, top_k=top_k * 4, weights=importance_weights(len(rankings)))
         meta = get_trials([n for n, _ in wide], source=source)
         kept, dropped = filter_candidates(wide, meta, patient)
         return kept[:top_k], len(dropped)
@@ -106,7 +106,7 @@ def retrieve(
     bm25_ms_total = sum(e for e, (kind, _) in zip(elapsed, tasks, strict=True) if kind == "bm25")
 
     t3 = time.perf_counter()
-    fused = rrf(rankings, top_k=top_k)
+    fused = rrf(rankings, top_k=top_k, weights=importance_weights(len(rankings)))
     fusion_ms = (time.perf_counter() - t3) * 1000
 
     t4 = time.perf_counter()

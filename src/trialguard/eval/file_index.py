@@ -17,7 +17,7 @@ from pathlib import Path
 
 import numpy as np
 
-from trialguard.retrieval.fusion import rrf
+from trialguard.retrieval.fusion import importance_weights, rrf
 
 INDEX_DIR = Path("data/indexes")
 EVAL_DIR = Path("data/eval")
@@ -187,7 +187,9 @@ class FileIndex:
             )[:bm25_pool]
             all_rankings.append(bm25_ranked)
 
-        return rrf(all_rankings, top_k=top_k)
+        return rrf(
+            all_rankings, top_k=top_k, weights=importance_weights(len(all_rankings))
+        )
 
 
 # ---- Source-specific loaders ----

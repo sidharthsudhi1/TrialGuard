@@ -616,3 +616,34 @@ def test_assess_deep_is_still_capped(client):
     assert r.status_code == 400
     # Already opted in, so telling them to opt in would be nonsense.
     assert "deep=true" not in r.json()["detail"]
+
+
+def test_search_refuses_phi_before_processing(client):
+    r = client.post(
+        "/api/search",
+        json={"note": "58F with NSCLC, MRN: 0042213, reachable at a@b.org", "top_k": 3},
+    )
+    assert r.status_code == 400
+    detail = r.json()["detail"]
+    assert "protected health information" in detail
+    assert "record_number" in detail and "email" in detail
+    # The refusal must not echo the identifiers it rejected, or the log it is
+    # protecting now contains them.
+    assert "0042213" not in detail and "a@b.org" not in detail
+
+
+def test_assess_refuses_phi(client):
+    r = client.post(
+        "/api/assess",
+        json={"note": "Patient SSN 123-45-6789, stage IV", "nct_ids": ["NCT0001"]},
+    )
+    assert r.status_code == 400
+    assert "protected health information" in r.json()["detail"]
+    assert "123-45-6789" not in r.json()["detail"]
+
+
+def test_preset_style_synthetic_note_still_accepted(client):
+    # The gate must not block the traffic the system exists to serve.
+    from trialguard.agent.sanitize import detect_phi
+
+    assert detect_phi("58-year-old woman with stage IV NSCLC, ECOG 1, EGFR exon 19") == []

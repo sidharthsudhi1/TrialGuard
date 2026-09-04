@@ -107,8 +107,10 @@ Full reports: [`data/reports/phase2_3_results.md`](data/reports/phase2_3_results
 
 | Cohort | n | recall@50 | recall@100 | MRR |
 |---|---|---|---|---|
-| TREC 2021 | 75 | 0.289 | 0.426 | 0.562 |
+| TREC 2021 | 75 | **0.296** | **0.440** | **0.658** |
 | TREC 2022 | 50 | 0.313 | 0.464 | 0.667 |
+
+**Retrieval — keyword-importance decay (adopted 2026-09-04).** The extraction prompt ranks keywords most-to-least important and fusion discarded that ordering, counting all 24 lists equally. Weighting each keyword's lists by `1/i` — the aggregation TrialGPT publishes — is significant on both cohorts of record at the depths that matter: recall@100 +5.1% (p=0.0386) and recall@200 +6.1% (p=0.0014) on TREC 2021, +6.0% (p=0.0025) and +4.3% (p=0.0063) on TREC 2022. MRR rises with recall (0.626 → 0.658), so depth is not bought with head quality. R3 had tested the same lever at recall@50, where the effect is weakest and where its null reproduces exactly (p=0.2301); H1 is what moved the metric that matters to recall@100–200. Report: [`keyword_decay_findings.md`](data/reports/keyword_decay_findings.md).
 
 **End-to-end — the number the thesis actually claims.** Retrieval recall and faithfulness each describe one stage; neither says whether a patient note in yields eligible trials out. Composed end to end (note → keywords → retrieval → agent → tiered roll-up), the system surfaces eligible trials at:
 
@@ -467,6 +469,17 @@ Trials 2021/2022 topics and qrels from [TREC-CDS](https://www.trec-cds.org/)
 (NIST). Trial records come from ClinicalTrials.gov (U.S. National Library of
 Medicine).
 
-**Not a clinical decision tool.** Every patient note here is synthetic. This is
-a research artifact and must not be used to make or inform decisions about the
-care of real patients.
+**Not a clinical decision tool.** Every patient note here is synthetic, and the
+API enforces that rather than asking politely: `/api/search` and `/api/assess`
+refuse a note carrying HIPAA Safe Harbor identifiers before any processing,
+before any LLM call, and before anything reaches Langfuse. The refusal names the
+identifier *classes* found and never echoes the values, so the gate cannot write
+the PHI into the logs it exists to protect. Validated for zero false positives
+across all 184 cohort notes ([`tests/test_phi.py`](tests/test_phi.py)).
+
+It refuses rather than redacts on purpose: redaction would mean accepting real
+PHI, processing it, and storing a modified copy of it, which is not what this
+system tells its users it does.
+
+This is a research artifact and must not be used to make or inform decisions
+about the care of real patients.

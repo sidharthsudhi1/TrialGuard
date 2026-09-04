@@ -68,7 +68,7 @@ def _rate_or_429(request: Request, kind: str) -> None:
 
 
 def _reject_empty_or_injection(note: str) -> None:
-    from trialguard.agent.sanitize import detect_injection
+    from trialguard.agent.sanitize import detect_injection, detect_phi
 
     if not note or not note.strip():
         raise HTTPException(status_code=400, detail="Patient note is required.")
@@ -78,6 +78,23 @@ def _reject_empty_or_injection(note: str) -> None:
             detail=(
                 "Note looks like a prompt-injection attempt and was rejected. "
                 "Paste a synthetic clinical narrative, or pick a preset."
+            ),
+        )
+    # Synthetic-only was a promise in a notice and nothing enforced it, while the
+    # served path traces full prompts to Langfuse — so a pasted identifier left
+    # this infrastructure and persisted. Refuse rather than redact: redaction
+    # would mean accepting real PHI, processing it, and storing a modified copy,
+    # which is not what this system tells users it does. The categories are
+    # echoed, never the matched text, so the refusal cannot log what it rejects.
+    found = detect_phi(note)
+    if found:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Note appears to contain protected health information "
+                f"({', '.join(found)}) and was rejected before any processing. "
+                "TrialGuard accepts synthetic notes only. Remove the identifiers "
+                "and resubmit, or pick a preset."
             ),
         )
 

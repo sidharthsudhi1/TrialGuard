@@ -264,8 +264,11 @@ def test_generate_keywords_parses_llm_response(tmp_path, monkeypatch):
 
     assert "nsclc egfr mutation" in result
     assert result.count("nsclc egfr mutation") == 1  # deduped
-    note_hash = query_transform._note_hash(note)
+    # Keyed by the budget it was generated under: asking for 10 must not read or
+    # write the entry for the default 12, which is what it used to do.
+    note_hash = query_transform._note_hash(note, 10)
     assert (tmp_path / f"{note_hash}.json").exists()
+    assert not (tmp_path / f"{query_transform._note_hash(note)}.json").exists()
 
 
 def test_generate_keywords_fallback_on_llm_failure(tmp_path, monkeypatch):
@@ -484,3 +487,29 @@ def test_vector_cache_ranks_by_cosine_similarity(monkeypatch):
     hits = cache.search([1.0, 0.0], top_k=3)
     assert [n for n, _ in hits] == ["near", "mid", "far"]
     assert hits[0][1] == pytest.approx(1.0, abs=1e-6)
+
+
+def test_keyword_cache_key_discriminates_the_budget():
+    """A non-default keyword budget gets its own namespace; the default does not.
+
+    The prompt asks the model for at most n_max keywords, so the budget changes
+    the list. Leaving it out of the key meant a request for 32 read back a
+    cached 12 and reported it as 32 -- the same defect the rerank score cache
+    carried in 19c02a9. The default keeps the original key so the committed
+    Phase 2/7 entries stay where they are.
+    """
+    from trialguard.retrieval import query_transform as qt
+
+    assert qt._note_hash("n") == qt._note_hash("n", qt.LEGACY_N_MAX)
+    assert qt._note_hash("n", 32) != qt._note_hash("n", 12)
+    assert qt._note_hash("n", 24) != qt._note_hash("n", 32)
+
+
+def test_keyword_prompt_renders_the_budget_and_keeps_its_json_example():
+    from trialguard.retrieval.query_transform import _system_prompt
+
+    p12 = _system_prompt(12)
+    assert "Maximum 12 keywords" in p12 and "{n_max}" not in p12
+    # The prompt embeds a literal JSON example; a naive str.format would eat it.
+    assert '{"keywords"' in p12
+    assert "Maximum 32 keywords" in _system_prompt(32)

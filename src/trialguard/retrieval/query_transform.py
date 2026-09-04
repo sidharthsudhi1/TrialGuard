@@ -28,7 +28,7 @@ Rules:
   prior treatments, and major comorbidities or eligibility-relevant attributes.
 - Order most-to-least important for trial matching.
 - Output JSON only, no prose: {"keywords": ["...", "..."]}
-- Maximum 12 keywords. Omit anything not useful for search.\
+- Maximum {n_max} keywords. Omit anything not useful for search.\
 """
 
 
@@ -38,18 +38,42 @@ Rules:
 LEGACY_PAIR = ("groq", "llama-3.3-70b-versatile")
 
 
-def _note_hash(note: str) -> str:
-    """Keyword cache key, discriminated by (provider, model) off the legacy pair.
+# The keyword budget every committed cache entry was generated under. Like
+# LEGACY_PAIR, it keeps the original key format so no existing entry moves.
+LEGACY_N_MAX = 12
+
+
+def _note_hash(note: str, n_max: int = LEGACY_N_MAX) -> str:
+    """Keyword cache key, discriminated by (provider, model, n_max).
 
     Keywords are model-dependent: they drive per-keyword dense+BM25 retrieval, so
     a different host's phrasing changes recall. Sharing one namespace across hosts
     would make a retrieval number unattributable to the model that produced it.
+
+    `n_max` is in the key for the same reason and was missing from it: the prompt
+    asks the model for at most that many keywords, so it changes the list, and a
+    request for 32 used to read back a cached 12 and report it as 32. Same defect
+    the rerank cache carried in 19c02a9. Only a non-default budget is
+    discriminated, so the committed Phase 2/7 entries keep their paths.
     """
     from trialguard.llm.provider import active_model, active_provider
 
     pair = (active_provider(), active_model())
     raw = note if pair == LEGACY_PAIR else f"{pair[0]}|{pair[1]}|{note}"
+    if n_max != LEGACY_N_MAX:
+        raw = f"n{n_max}|{raw}"
     return hashlib.sha256(raw.encode()).hexdigest()[:16]
+
+
+def _system_prompt(n_max: int) -> str:
+    """Render the keyword prompt for a budget.
+
+    A plain substitution rather than str.format: the prompt embeds a literal
+    JSON example whose braces format() would try to read as fields. At the
+    default budget this renders byte-identically to the text that generated
+    every committed keyword cache entry.
+    """
+    return _SYSTEM_PROMPT.replace("{n_max}", str(n_max))
 
 
 def _parse_keywords(raw: str, n_max: int) -> list[str]:
@@ -77,7 +101,7 @@ def generate_keywords(patient_note: str, n_max: int = 12, handler=None) -> list[
     for. The cost ledger is what surfaced it.
     """
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    note_key = _note_hash(patient_note)
+    note_key = _note_hash(patient_note, n_max)
     cache_path = CACHE_DIR / f"{note_key}.json"
 
     # Disk first: those files back the committed Phase 2/7 retrieval numbers, so
@@ -114,7 +138,8 @@ def generate_keywords(patient_note: str, n_max: int = 12, handler=None) -> list[
     # retrieval. Cache hits return before reaching here, so an exhausted budget
     # still serves every preset and every note already seen.
     ledger.check(
-        estimate_tokens(_SYSTEM_PROMPT + patient_note) + _MAX_OUTPUT_TOKENS,
+        estimate_tokens(_system_prompt(n_max) + patient_note)
+        + _MAX_OUTPUT_TOKENS,
         provider=provider,
         model=model,
     )
@@ -122,7 +147,7 @@ def generate_keywords(patient_note: str, n_max: int = 12, handler=None) -> list[
     try:
         llm = get_chat_model("keywords")
         response = llm.invoke([
-            SystemMessage(content=_SYSTEM_PROMPT),
+            SystemMessage(content=_system_prompt(n_max)),
             HumanMessage(content=f"Patient summary:\n{patient_note}"),
         ], config=trace_config(
             handler, provider=provider, model=model, purpose="keywords"

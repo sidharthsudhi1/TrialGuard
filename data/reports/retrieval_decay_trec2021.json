@@ -1,0 +1,22 @@
+{
+  "_doc": "Served-config retrieval on TREC 2021 (n=75) with keyword-importance decay enabled, produced by scripts.eval_retrieval. Backs the recall floors in baselines.json. See keyword_decay_findings.md.",
+  "cohort": "trec_2021",
+  "config": "keyword",
+  "gold_coverage": 1.0,
+  "n_patients": 75,
+  "results": [
+    {
+      "cohort": "trec_2021",
+      "config": "keyword",
+      "latency_p50_ms": 555.3,
+      "latency_p95_ms": 796.2,
+      "mrr": 0.6583,
+      "n_patients": 75,
+      "recall@10": 0.0863,
+      "recall@100": 0.4396,
+      "recall@20": 0.1531,
+      "recall@200": 0.5619,
+      "recall@50": 0.2955
+    }
+  ]
+}
