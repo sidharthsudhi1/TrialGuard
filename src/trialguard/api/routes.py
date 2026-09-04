@@ -328,11 +328,47 @@ async def assess_start(body: AssessRequest, request: Request) -> AssessCreated:
     return AssessCreated(job_id=job.job_id)
 
 
+def _ensure_terminal(store: Any, job_id: str) -> None:
+    """No job outlives its task in a non-terminal state.
+
+    The heartbeat check in the store can only see a job whose whole *process* is
+    gone; a task that dies inside a live process keeps the owning instance id and
+    so never trips it. Here the fact is known rather than inferred, and this runs
+    on every exit path including CancelledError, which the `except Exception`
+    above does not catch. AD-13.
+    """
+    try:
+        current = store.get(job_id, with_events=False)
+        if current is not None and current.status in ("queued", "running"):
+            store.fail(job_id, "worker_died: the job task exited without finishing")
+    except Exception:  # noqa: BLE001 — must not mask whatever ended the job
+        pass
+
+
+async def _heartbeat(store: Any, job_id: str, interval: float) -> None:
+    """Prove the owning process is alive for as long as the job runs.
+
+    Its own task on purpose: the analyst call runs in the executor, so a provider
+    that hangs to TG_LLM_TIMEOUT stalls a worker thread and not this loop. A job
+    whose heartbeat stops has genuinely lost its worker (AD-13).
+    """
+    while True:
+        await asyncio.sleep(interval)
+        try:
+            store.heartbeat(job_id)
+        except Exception:  # noqa: BLE001 — a missed beat must not kill the job
+            pass
+
+
 async def _run_assess_job(app: Any, job_id: str) -> None:
     store = app.state.jobs
-    job = store.get(job_id)
+    job = store.get(job_id, with_events=False)
     if job is None:
         return
+
+    beat = asyncio.create_task(
+        _heartbeat(store, job_id, settings.api_job_heartbeat_seconds)
+    )
 
     from trialguard.agent.ratelimit import BudgetExhausted
 
@@ -386,6 +422,9 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
             store.fail(job_id, json.dumps(_budget_exhausted_detail(e)))
         else:
             store.fail(job_id, str(e))
+    finally:
+        beat.cancel()
+        _ensure_terminal(store, job_id)
 
 
 def _assess_one(
@@ -424,16 +463,23 @@ def _assess_one(
     def _emit(assessment: dict) -> None:
         if store is None:
             return
-        store.append(
-            job_id,
-            {
-                "type": "criterion",
-                "nct_id": nct_id,
-                "provisional": True,
-                "criterion": assessment.get("criterion", ""),
-                "verdict": assessment.get("verdict", "cannot_determine"),
-            },
-        )
+        try:
+            store.append(
+                job_id,
+                {
+                    "type": "criterion",
+                    "nct_id": nct_id,
+                    "provisional": True,
+                    "criterion": assessment.get("criterion", ""),
+                    "verdict": assessment.get("verdict", "cannot_determine"),
+                },
+            )
+        except Exception:  # noqa: BLE001
+            # These events are explicitly provisional and the terminal trial
+            # event is the authority, so a store that drops one costs a UI
+            # update. Raising here would turn a transient write failure into a
+            # failed trial that had actually succeeded.
+            pass
 
     state = assess(
         note,
@@ -471,21 +517,32 @@ async def assess_stream(job_id: str, request: Request) -> StreamingResponse:
         raise HTTPException(status_code=404, detail="Unknown job_id.")
 
     async def event_gen():
-        sent = 0
+        # A per-job sequence, not a local count of what this generator sent. The
+        # count died with the connection and could only ever mean "from the
+        # start"; seq is stored with the event, so the same cursor identifies a
+        # position in a log that outlives the stream. It also keeps the poll
+        # linear: re-reading every event of a 200-event job every 150 ms is a
+        # dict slice in memory and a table scan against Neon.
+        cursor = 0
         while True:
-            current = store.get(job_id)
+            current = store.get(job_id, with_events=False)
             if current is None:
                 payload = {"type": "error", "error": "job_expired"}
                 yield f"event: error\ndata: {json.dumps(payload)}\n\n"
                 return
-            while sent < len(current.events):
-                ev = current.events[sent]
-                sent += 1
+            pending = store.events_since(job_id, cursor)
+            for seq, ev in pending:
+                cursor = seq
                 etype = ev.get("type", "trial")
-                yield f"event: {etype}\ndata: {json.dumps(ev)}\n\n"
+                # SSE `id:` is what a reconnecting client echoes back as
+                # Last-Event-ID. Emitting it costs nothing here and is the half
+                # of resume that belongs with the sequence number.
+                yield f"id: {seq}\nevent: {etype}\ndata: {json.dumps(ev)}\n\n"
                 if etype in ("summary", "error"):
                     return
-            if current.status in ("done", "error") and sent >= len(current.events):
+            # Status and events are written in one transaction, so a terminal
+            # status is never visible before the event that closed the job.
+            if current.status in ("done", "error") and not pending:
                 return
             await asyncio.sleep(0.15)
 

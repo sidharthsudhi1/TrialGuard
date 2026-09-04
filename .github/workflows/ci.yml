@@ -9,6 +9,25 @@ on:
 jobs:
   gate:
     runs-on: ubuntu-latest
+
+    # A scratch Postgres so the WS-1 durability tests actually run instead of
+    # skipping. Stock image, no pgvector: tests/test_jobs.py applies JOBS_DDL
+    # rather than the full schema for exactly that reason. This is not the
+    # deployed environment WS-6 defers latency to -- it is an empty database that
+    # the suite creates and drops its own tables in.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -31,6 +50,8 @@ jobs:
           echo ".env not tracked."
 
       - name: Tests
+        env:
+          TG_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
         run: pytest tests/ -q
 
       - name: Typecheck

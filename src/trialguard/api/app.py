@@ -18,7 +18,7 @@ os.environ.setdefault("TG_PROMPT_VERSION", "v4")
 from fastapi import FastAPI  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
-from trialguard.api.jobs import JobStore  # noqa: E402
+from trialguard.api.jobs import make_job_store  # noqa: E402
 from trialguard.api.rate_limit import RateLimiter  # noqa: E402
 from trialguard.api.routes import router  # noqa: E402
 from trialguard.api.schemas import SYNTHETIC_NOTICE  # noqa: E402
@@ -28,7 +28,10 @@ from trialguard.config import settings  # noqa: E402
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.medcpt_warm = False
-    app.state.jobs = JobStore(ttl_seconds=settings.api_job_ttl_seconds)
+    app.state.jobs = make_job_store(
+        ttl_seconds=settings.api_job_ttl_seconds,
+        stale_seconds=settings.api_job_stale_seconds,
+    )
     # Strong references to in-flight assess tasks; see routes.assess_start.
     app.state.assess_tasks = set()
     app.state.rate_limiters = {

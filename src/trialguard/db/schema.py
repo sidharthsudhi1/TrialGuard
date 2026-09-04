@@ -9,7 +9,49 @@ from psycopg2 import pool
 
 from trialguard.config import settings
 
-DDL = """
+JOBS_DDL = """
+-- Assess jobs and their event log (Phase 10 WS-1). Previously an in-process dict
+-- with TTL eviction, so a Fly restart -- deploy, host migration, OOM -- took every
+-- in-flight job with it: the user had paid for the LLM calls and the stream hung
+-- until the client gave up.
+--
+-- instance_id is the *process* that owns the row, not the machine. fly.toml
+-- suspends idle machines and suspend snapshots RAM, so a resumed process is alive
+-- with a heartbeat frozen for the whole suspension; a heartbeat age test alone
+-- would report it dead. A machine keeps its Fly id across a restart, so the Fly id
+-- cannot make that distinction either. A per-process value can: suspend preserves
+-- it, and a deploy, crash or OOM starts a new interpreter with a new one. See
+-- AD-13.
+CREATE TABLE IF NOT EXISTS jobs (
+    job_id            TEXT PRIMARY KEY,
+    note              TEXT NOT NULL,
+    nct_ids           TEXT[] NOT NULL,
+    status            TEXT NOT NULL DEFAULT 'queued',
+    error             TEXT,
+    skip_cache_write  BOOLEAN NOT NULL DEFAULT TRUE,
+    instance_id       TEXT NOT NULL,
+    heartbeat_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS jobs_created_at_idx ON jobs(created_at);
+
+-- seq is assigned under a FOR UPDATE lock on the parent job rather than from a
+-- sequence. A BIGSERIAL is allocated before commit, so a reader can observe a
+-- later id committed while an earlier one is still in flight and skip it forever
+-- -- which is exactly the gap WS-2's Last-Event-ID cursor must not have.
+CREATE TABLE IF NOT EXISTS job_events (
+    job_id      TEXT NOT NULL REFERENCES jobs(job_id) ON DELETE CASCADE,
+    seq         INTEGER NOT NULL,
+    event       JSONB NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (job_id, seq)
+);
+"""
+
+# f-string: JOBS_DDL is spliced in so the two tables have exactly one definition,
+# and a test can create them without the pgvector extension the rest of this needs.
+DDL = f"""
 CREATE EXTENSION IF NOT EXISTS vector;
 
 CREATE OR REPLACE FUNCTION trials_doc_tsv(_title text, _incl text[], _excl text[])
@@ -88,6 +130,7 @@ CREATE TABLE IF NOT EXISTS spend_by_model (
     PRIMARY KEY (day, model_key)
 );
 
+{JOBS_DDL}
 CREATE TABLE IF NOT EXISTS eval_patients (
     patient_id   TEXT,
     cohort       TEXT,
