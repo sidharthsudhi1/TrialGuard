@@ -345,19 +345,33 @@ def _ensure_terminal(store: Any, job_id: str) -> None:
         pass
 
 
-async def _heartbeat(store: Any, job_id: str, interval: float) -> None:
-    """Prove the owning process is alive for as long as the job runs.
+async def _heartbeat(
+    store: Any, job_id: str, interval: float, tasks: list[asyncio.Task]
+) -> None:
+    """Prove the owning process is alive, and stop the work when it is not.
 
     Its own task on purpose: the analyst call runs in the executor, so a provider
     that hangs to TG_LLM_TIMEOUT stalls a worker thread and not this loop. A job
     whose heartbeat stops has genuinely lost its worker (AD-13).
+
+    The beat is also the cancellation channel. A machine can be suspended and
+    never routed to again, so another reader declares its job dead -- correctly,
+    because a job nobody can reach is stalled whether or not its process still
+    exists. If that machine is later woken it must not resume spending on a job
+    the user has already been told failed and has probably retried. The store
+    reports that on the next beat, which is the one thing a running job does on a
+    timer.
     """
     while True:
         await asyncio.sleep(interval)
         try:
-            store.heartbeat(job_id)
+            alive = store.heartbeat(job_id)
         except Exception:  # noqa: BLE001 — a missed beat must not kill the job
-            pass
+            continue
+        if not alive:
+            for t in tasks:
+                t.cancel()
+            return
 
 
 async def _run_assess_job(app: Any, job_id: str) -> None:
@@ -365,10 +379,6 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
     job = store.get(job_id, with_events=False)
     if job is None:
         return
-
-    beat = asyncio.create_task(
-        _heartbeat(store, job_id, settings.api_job_heartbeat_seconds)
-    )
 
     from trialguard.agent.ratelimit import BudgetExhausted
 
@@ -399,6 +409,9 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
     # the same calls, overlapped. Events carry nct_id and the SSE stream replays
     # them in append order, so completion order is not load-bearing.
     tasks = [asyncio.create_task(_one(n)) for n in job.nct_ids]
+    beat = asyncio.create_task(
+        _heartbeat(store, job_id, settings.api_job_heartbeat_seconds, tasks)
+    )
     try:
         try:
             for completed in asyncio.as_completed(tasks):
@@ -409,6 +422,10 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
             for t in tasks:
                 t.cancel()
             store.fail(job_id, json.dumps(_budget_exhausted_detail(e)))
+            return
+        except asyncio.CancelledError:
+            # The beat cancelled the work because the job is no longer ours. It
+            # already carries a terminal status written by whoever took it.
             return
         store.complete(
             job_id,
@@ -503,6 +520,24 @@ def _assess_one(
     }
 
 
+def _resume_cursor(request: Request) -> int:
+    """Where a reconnecting client left off, from the standard SSE header.
+
+    A browser EventSource replays the last `id:` it saw as `Last-Event-ID` on its
+    own reconnects, with no client code involved. A value that is not a
+    non-negative integer is treated as "from the beginning" rather than rejected:
+    the header is echoed by the client from a previous stream, so a stale or
+    mangled one should cost a replay, not a 400 on a job the user has paid for.
+    """
+    raw = request.headers.get("last-event-id")
+    if raw is None:
+        return 0
+    try:
+        return max(0, int(raw.strip()))
+    except ValueError:
+        return 0
+
+
 @router.get("/assess/{job_id}")
 async def assess_stream(job_id: str, request: Request) -> StreamingResponse:
     """SSE: provisional criterion events, one event per trial, then a summary.
@@ -510,11 +545,18 @@ async def assess_stream(job_id: str, request: Request) -> StreamingResponse:
     `criterion` events stream as the analyst produces them and carry
     provisional=True; the `trial` event for the same nct_id is the authoritative
     result and supersedes them.
+
+    Resumable. Each event carries its per-job `seq` as the SSE `id:`, and a
+    reconnecting client resumes from `Last-Event-ID`, so a dropped connection
+    costs the events in flight at that instant and nothing else. A client that
+    reconnects with no header replays the whole log, which is what a fresh reader
+    of a finished job wants.
     """
     store = request.app.state.jobs
-    job = store.get(job_id)
+    job = store.get(job_id, with_events=False)
     if job is None:
         raise HTTPException(status_code=404, detail="Unknown job_id.")
+    resume_from = _resume_cursor(request)
 
     async def event_gen():
         # A per-job sequence, not a local count of what this generator sent. The
@@ -523,7 +565,7 @@ async def assess_stream(job_id: str, request: Request) -> StreamingResponse:
         # position in a log that outlives the stream. It also keeps the poll
         # linear: re-reading every event of a 200-event job every 150 ms is a
         # dict slice in memory and a table scan against Neon.
-        cursor = 0
+        cursor = resume_from
         while True:
             current = store.get(job_id, with_events=False)
             if current is None:

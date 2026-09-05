@@ -55,6 +55,17 @@ def test_events_since_is_one_based_and_exclusive():
     assert store.events_since(job.job_id, 0)[0][1]["i"] == 0
 
 
+def test_heartbeat_reports_whether_the_job_is_still_ours():
+    """The beat is the cancellation channel: False means stop spending."""
+    store = InMemoryJobStore()
+    job = store.create("note", ["NCT1"])
+    assert store.heartbeat(job.job_id) is True
+
+    store.fail(job.job_id, "taken over elsewhere")
+    assert store.heartbeat(job.job_id) is False
+    assert store.heartbeat("no-such-job") is False
+
+
 def test_make_job_store_falls_back_without_a_database():
     assert isinstance(make_job_store(3600, 90), InMemoryJobStore)
 
@@ -227,3 +238,52 @@ def test_retention_deletes_expired_jobs_and_their_events(pg):
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("SELECT count(*) FROM job_events WHERE job_id = %s", (old.job_id,))
         assert cur.fetchone()[0] == 0
+
+
+@needs_db
+def test_a_disowned_job_stops_beating(pg, monkeypatch):
+    """A woken machine must not resume spending on a job already failed.
+
+    Suspended-but-unreachable and gone are the same thing to everyone waiting, so
+    another reader is right to fail the job. What this guarantees is that the
+    original owner finds out on its next beat instead of paying for the rest.
+    """
+    from trialguard.db.schema import get_conn
+
+    store = PostgresJobStore(stale_seconds=30)
+    job = store.create("note", ["NCT1", "NCT2"])
+    store.append(job.job_id, {"type": "criterion"})
+    assert store.heartbeat(job.job_id) is True
+
+    # Another reader declares it dead while this owner is unreachable.
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            "UPDATE jobs SET heartbeat_at = NOW() - interval '5 minutes' "
+            "WHERE job_id = %s",
+            (job.job_id,),
+        )
+    monkeypatch.setattr("trialguard.api.jobs.INSTANCE_ID", "a-different-process")
+    assert PostgresJobStore(stale_seconds=30).get(job.job_id).status == "error"
+    monkeypatch.undo()
+
+    assert store.heartbeat(job.job_id) is False
+
+
+@needs_db
+def test_a_disowned_beat_does_not_revive_the_heartbeat(pg):
+    """The guard is on the UPDATE, so a terminal row is never touched again."""
+    from trialguard.db.schema import get_conn
+
+    store = PostgresJobStore()
+    job = store.create("note", ["NCT1"])
+    store.fail(job.job_id, "failed elsewhere")
+
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("SELECT heartbeat_at FROM jobs WHERE job_id = %s", (job.job_id,))
+        before = cur.fetchone()[0]
+
+    assert store.heartbeat(job.job_id) is False
+
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("SELECT heartbeat_at FROM jobs WHERE job_id = %s", (job.job_id,))
+        assert cur.fetchone()[0] == before

@@ -85,8 +85,11 @@ class InMemoryJobStore:
                 return []
             return [(i, job.events[i - 1]) for i in range(after_seq + 1, len(job.events) + 1)]
 
-    def heartbeat(self, job_id: str) -> None:
-        """No-op: a dict cannot outlive the process that owns it."""
+    def heartbeat(self, job_id: str) -> bool:
+        """A dict cannot outlive its process, so this only reports ownership."""
+        with self._lock:
+            job = self._jobs.get(job_id)
+            return job is not None and job.status in ("queued", "running")
 
     def append(self, job_id: str, event: dict[str, Any]) -> None:
         with self._lock:
@@ -232,11 +235,24 @@ class PostgresJobStore:
             )
             return [(r[0], r[1]) for r in cur.fetchall()]
 
-    def heartbeat(self, job_id: str) -> None:
+    def heartbeat(self, job_id: str) -> bool:
+        """Bump the beat. False means the job is no longer this worker's to run.
+
+        A machine can be suspended and simply never routed to again, in which case
+        its job is stalled indefinitely and another reader is right to declare it
+        dead -- "suspended but unreachable" and "gone" are the same thing to
+        everyone waiting on it, and are not worth trying to tell apart. What must
+        not happen is the owner waking later and continuing to spend on a job that
+        has already been failed and retried elsewhere. The beat is the natural
+        place to notice, since it is the one thing a running job does on a timer.
+        """
         with self._conn() as conn, conn.cursor() as cur:
             cur.execute(
-                "UPDATE jobs SET heartbeat_at = NOW() WHERE job_id = %s", (job_id,)
+                "UPDATE jobs SET heartbeat_at = NOW() "
+                "WHERE job_id = %s AND status IN ('queued', 'running')",
+                (job_id,),
             )
+            return cur.rowcount > 0
 
     @staticmethod
     def _append_unlocked(cur, job_id: str, event: dict[str, Any]) -> None:
