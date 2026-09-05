@@ -69,40 +69,52 @@ new build; `DATABASE_URL` is an app secret the machine inherits rather than a
 credential copied into a second system; and it runs in `syd` beside Neon, where
 the corpus SELECT and the upserts are local rather than crossing a region.
 
-```bash
-# The image the API is currently running.
-fly image show --app trialguard-api
+**Deploy with `scripts/deploy_api.sh`, not bare `fly deploy`.** The script
+deploys, then destroys and re-creates the refresh machine on the image it just
+shipped.
 
-fly machine run <that-image-ref> \
-  --app trialguard-api \
-  --region syd \
-  --schedule daily \
-  --vm-memory 4096 --vm-cpu-kind performance --vm-cpus 2 \
-  --restart no \
-  python -m trialguard.scripts.refresh
+```bash
+scripts/deploy_api.sh                 # deploy + re-create the refresh machine
+scripts/deploy_api.sh --skip-deploy   # re-create it only
 ```
+
+Re-creating rather than checking is deliberate. Whether `fly deploy` preserves a
+scheduled machine — and whether it updates that machine's *image* if it does — is
+Fly behaviour this repo has not measured, and guessing wrong fails silently in
+both directions:
+
+| | outcome | consequence |
+|---|---|---|
+| a | machine destroyed by the deploy | the corpus stops being refreshed |
+| b | preserved, image unchanged | worse, because it looks fine: the refresh runs last release's code forever, so a fix to `refresh.py` never ships |
+| c | preserved and updated | the intended state |
+
+(b) is indistinguishable from (c) in `fly machines list` unless you compare image
+refs. Recreating collapses all three into one known state for the cost of two API
+calls, and does not depend on a platform behaviour that can change in a Fly
+release without anyone noticing.
+
+The machine runs in its own `fly_process_group=refresh`, so a deploy does not
+apply the `http_service` config — and its health checks — to a machine that runs
+a batch script and exits.
 
 `--vm-memory 4096` because MedCPT loads to embed new and revised trials; a
 refresh that finds nothing to embed never loads it, but the machine has to be
 sized for the run that does. `--restart no` so a failed crawl waits for the next
-schedule instead of retrying into the CT.gov rate limit.
+schedule instead of retrying straight back into the rate limit that failed it.
 
 The crawl is paced at `ctgov_request_delay` (1.5 s) over `ctgov_page_size` (100),
 so ~26k trials is ~260 requests and roughly six to seven minutes before any
 embedding. **Measure the first run rather than trusting that estimate** — it is
 arithmetic, not an observation.
 
-**Verify after the first `fly deploy` that the scheduled machine still exists**
-(`fly machines list`). Deploys reconcile the app's machines, and whether a
-scheduled machine survives one depends on Fly behaviour this repo has not
-measured. If it is removed, re-create it with the command above as a deploy step,
-or move it to its own app with `DATABASE_URL` set separately.
-
 ### Seeing the result
 
 `/api/health` reports `corpus_refresh` — the counts from the last run and the
 timestamp it finished — so a refresh that silently stopped running is visible
-rather than inferred. Per-trial `last_updated` is served on `/api/search` and
+rather than inferred. That field, not the deploy script exiting 0, is the
+evidence the schedule actually fires: the script proves the machine was created,
+not that Fly ran it. Per-trial `last_updated` is served on `/api/search` and
 `/api/trials/{id}` and rendered in the UI, with records CT.gov has not touched in
 over a year marked visibly stale.
 
