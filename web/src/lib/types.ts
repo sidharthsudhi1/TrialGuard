@@ -13,6 +13,8 @@ export interface SearchTrial {
   status: string | null;
   phase: string | null;
   conditions: string[];
+  /** CT.gov lastUpdatePostDate, YYYY-MM-DD. Null on records ingested before it was stored. */
+  last_updated: string | null;
   score: number;
 }
 
@@ -64,6 +66,7 @@ export interface TrialDetail {
   eligibility_raw: string;
   inclusion_criteria: string[];
   exclusion_criteria: string[];
+  last_updated: string | null;
 }
 
 export interface BudgetInfo {

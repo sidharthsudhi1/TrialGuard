@@ -158,6 +158,20 @@ def _vector_cache_status() -> dict[str, Any]:
     return status()
 
 
+def _corpus_freshness() -> dict[str, Any] | None:
+    """When the corpus was last reconciled against CT.gov, or None if never.
+
+    A single indexed key read, because this endpoint is polled every 30s by the
+    Fly health check. The counts come from the refresh that wrote them rather
+    than from a fresh aggregate for the same reason.
+    """
+    if not settings.database_url:
+        return None
+    from trialguard.db.cache import cache_get
+
+    return cache_get("corpus", "last_refresh")
+
+
 @router.get("/health")
 def health(request: Request) -> dict[str, Any]:
     """Process up + pool leasable + MedCPT warm flag."""
@@ -179,6 +193,7 @@ def health(request: Request) -> dict[str, Any]:
         "pool_error": pool_error,
         "medcpt_warm": bool(request.app.state.medcpt_warm),
         "vector_cache": _vector_cache_status(),
+        "corpus_refresh": _corpus_freshness(),
         "prompt_version": os.environ.get("TG_PROMPT_VERSION", "v1"),
         "synthetic_only": True,
         "notice": SYNTHETIC_NOTICE,
@@ -258,6 +273,7 @@ def search(body: SearchRequest, request: Request) -> dict[str, Any]:
                 "status": t.get("status"),
                 "phase": t.get("phase"),
                 "conditions": t.get("conditions") or [],
+                "last_updated": t.get("last_updated"),
                 "score": round(float(score), 4),
             }
         )

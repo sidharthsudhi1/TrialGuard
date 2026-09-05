@@ -9,23 +9,34 @@ def test_get_trials_empty():
     assert Q.get_trials([]) == {}
 
 
+# Keyed by column name, not position: the previous fixture was a bare tuple that
+# had to be re-counted by hand every time _TRIAL_COLS grew.
+_ROW_VALUES = {
+    "nct_id": "NCT1",
+    "title": "Title",
+    "status": "RECRUITING",
+    "phase": "PHASE2",
+    "conditions": ["melanoma"],
+    "interventions": ["drug"],
+    "eligibility_raw": "elig raw",
+    "inclusion_criteria": ["inc1"],
+    "exclusion_criteria": ["exc1"],
+    "min_age": "18 Years",
+    "max_age": "N/A",
+    "sex": "ALL",
+    "healthy_volunteers": False,
+    "last_updated": "2026-08-14",
+    "source": "ctgov_live",
+}
+
+
+def test_row_fixture_covers_every_selected_column():
+    """A column added to the SELECT without a value here would fail obscurely."""
+    assert set(_ROW_VALUES) == set(Q._TRIAL_COLS)
+
+
 def test_get_trials_batches_any():
-    row = (
-        "NCT1",
-        "Title",
-        "RECRUITING",
-        "PHASE2",
-        ["melanoma"],
-        ["drug"],
-        "elig raw",
-        ["inc1"],
-        ["exc1"],
-        "18 Years",
-        "N/A",
-        "ALL",
-        False,
-        "ctgov_live",
-    )
+    row = tuple(_ROW_VALUES[c] for c in Q._TRIAL_COLS)
     cur = MagicMock()
     cur.fetchall.return_value = [row]
     cur.description = [(c,) for c in Q._TRIAL_COLS]
@@ -39,6 +50,8 @@ def test_get_trials_batches_any():
     assert list(out) == ["NCT1"]
     assert out["NCT1"]["title"] == "Title"
     assert out["NCT1"]["exclusion_criteria"] == ["exc1"]
+    # WS-3: served so a reader can see the age of the record a quote came from.
+    assert out["NCT1"]["last_updated"] == "2026-08-14"
     sql = cur.execute.call_args[0][0]
     assert "ANY(%s)" in sql
     assert "source = %s" in sql

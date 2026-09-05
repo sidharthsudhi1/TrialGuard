@@ -244,6 +244,13 @@ button:disabled {
   font-size: 0.85rem;
 }
 
+/* A record CT.gov has not touched in over a year. Muted text states the age of
+   every record; this only raises the ones old enough that a reader weighing an
+   eligibility quote should notice without looking for it. */
+.stale {
+  color: var(--accent-2);
+}
+
 .score {
   font-family: var(--font-mono);
   font-size: 0.8rem;

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { SyntheticNotice } from "../components/SyntheticNotice";
 import { fetchLimits, searchTrials, startAssess } from "../lib/api";
 import type { Limits, SearchTrial } from "../lib/types";
+import { freshness } from "@/lib/freshness";
 
 const PRESETS: { label: string; note: string }[] = [
   {
@@ -192,6 +193,15 @@ export default function SearchPage() {
                       .filter(Boolean)
                       .join(" · ")}
                   </p>
+                  {(() => {
+                    const f = freshness(t.last_updated);
+                    if (!f) return null;
+                    return (
+                      <p className={f.stale ? "trial-meta stale" : "trial-meta"}>
+                        {f.label}
+                      </p>
+                    );
+                  })()}
                 </div>
                 <span className="score">{t.score.toFixed(4)}</span>
               </label>
