@@ -19,15 +19,47 @@ jobs:
       - name: Install
         run: pip install -e .
 
+      # WS-4 — the live endpoints, which traces cannot see. A trace-reading
+      # monitor is blind exactly when the API is down, because an outage produces
+      # fewer traces rather than different ones. This runs first and is not
+      # conditional on any secret: an unreachable API is worth alerting on whether
+      # or not Langfuse is configured.
+      - name: API probe
+        env:
+          TG_API_BASE_URL: ${{ vars.TG_API_BASE_URL || 'https://trialguard-api.fly.dev' }}
+        run: python -m trialguard.eval.served_probe --out probe.json
+
       # E2 — compares served abstention / grounding-failure rates against the
       # committed bands in data/reports/served_baselines.json. Exits non-zero on
       # divergence, which fails the run and produces the alert email for free.
+      #
+      # Armed: a missing secret fails rather than skips. The monitor spent its
+      # existence green and silent because the skip branch made "not configured"
+      # indistinguishable from "nothing diverged", which is the defect this work
+      # stream exists to close. To stand it down, disable the workflow rather than
+      # removing the secrets.
       - name: Served metrics vs baselines
         env:
           LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
           LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
         run: |
-          if [ -z "$LANGFUSE_PUBLIC_KEY" ]; then
-            echo "Langfuse secrets not configured; skipping."; exit 0
+          if [ -z "$LANGFUSE_PUBLIC_KEY" ] || [ -z "$LANGFUSE_SECRET_KEY" ]; then
+            echo "::error::Langfuse secrets are not configured, so the served" \
+                 "monitor is reading nothing. Add LANGFUSE_PUBLIC_KEY and" \
+                 "LANGFUSE_SECRET_KEY as repository secrets, or disable this" \
+                 "workflow. A monitor that silently no-ops is worse than none."
+            exit 1
           fi
-          python -m trialguard.eval.served_monitor --days 7
+          python -m trialguard.eval.served_monitor --days 7 --out monitor.json
+
+      # Kept on failure too: the run that alerted is the one whose numbers are
+      # worth reading afterwards.
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: served-monitor-reports
+          path: |
+            probe.json
+            monitor.json
+          if-no-files-found: ignore
