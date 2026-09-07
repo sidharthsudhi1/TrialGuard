@@ -68,12 +68,28 @@ def test_a_healthy_deployment_passes_every_check():
     assert check(_probe())["passed"] is True
 
 
-def test_the_probe_hits_health_twice_to_separate_cold_from_warm():
-    """fly.toml suspends idle machines; the first call absorbs the resume."""
+def test_the_probe_calls_each_endpoint_twice_to_separate_cold_from_warm():
+    """fly.toml suspends idle machines; the first call of each absorbs the resume.
+
+    Search is measured twice for a distinct reason: the first search after a
+    resume was measured at 20,576 ms server-side against 542-570 ms settled, so
+    one sample would be whichever of those the probe happened to catch.
+    """
     client = _FakeClient()
     probe("https://example.test", client=client)
 
-    assert client.calls == ["health", "health", "budget", "search"]
+    assert client.calls == ["health", "health", "budget", "search", "search"]
+
+
+def test_the_first_search_is_reported_but_never_gates():
+    """An order-of-magnitude slower first call would fail every deploy."""
+    result = {**_probe(), "search_server_cold_ms": 20_576.2}
+
+    outcome = check(result)
+    row = next(r for r in outcome["results"] if r["check"] == "search_first_call")
+    assert row["passed"] is True
+    assert row["value"] == 20_576.2
+    assert outcome["passed"] is True
 
 
 def test_an_unreachable_api_fails_rather_than_raising():

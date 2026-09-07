@@ -54,6 +54,40 @@ under session `request_id`, `/api/assess` under the `job_id`, both tagged
 `served`. Say this plainly rather than implying a guarantee the code does not
 provide.
 
+## Latency SLO
+
+Enforced by `scripts/deploy_api.sh` after every deploy, against
+`data/reports/served_slo.json`. Not a CI gate: CI has no deployed environment,
+which is why E3 deferred latency in the first place and why the deferral then sat
+unbuilt.
+
+| | bound | measured 2026-09-05/07 |
+|---|---|---|
+| `/api/health`, warm | 500 ms | 28.7–45.3 ms |
+| `/api/search`, server-side `total_ms`, warm | 1500 ms | 506–646 ms |
+| `/api/search` wall time | 30 s | 683 ms warm |
+| search returns trials | ≥ 1 | 10 |
+
+**Cold start is bounded by Fly, not here.** `fly.toml` sets `grace_period = "5m"`
+on the health check, so a boot slower than that flaps the machine into a restart
+and the deploy fails on its own. By the time the smoke check runs, the machine
+has already answered `/api/health`, so any number it measures is warm — gating it
+would assert something it did not observe. The probe records the resume path
+instead.
+
+**What "780 ms warm" does not describe.** The first search after a resume from
+suspend was measured at **20,576 ms server-side** with the keyword cache already
+warm (`keyword_ms` 24.2), settling to 542–570 ms by the third call, with
+`dense_ms` falling 3,277 → 1,514 across them. `fly.toml` suspends idle machines,
+so this is what a user meets opening the demo after a quiet period — not the
+780 ms the reports quote, which is the steady state. The probe measures both and
+gates only the warm one; the first-call number is reported so it stops being
+invisible.
+
+Two other timings worth having beside these: resuming a suspended machine costs
+12.2–16.3 s to first `/api/health` response, and the in-process vector cache
+reports `load_seconds: 32.9` for its 25,965 rows.
+
 ## Scheduled corpus refresh
 
 `python -m trialguard.scripts.refresh` reconciles `ctgov_live` against

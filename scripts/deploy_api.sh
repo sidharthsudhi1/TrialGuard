@@ -68,6 +68,22 @@ fly machines list --app "$APP" --json | jq -r --arg g "$GROUP" '
   .[] | select(.config.metadata.fly_process_group == $g)
   | "  id=\(.id)  schedule=\(.config.schedule // "NONE")  image=\(.config.image)"'
 
+# WS-6a. CI has no deployed environment, so latency cannot be gated there; this
+# is the post-deploy smoke check that can. Tighter bounds than the nightly
+# alerting run, because this fires immediately after a known change against a
+# machine Fly has already health-checked -- it is a regression gate, not a drift
+# detector.
+echo "==> Post-deploy SLO check"
+if ! python -m trialguard.eval.served_probe \
+      --base-url "${TG_API_BASE_URL:-https://$APP.fly.dev}" \
+      --thresholds data/reports/served_slo.json; then
+  echo
+  echo "SLO check FAILED against the deployment just shipped." >&2
+  echo "The release is live -- this does not roll it back. Investigate or run:" >&2
+  echo "  fly releases --app $APP    # then: fly deploy --image <previous>" >&2
+  exit 1
+fi
+
 cat <<'EOF'
 
 The refresh writes its counts and finish time to cache_entries under

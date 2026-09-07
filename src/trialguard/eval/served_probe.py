@@ -77,11 +77,19 @@ def probe(base_url: str, *, client=None, timeout: float = 60.0) -> dict:
         r_cold, cold_ms, cold_err = _timed(lambda: client.get(f"{base}/api/health"))
         r_warm, warm_ms, warm_err = _timed(lambda: client.get(f"{base}/api/health"))
         r_budget, budget_ms, budget_err = _timed(lambda: client.get(f"{base}/api/budget"))
-        r_search, search_ms, search_err = _timed(
-            lambda: client.post(
-                f"{base}/api/search", json={"note": PROBE_NOTE, "top_k": 10}
-            )
+        # Twice, for the same reason health is called twice. Measured on the
+        # deployed API: the first search after a resume from suspend took 20,576 ms
+        # server-side with the keyword cache warm (keyword_ms 24.2), settling to
+        # 542-570 ms by the third call, with dense_ms falling 3277 -> 1514 across
+        # them. The documented "780 ms warm" is the steady state and does not
+        # describe what a user meets when they open an idle demo. Gating the first
+        # number would fail every deploy; not measuring it is how it stayed
+        # unknown.
+        _search = lambda: client.post(  # noqa: E731
+            f"{base}/api/search", json={"note": PROBE_NOTE, "top_k": 10}
         )
+        r_cold_search, cold_search_ms, cold_search_err = _timed(_search)
+        r_search, search_ms, search_err = _timed(_search)
     finally:
         if owns_client:
             client.close()
@@ -89,6 +97,7 @@ def probe(base_url: str, *, client=None, timeout: float = 60.0) -> dict:
     health = _json_or_empty(r_warm) or _json_or_empty(r_cold)
     budget = _json_or_empty(r_budget)
     search = _json_or_empty(r_search)
+    cold_search = _json_or_empty(r_cold_search)
 
     return {
         "base_url": base,
@@ -108,12 +117,18 @@ def probe(base_url: str, *, client=None, timeout: float = 60.0) -> dict:
         # would alert every time the cache is cold and explain nothing. The
         # server's total_ms is the stable number; keyword_ms names the cause when
         # the wall time diverges from it.
+        "search_cold_ms": cold_search_ms,
+        "search_server_cold_ms": _latency(cold_search, "total_ms"),
         "search_ms": search_ms,
         "search_server_ms": _latency(search, "total_ms"),
         "search_keyword_ms": _latency(search, "keyword_ms"),
         "search_status": _status(r_search, search_err),
         "search_results": len(search.get("trials", []) or []),
-        "errors": [e for e in (cold_err, warm_err, budget_err, search_err) if e],
+        "errors": [
+            e
+            for e in (cold_err, warm_err, budget_err, cold_search_err, search_err)
+            if e
+        ],
     }
 
 
@@ -168,6 +183,14 @@ def check(result: dict, thresholds_path: Path = THRESHOLDS) -> dict:
         f"<= {t['max_health_cold_ms']} ms",
     )
     _row("search_reachable", result["search_status"] == 200, result["search_status"], "200")
+    # Reported, not gated: the first search after a resume is legitimately an
+    # order of magnitude slower and a bound on it would fail every deploy.
+    _row(
+        "search_first_call",
+        True,
+        result.get("search_server_cold_ms"),
+        "reported, not gated",
+    )
     # Gated on the server's own number. A cold keyword cache adds an LLM call
     # inside the request that has nothing to do with whether retrieval regressed.
     server_ms = result.get("search_server_ms")
@@ -230,12 +253,21 @@ def main() -> None:
         default=os.environ.get("TG_API_BASE_URL", "https://trialguard-api.fly.dev"),
     )
     ap.add_argument("--out", default=None, help="Optional JSON report path")
+    ap.add_argument(
+        "--thresholds",
+        default=None,
+        help=(
+            "Threshold file. Defaults to the nightly alerting bands; pass "
+            "data/reports/served_slo.json for the tighter post-deploy gate."
+        ),
+    )
     args = ap.parse_args()
 
+    thresholds = Path(args.thresholds) if args.thresholds else THRESHOLDS
     result = probe(args.base_url)
-    outcome = check(result)
+    outcome = check(result, thresholds_path=thresholds)
 
-    print(f"Served probe — {result['base_url']}")
+    print(f"Served probe — {result['base_url']}  [{thresholds.name}]")
     for r in outcome["results"]:
         mark = "OK" if r["passed"] else "FAIL"
         print(f"{mark:>6} {r['check']:<22} {str(r['value']):<18} expected {r['expected']}")

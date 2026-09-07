@@ -122,6 +122,14 @@ class Settings(BaseSettings):
     api_assess_usd_per_trial: float = 0.000425
     api_assess_seconds_per_trial: float = 29.2
 
+    # WS-6b. Nothing bounded a trial before this. TG_LLM_TIMEOUT is 180s per HTTP
+    # attempt, the provider client retries twice, and the graph retries the whole
+    # assessment twice, so one trial could legitimately occupy ~27 minutes and the
+    # UI showed nothing at any point in it. 240s is ~8x the 29.2s median and ~2.7x
+    # the measured two-retry path (~88s), so a genuinely slow trial still finishes
+    # and a hung one stops being an unbounded promise.
+    api_assess_trial_deadline_seconds: float = 240.0
+
     # Hugging Face
     hf_token: str = ""
 

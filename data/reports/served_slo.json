@@ -1,0 +1,10 @@
+{
+  "_doc": "WS-6a latency SLO, enforced post-deploy by scripts/deploy_api.sh. Tighter than the nightly alerting bands in served_probe_thresholds.json, and for a different purpose: this runs immediately after a known deploy against a machine Fly has already health-checked, so it is a regression gate rather than a drift detector. Anchors measured 2026-09-05: health warm 31.9-45.3 ms, search server-side total_ms 506.5-617.7. Bounds sit at roughly 10x and 2.5x those, tight enough that a real regression fails the release and loose enough that provider and network variance does not.",
+  "_cold_start": "Deliberately not gated here. fly.toml sets grace_period = 5m on the health check, so a boot slower than that flaps the machine into a restart and the deploy fails on its own -- the cold-start bound already exists and Fly enforces it. By the time this check runs the machine has answered /api/health, so any number it measures is a warm one and gating it would assert something it did not observe. max_health_cold_ms is kept generous and records the resume-from-suspend path instead, measured at 12219 ms.",
+  "max_health_warm_ms": 500,
+  "max_health_cold_ms": 60000,
+  "max_search_server_ms": 1500,
+  "max_search_wall_ms": 30000,
+  "min_search_results": 1,
+  "max_corpus_age_hours": 48
+}

@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import threading
 import uuid
 from functools import lru_cache
 from typing import Any
@@ -25,6 +26,7 @@ router = APIRouter(prefix="/api")
 
 SOURCE = "ctgov_live"
 MAX_CRITERIA = 24
+_KEEPALIVE_SECONDS = 15.0
 
 
 def _client_ip(request: Request) -> str:
@@ -401,12 +403,48 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
     executor = app.state.assess_executor
     loop = asyncio.get_running_loop()
 
+    deadline = settings.api_assess_trial_deadline_seconds
+
     async def _one(nct_id: str) -> dict[str, Any]:
         """One trial. Only BudgetExhausted escapes; everything else is an event."""
+        # Set when the deadline fires, so the abandoned worker stops emitting
+        # provisional criteria for a trial the client has already been told timed
+        # out. The UI clears a trial's pending list when its trial event lands; a
+        # late criterion would repopulate it and render progress on a closed trial.
+        abandoned = threading.Event()
         try:
-            return await loop.run_in_executor(
-                executor, _assess_one, job.note, nct_id, job_id, job.skip_cache_write, store
+            return await asyncio.wait_for(
+                loop.run_in_executor(
+                    executor,
+                    _assess_one,
+                    job.note,
+                    nct_id,
+                    job_id,
+                    job.skip_cache_write,
+                    store,
+                    abandoned,
+                ),
+                timeout=deadline,
             )
+        except (asyncio.TimeoutError, TimeoutError):
+            # The executor thread cannot be interrupted, so it runs to completion
+            # and its result is discarded. That costs nothing extra -- the
+            # provider call was already made and already billed -- and it buys the
+            # user a bounded, honest answer instead of an open-ended wait. It does
+            # hold a worker slot until it finishes, so a hung trial narrows
+            # concurrency for the rest of the job.
+            abandoned.set()
+            return {
+                "type": "trial",
+                "nct_id": nct_id,
+                "error": (
+                    f"Assessment exceeded the {deadline:.0f}s per-trial deadline "
+                    "and was not completed. No verdict is claimed for this trial."
+                ),
+                "trial_verdict": "cannot_determine",
+                "assessments": [],
+                "timed_out": True,
+            }
         except BudgetExhausted:
             raise
         except Exception as e:  # noqa: BLE001 — per-trial failure must not kill the job
@@ -461,7 +499,12 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
 
 
 def _assess_one(
-    note: str, nct_id: str, job_id: str, skip_cache_write: bool, store=None
+    note: str,
+    nct_id: str,
+    job_id: str,
+    skip_cache_write: bool,
+    store=None,
+    abandoned: threading.Event | None = None,
 ) -> dict[str, Any]:
     """Sync worker: load trial, build typed criteria, call assess() unchanged."""
     from trialguard.agent.graph import assess
@@ -494,7 +537,7 @@ def _assess_one(
     # pre-grounding and a retry can supersede them — and the terminal trial
     # event remains the authority.
     def _emit(assessment: dict) -> None:
-        if store is None:
+        if store is None or (abandoned is not None and abandoned.is_set()):
             return
         try:
             store.append(
@@ -582,6 +625,7 @@ async def assess_stream(job_id: str, request: Request) -> StreamingResponse:
         # linear: re-reading every event of a 200-event job every 150 ms is a
         # dict slice in memory and a table scan against Neon.
         cursor = resume_from
+        idle = 0.0
         while True:
             current = store.get(job_id, with_events=False)
             if current is None:
@@ -602,6 +646,18 @@ async def assess_stream(job_id: str, request: Request) -> StreamingResponse:
             # status is never visible before the event that closed the job.
             if current.status in ("done", "error") and not pending:
                 return
+            # An SSE comment, ignored by every client, so a stream that is waiting
+            # on a slow trial still puts bytes on the wire. Criterion events cover
+            # most of that wait, but a provider that hangs before emitting anything
+            # produces silence for the whole per-trial deadline, which an
+            # intermediary is entitled to read as a dead connection and close.
+            if pending:
+                idle = 0.0
+            else:
+                idle += 0.15
+                if idle >= _KEEPALIVE_SECONDS:
+                    idle = 0.0
+                    yield ": keepalive\n\n"
             await asyncio.sleep(0.15)
 
     return StreamingResponse(
