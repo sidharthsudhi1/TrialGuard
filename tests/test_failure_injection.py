@@ -105,12 +105,19 @@ def test_a_verdict_the_enum_does_not_know_is_never_decisive():
     assert out[0]["verdict"] == "cannot_determine"
 
 
-def test_a_provider_that_returns_prose_leaves_the_trial_undecided(client):
+def test_a_provider_that_returns_prose_leaves_the_trial_undecided():
     """The whole path, not just the parser: an empty assessment list must roll up
-    to cannot_determine and surface as needs_review."""
+    to cannot_determine and surface as needs_review.
+
+    Patched at `graph.analyze_trial`, not `analyst.analyze_trial`: graph.py binds
+    the name at import, so patching the defining module leaves the real function
+    in place and the test makes a live provider call. It then passes for the wrong
+    reason wherever credentials happen to exist. The stub's call count is asserted
+    so a future rebinding cannot silently restore that.
+    """
     from trialguard.agent.graph import assess
 
-    with patch("trialguard.agent.analyst.analyze_trial", return_value=[]):
+    with patch("trialguard.agent.graph.analyze_trial", return_value=[]) as analyst:
         state = assess(
             "62 M",
             "NCT0001",
@@ -119,6 +126,7 @@ def test_a_provider_that_returns_prose_leaves_the_trial_undecided(client):
             max_retries=0,
         )
 
+    assert analyst.call_count == 1
     assert state["trial_verdict"] == "cannot_determine"
     assert state["trial_tier"] == "needs_review"
 
