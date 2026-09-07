@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import threading
 import uuid
@@ -23,6 +24,7 @@ from trialguard.api.schemas import (
 from trialguard.config import settings
 
 router = APIRouter(prefix="/api")
+logger = logging.getLogger(__name__)
 
 SOURCE = "ctgov_live"
 MAX_CRITERIA = 24
@@ -336,7 +338,22 @@ async def assess_start(body: AssessRequest, request: Request) -> AssessCreated:
     note = body.note.strip()
     skip_cache = not _is_preset(note)
     store = request.app.state.jobs
-    job = store.create(note, nct_ids, skip_cache_write=skip_cache)
+    try:
+        job = store.create(note, nct_ids, skip_cache_write=skip_cache)
+    except Exception as e:  # noqa: BLE001 — the store is the only durable record
+        # Without this the client gets a bare 500 and cannot tell a rejected
+        # request from a broken one. Worse, returning a job id anyway would
+        # promise work that nothing is doing and no stream can ever report on.
+        # The message names the condition only: a psycopg2 OperationalError
+        # carries the host it failed to reach, which is not the client's to see.
+        logger.error("job store unavailable at create: %s", type(e).__name__)
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "The job store is unavailable, so this assessment was not "
+                "started. Nothing was charged; please retry."
+            ),
+        ) from e
     # Keep a reference: asyncio holds only a weak one, so a fire-and-forget task
     # can be garbage collected mid-await. The job would stop silently and its SSE
     # stream would hang until the TTL expired, with nothing logged.
@@ -390,6 +407,66 @@ async def _heartbeat(
             for t in tasks:
                 t.cancel()
             return
+
+
+class _Faithfulness:
+    """Per-request criterion tally: what was claimed, and what survived checking.
+
+    Counted off the terminal trial events, which carry post-grounding verdicts, so
+    this measures what the client was actually told rather than what the model
+    first said.
+    """
+
+    def __init__(self) -> None:
+        self.n = self.unverifiable = self.grounded = self.decisive = self.note_only = 0
+
+    def add(self, assessments: list[dict[str, Any]]) -> None:
+        for a in assessments:
+            self.n += 1
+            verdict = a.get("verdict")
+            if verdict == "unverifiable":
+                self.unverifiable += 1
+            elif verdict in ("met", "not_met"):
+                self.decisive += 1
+            if a.get("grounded"):
+                self.grounded += 1
+            if a.get("grounded_in") == "note":
+                self.note_only += 1
+
+    def summary(self) -> dict[str, Any]:
+        def _rate(x: int) -> float:
+            return round(x / self.n, 4) if self.n else 0.0
+
+        return {
+            "n_criteria": self.n,
+            "unverifiable": self.unverifiable,
+            "unverifiable_rate": _rate(self.unverifiable),
+            "grounded": self.grounded,
+            "grounded_rate": _rate(self.grounded),
+            "decisive": self.decisive,
+            # WS-5a: decisive verdicts whose only evidence is the user's own note.
+            "note_only_grounded": self.note_only,
+        }
+
+    def emit(self, job_id: str) -> None:
+        """Same numbers onto the trace, where the monitor and dashboard read them."""
+        if not self.n:
+            return
+        from trialguard.tracing import emit_scores
+
+        s = self.summary()
+        try:
+            emit_scores(
+                {
+                    "unverifiable_rate": s["unverifiable_rate"],
+                    "grounded_rate": s["grounded_rate"],
+                    "note_only_grounded": float(s["note_only_grounded"]),
+                },
+                session_id=job_id,
+            )
+        except Exception:  # noqa: BLE001
+            # Observability must not be able to fail a completed assessment.
+            pass
 
 
 async def _run_assess_job(app: Any, job_id: str) -> None:
@@ -466,10 +543,13 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
     beat = asyncio.create_task(
         _heartbeat(store, job_id, settings.api_job_heartbeat_seconds, tasks)
     )
+    tally = _Faithfulness()
     try:
         try:
             for completed in asyncio.as_completed(tasks):
-                store.append(job_id, await completed)
+                event = await completed
+                tally.add(event.get("assessments") or [])
+                store.append(job_id, event)
         except BudgetExhausted as e:
             # Cancel the rest: work still queued in the executor has not started
             # and must not be paid for once the cap is hit.
@@ -486,8 +566,21 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
             {
                 "n_trials": len(job.nct_ids),
                 "status": "done",
+                # WS-5c. The served monitor is a nightly batch, so a run that
+                # starts producing ungrounded verdicts at 09:00 is caught at
+                # 21:00. This is the same number, per request, on the event the
+                # client already reads and on the trace the monitor already
+                # queries -- so the divergence is visible in minutes.
+                "faithfulness": tally.summary(),
             },
         )
+        # Off the request path, deliberately. emit_scores ends in a blocking
+        # client.flush() measured at 4.1 s against a configured Langfuse, so
+        # emitting inline would have added that to the wall clock of every
+        # completed assessment -- paying latency to report on latency. The job is
+        # already done and its events are already durable, so nothing waits on
+        # this and nothing breaks if the process dies mid-flush.
+        loop.run_in_executor(None, tally.emit, job_id)
     except Exception as e:  # noqa: BLE001
         if isinstance(e, BudgetExhausted):
             store.fail(job_id, json.dumps(_budget_exhausted_detail(e)))

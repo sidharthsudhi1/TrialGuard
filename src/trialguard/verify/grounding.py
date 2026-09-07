@@ -92,11 +92,30 @@ def is_absence_grounded(criterion: str, patient_text: str) -> bool:
     return not any(t in haystack for t in terms)
 
 
+def trial_only() -> bool:
+    """WS-5a: restrict decisive verdicts to quotes found in the trial's own text.
+
+    Grounding proves a quote is verbatim, not that its source is trustworthy, and
+    the patient note is user-supplied. An attacker who plants trial-shaped
+    evidence in the note therefore obtains a *grounded* wrong verdict -- the hole
+    named in sanitize.py and production_readiness.md 1.2.
+
+    Off by default because it is not free: legitimate "met" verdicts cite patient
+    facts ("58-year-old woman") constantly, and closing the hole reclassifies
+    every one of them. What that costs is measured before it is adopted, and the
+    flag is what makes the two arms comparable.
+    """
+    import os
+
+    return os.environ.get("TG_GROUND_TRIAL_ONLY") == "1"
+
+
 def ground_assessments(
     assessments: list[dict],
     source_text: str,
     min_tokens: int = 2,
     patient_text: str | None = None,
+    trial_text: str | None = None,
 ) -> list[dict]:
     """Stamp each assessment with grounding status.
 
@@ -112,13 +131,27 @@ def ground_assessments(
     verbatim requirement unchanged. `patient_text` is required for that path —
     without it the behavior is exactly as before, so callers that ground against a
     single combined source are unaffected.
+
+    `trial_text` adds provenance (WS-5a): a quote-grounded assessment is stamped
+    `grounded_in` "trial" or "note" according to which source actually contains
+    it. Recorded always, enforced only under TG_GROUND_TRIAL_ONLY — the split has
+    to be measurable before it can be argued about.
     """
     out = []
+    strict = trial_only()
     for a in assessments:
         quote = a.get("quote", "") or ""
         verdict = a.get("verdict", "cannot_determine")
         grounded = is_grounded(quote, source_text, min_tokens=min_tokens)
         grounded_by = "quote" if grounded else None
+        # Which source the span came from. "note" means the only place this quote
+        # exists is text the user supplied, so the verdict rests on the claim it
+        # was meant to check.
+        grounded_in = None
+        if grounded and trial_text is not None:
+            grounded_in = (
+                "trial" if is_grounded(quote, trial_text, min_tokens=min_tokens) else "note"
+            )
         if (
             not grounded
             and verdict == "not_met"
@@ -128,9 +161,20 @@ def ground_assessments(
         ):
             grounded = True
             grounded_by = "absence"
+        # An absence check reads the note by construction (it asserts the note
+        # does not mention the disqualifier), so it is its own provenance class
+        # rather than a note-sourced quote to be rejected below.
+        if grounded_by == "absence":
+            grounded_in = "absence"
         result = {**a, "grounded": grounded}
         if grounded_by:
             result["grounded_by"] = grounded_by
+        if grounded_in:
+            result["grounded_in"] = grounded_in
+        if strict and grounded_in == "note" and verdict in ("met", "not_met"):
+            grounded = False
+            result["grounded"] = False
+            result["note_only"] = True
         if verdict in ("met", "not_met") and not grounded:
             result["verdict"] = "unverifiable"
             result["grounding_failure"] = True

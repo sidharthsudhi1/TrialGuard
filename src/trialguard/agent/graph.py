@@ -146,7 +146,10 @@ def _analyst_node(state: State) -> State:
     # verifier has to know the criterion's kind to pick the right check.
     typed_raw = attach_kinds(raw, typed)
     grounded = ground_assessments(
-        typed_raw, combined_source, patient_text=state["patient_note"]
+        typed_raw,
+        combined_source,
+        patient_text=state["patient_note"],
+        trial_text=state["source_text"],
     )
     # A partial retry answered only the failed criteria, so its result is an
     # overlay on attempt one rather than the whole trial.

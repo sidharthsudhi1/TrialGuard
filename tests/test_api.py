@@ -842,3 +842,75 @@ def test_the_stream_emits_keepalives_while_a_trial_is_slow(client, monkeypatch):
     assert ": keepalive" in raw
     # Comments carry no data, so they must not appear as events to a client.
     assert all(ev.get("type") for _, ev in _parse_sse(raw))
+
+
+def test_the_done_event_carries_this_request_s_faithfulness(client):
+    """WS-5c: the served monitor is a nightly batch, so a run that starts
+    producing ungrounded verdicts at 09:00 is caught at 21:00. This is the same
+    number on the event the client already reads."""
+    _, events = _run_two_trial_job(client)
+
+    done = events[-1][1]
+    f = done["faithfulness"]
+    assert f["n_criteria"] == 2
+    assert f["grounded"] == 2
+    assert f["grounded_rate"] == 1.0
+    assert f["unverifiable"] == 0
+    assert f["unverifiable_rate"] == 0.0
+    assert f["decisive"] == 2
+
+
+def test_an_ungrounded_verdict_moves_the_per_request_rate(client):
+    from unittest.mock import patch
+
+    def fake_assess(note, nct_id, criteria, source_text, **kwargs):
+        return {
+            "trial_verdict": "cannot_determine",
+            "assessments": [
+                {"criterion": "A", "verdict": "unverifiable", "grounded": False,
+                 "grounding_failure": True},
+                {"criterion": "B", "verdict": "met", "grounded": True,
+                 "grounded_in": "note"},
+            ],
+        }
+
+    with (
+        patch("trialguard.agent.sanitize.detect_injection", return_value=False),
+        patch("trialguard.db.queries.get_trial", side_effect=lambda nct, source=None: STUB_ROWS.get(nct)),
+        patch("trialguard.agent.graph.assess", side_effect=fake_assess),
+        patch("trialguard.llm.cost.active_ledger") as ledger,
+    ):
+        ledger.return_value.exhausted.return_value = False
+        created = client.post(
+            "/api/assess", json={"note": "synthetic note", "nct_ids": ["NCT0001"]}
+        )
+        job_id = created.json()["job_id"]
+        with client.stream("GET", f"/api/assess/{job_id}") as stream:
+            events = _parse_sse("".join(stream.iter_text()))
+
+    f = events[-1][1]["faithfulness"]
+    assert f["unverifiable"] == 1
+    assert f["unverifiable_rate"] == 0.5
+    assert f["decisive"] == 1
+    # WS-5a: the decisive verdict's only evidence is the user's own note.
+    assert f["note_only_grounded"] == 1
+
+
+def test_a_timed_out_trial_contributes_no_criteria_to_the_rate(client):
+    """A trial that claimed nothing must not read as a trial that verified
+    nothing -- it would deflate the rate exactly when the system is degraded."""
+    from trialguard.api.routes import _Faithfulness
+
+    tally = _Faithfulness()
+    tally.add([])
+    tally.add([{"verdict": "met", "grounded": True}])
+
+    assert tally.summary() == {
+        "n_criteria": 1,
+        "unverifiable": 0,
+        "unverifiable_rate": 0.0,
+        "grounded": 1,
+        "grounded_rate": 1.0,
+        "decisive": 1,
+        "note_only_grounded": 0,
+    }
