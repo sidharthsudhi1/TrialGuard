@@ -216,6 +216,9 @@ def assess_retrieved(
                 # "note" span means the verdict rests on text the user supplied,
                 # which is the class an attacker controls.
                 "grounded_in": _provenance_counts(ass),
+                # WS-5b: grounded decisive verdicts whose quote only restates the
+                # criterion. A deterministic lower bound on non-entailment.
+                "self_referential": sum(1 for a in ass if a.get("self_referential")),
             }
             assessed += 1
     finally:
@@ -269,6 +272,7 @@ def score(rows: list[dict]) -> dict:
     crit_asked = crit_grounded = 0
     crit_verdicts = dict.fromkeys(_VERDICTS, 0)
     crit_provenance = dict.fromkeys(_PROVENANCE, 0)
+    crit_self_ref = 0
 
     for r in rows:
         gold_elig = set(r["gold_eligible"])
@@ -291,6 +295,7 @@ def score(rows: list[dict]) -> dict:
             for name, n in (v.get("grounded_in") or {}).items():
                 if name in crit_provenance:
                     crit_provenance[name] += n
+            crit_self_ref += v.get("self_referential", 0)
             if v["trial_verdict"] == "eligible":
                 said_eligible += 1
                 if r["gold_labels"].get(nct) == "eligible":
@@ -348,6 +353,10 @@ def score(rows: list[dict]) -> dict:
         # The share of grounded criteria whose only evidence is user-supplied
         # text. This is the size of the hole WS-5a is about, not an error rate.
         "note_only_grounded_rate": _rate(crit_provenance["note"], crit_grounded),
+        "self_referential": crit_self_ref,
+        # Lower bound, not an estimate: a quote citing the wrong patient fact is
+        # equally unsupported and no string comparison can see it.
+        "self_referential_rate": _rate(crit_self_ref, crit_grounded),
         "incomplete_patients": sum(1 for r in rows if r.get("incomplete")),
     }
 

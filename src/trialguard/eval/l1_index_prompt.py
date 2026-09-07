@@ -129,6 +129,15 @@ def _summarise(calls: list[dict]) -> dict:
     }
 
 
+def _workers() -> int:
+    """Concurrent trial pairs. A 24-criterion trial is ~144 s of generation at the
+    measured ~15 tok/s, so a serial run of this is hours. 10 is the measured
+    DeepInfra ceiling before timeouts; 8 leaves headroom."""
+    import os
+
+    return max(1, int(os.environ.get("TG_EVAL_WORKERS", "8")))
+
+
 def run(cohort: str, n_trials: int) -> dict:
     from trialguard.eval.agent_metrics import _build_subset
     from trialguard.llm.cost import active_ledger
@@ -138,13 +147,27 @@ def run(cohort: str, n_trials: int) -> dict:
     subset = _build_subset(cohort, n_patients=50, per_class=2)
     work = [(p["note"], tr) for p in subset for tr in p["trials"]][:n_trials]
 
-    calls: dict[str, list[dict]] = {a: [] for a in ARMS}
-    for i, (note, tr) in enumerate(work):
-        # Alternate which arm goes first. Provider latency drifts over a run, and
-        # a fixed order would hand the whole drift to one arm.
+    def _pair(item) -> list[dict]:
+        i, (note, tr) = item
+        # Both arms of a trial run back to back inside one worker. Provider
+        # latency drifts over a run of this length, and splitting the pair across
+        # workers or across time would hand that drift to whichever arm was
+        # unlucky. The order alternates for the same reason.
         order = ARMS if i % 2 == 0 else tuple(reversed(ARMS))
-        for version in order:
-            calls[version].append(_one_call(note, tr["nct_id"], tr["criteria"], version))
+        return [_one_call(note, tr["nct_id"], tr["criteria"], v) for v in order]
+
+    calls: dict[str, list[dict]] = {a: [] for a in ARMS}
+    workers = _workers()
+    if workers > 1:
+        from concurrent.futures import ThreadPoolExecutor
+
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            pairs = list(pool.map(_pair, enumerate(work)))
+    else:
+        pairs = [_pair(item) for item in enumerate(work)]
+    for pair in pairs:
+        for call in pair:
+            calls[call["version"]].append(call)
 
     summary = {a: _summarise(calls[a]) for a in ARMS}
     base, new = summary["v4"], summary["v5"]

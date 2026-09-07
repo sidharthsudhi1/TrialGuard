@@ -92,6 +92,30 @@ def is_absence_grounded(criterion: str, patient_text: str) -> bool:
     return not any(t in haystack for t in terms)
 
 
+def is_self_referential(quote: str, criterion: str, patient_text: str | None) -> bool:
+    """True iff the quote merely restates the criterion it was filed under.
+
+    WS-5b. Grounding proves a quote is verbatim, not that it *entails* the
+    verdict, and this is the largest mechanically visible way that gap shows up:
+    a "met" on "Age >= 18 years" supported by quoting "Age >= 18 years" out of
+    the trial's own eligibility text proves the criterion was printed, not that
+    this patient satisfies it. The verifier passes it, because it is genuinely
+    verbatim.
+
+    Recorded, never enforced. It is a lower bound on non-entailment -- a quote
+    that cites the wrong patient fact is just as unsupported and is invisible to
+    any string comparison -- so the number it yields is "at least this often",
+    which is the honest form of a claim no deterministic check can close.
+
+    A quote that also appears in the patient note is excluded: that is a real
+    patient fact which happens to share wording with the criterion.
+    """
+    q = normalize(quote)
+    if not q or q not in normalize(criterion):
+        return False
+    return not (patient_text and q in normalize(patient_text))
+
+
 def trial_only() -> bool:
     """WS-5a: restrict decisive verdicts to quotes found in the trial's own text.
 
@@ -167,6 +191,10 @@ def ground_assessments(
         if grounded_by == "absence":
             grounded_in = "absence"
         result = {**a, "grounded": grounded}
+        if grounded and verdict in ("met", "not_met") and is_self_referential(
+            quote, str(a.get("criterion", "")), patient_text
+        ):
+            result["self_referential"] = True
         if grounded_by:
             result["grounded_by"] = grounded_by
         if grounded_in:

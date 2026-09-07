@@ -1,0 +1,60 @@
+{
+  "cached_only": true,
+  "cohort": "sigir",
+  "counts": {
+    "assess_s": 0.3,
+    "assessed": 134,
+    "budget_stops": 0,
+    "cache_coverage": 0.67,
+    "skipped": 0,
+    "uncached_skipped": 66
+  },
+  "metrics": {
+    "agent_loss": 0.1806,
+    "criterion_asked": 1172,
+    "criterion_grounded": 545,
+    "criterion_grounded_in": {
+      "absence": 79,
+      "note": 458,
+      "trial": 8
+    },
+    "criterion_grounded_rate": 0.465,
+    "criterion_total": 1158,
+    "criterion_unanswered": 14,
+    "criterion_unverifiable_rate": 0.0311,
+    "criterion_verdicts": {
+      "cannot_determine": 583,
+      "met": 164,
+      "not_met": 375,
+      "unverifiable": 36
+    },
+    "eligible_precision": 0.75,
+    "end_to_end_recall": 0.0208,
+    "gold_eligible_total": 144,
+    "incomplete_patients": 0,
+    "note_only_grounded_rate": 0.8404,
+    "patients": 20,
+    "retrieval_recall": 0.2014,
+    "self_referential": 2,
+    "self_referential_rate": 0.0037,
+    "tier_surfaced": {
+      "precision": 0.3182,
+      "recall": 0.0972,
+      "shown": 60
+    },
+    "trial_verdicts": {
+      "cannot_determine": 56,
+      "eligible": 4,
+      "excluded": 74
+    }
+  },
+  "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+  "prompt_version": "v4",
+  "provider": "deepinfra",
+  "run_usd": 0.0,
+  "timing": {
+    "assess_s": 0.3,
+    "retrieval_s": 13.1
+  },
+  "top_k": 10
+}

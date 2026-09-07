@@ -263,3 +263,58 @@ def test_trial_only_mode_is_off_by_default():
     from trialguard.verify.grounding import trial_only
 
     assert trial_only() is False
+
+
+def test_a_quote_that_only_restates_its_criterion_is_flagged():
+    """WS-5b: grounding proves existence, not entailment. Quoting the criterion
+    back proves the criterion was printed, not that the patient satisfies it."""
+    from trialguard.verify.grounding import ground_assessments
+
+    out = ground_assessments(
+        [{"criterion": "Age 18 years or older", "verdict": "met",
+          "quote": "Age 18 years or older"}],
+        "Inclusion: Age 18 years or older.",
+        patient_text="Patient with colorectal cancer",
+        trial_text="Inclusion: Age 18 years or older.",
+    )
+
+    assert out[0]["verdict"] == "met"
+    assert out[0]["grounded"] is True
+    # Recorded, never enforced: the verdict stands and the limit is counted.
+    assert out[0]["self_referential"] is True
+
+
+def test_a_real_patient_fact_is_not_flagged_when_it_shares_wording():
+    from trialguard.verify.grounding import ground_assessments
+
+    out = ground_assessments(
+        [{"criterion": "ECOG performance status 0-1", "verdict": "met",
+          "quote": "ECOG performance status 0-1"}],
+        "ECOG performance status 0-1 documented",
+        patient_text="ECOG performance status 0-1 documented",
+        trial_text="Inclusion: ECOG performance status 0-1",
+    )
+
+    assert "self_referential" not in out[0]
+
+
+def test_an_abstention_is_never_flagged():
+    """The limit is about decisive verdicts; cannot_determine claims nothing."""
+    from trialguard.verify.grounding import ground_assessments
+
+    out = ground_assessments(
+        [{"criterion": "Age 18 or older", "verdict": "cannot_determine",
+          "quote": "Age 18 or older"}],
+        "Inclusion: Age 18 or older.",
+        patient_text="",
+    )
+
+    assert "self_referential" not in out[0]
+
+
+def test_a_quote_citing_evidence_beyond_the_criterion_is_not_flagged():
+    from trialguard.verify.grounding import is_self_referential
+
+    assert is_self_referential("Age 18 or older", "Age 18 or older", "62 M") is True
+    assert is_self_referential("62-year-old man", "Age 18 or older", "62-year-old man") is False
+    assert is_self_referential("", "Age 18 or older", "62 M") is False
