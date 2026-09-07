@@ -167,7 +167,26 @@ revised kept both its stale text and its stale embedding — meaning a verdict c
 carry a verified citation to text CT.gov no longer publishes. The diff now keys on
 `lastUpdatePostDate` and re-embeds what moved.
 
-### 2.4 Single region, single instance  `[open, accepted]`
+### 2.4 The analyst does not answer every criterion  `[found 2026-09-07, open, P1]`
+
+Under prompt v4, Llama-3.3-70B silently returns fewer assessment objects than it
+was handed criteria: **13.0% fewer on TREC 2021** (229 of 1,761), 0.7% on SIGIR.
+Not truncation — `max_tokens` is 4096 and the longest measured response was 1,732
+tokens.
+
+Invisible until Phase 10 instrumented it, and structurally so: an unanswered
+criterion produces no assessment, so it cannot fail grounding, cannot trigger the
+retry edge, and disappears into `needs_review`. Meanwhile `rollup_trial` calls a
+trial `eligible` when every criterion it *received* was met, which CLAUDE.md
+already names as unsound over a truncated list.
+
+**Fix:** numbering the criteria closes it (13.0% → 0.5%), but prompt v5 carries
+costs of its own (AD-16). The clean experiment is a v6 keeping v4's addressing and
+adding only v5's "return exactly one object per numbered criterion" instruction,
+which separates coverage from addressing. `criterion_unanswered` is now reported
+by the end-to-end harness, so the next attempt has a number to move.
+
+### 2.5 Single region, single instance  `[open, accepted]`
 
 API in `syd` beside Neon in `ap-southeast-2`. No redundancy. Correct for a
 portfolio artifact; named so it is a decision rather than an oversight.
@@ -233,6 +252,7 @@ request path: `emit_scores` ends in a blocking flush measured at 4.1 s.
 | **P1** | ~~Scheduled corpus refresh + visible `last_updated`~~ | **shipped** — including the revised-criteria re-embed the plan had missed |
 | **P1** | ~~Arm the served monitor~~ | **shipped** — plus a probe, because traces cannot see an outage |
 | **P1** | Add the two Langfuse repo secrets | the only Phase 10 item that cannot be done from the repo |
+| **P1** | The analyst answers 13% fewer criteria than it is asked (TREC) | a trial roll-up over an incomplete criteria list is unsound, and nothing surfaced it |
 | **P2** | NER-based PHI detection | closes the names gap regexes cannot reach |
 | **P2** | NLI second verifier for entailment | §1.3 puts the gap at 36%; a model to evaluate, not a check to add |
 | **P2** | Stage B auth + per-user quota | the only real answer to shared-budget exhaustion |
