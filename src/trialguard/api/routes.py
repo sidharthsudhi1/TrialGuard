@@ -180,7 +180,11 @@ def _corpus_freshness() -> dict[str, Any] | None:
 def health(request: Request) -> dict[str, Any]:
     """Process up + pool leasable + MedCPT warm flag."""
     pool_ok = False
+    # No database configured means the in-process store is the store, and it
+    # works; there is no schema to be missing.
+    store_ok = not settings.database_url
     pool_error: str | None = None
+    store_error: str | None = None
     if settings.database_url:
         try:
             from trialguard.db.schema import get_conn
@@ -188,13 +192,26 @@ def health(request: Request) -> dict[str, Any]:
             with get_conn() as conn, conn.cursor() as cur:
                 cur.execute("SELECT 1")
                 cur.fetchone()
-            pool_ok = True
+                pool_ok = True
+                # SELECT 1 proves a connection can be leased, not that the tables
+                # the served path writes to exist. Production answered every
+                # assess with 503 (UndefinedTable) for hours while health
+                # reported pool_ok and the probe gated on it -- the monitor
+                # reporting healthy precisely when the system was most broken.
+                cur.execute("SELECT 1 FROM jobs LIMIT 1")
+                cur.fetchall()
+                store_ok = True
         except Exception as e:  # noqa: BLE001 — surface honestly in health JSON
-            pool_error = type(e).__name__
+            if pool_ok:
+                store_error = type(e).__name__
+            else:
+                pool_error = type(e).__name__
     return {
         "ok": True,
         "pool_ok": pool_ok,
         "pool_error": pool_error,
+        "store_ok": store_ok,
+        "store_error": store_error,
         "medcpt_warm": bool(request.app.state.medcpt_warm),
         "vector_cache": _vector_cache_status(),
         "corpus_refresh": _corpus_freshness(),

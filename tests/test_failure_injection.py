@@ -294,3 +294,65 @@ def test_a_note_carrying_an_identifier_is_refused_before_any_call(client):
     # Names the identifier classes, never the matched values.
     assert "4432119" not in r.text
     assert "555-231-8890" not in r.text
+
+
+def test_health_separates_a_leasable_pool_from_a_usable_store(client, monkeypatch):
+    """The defect this exists for: after the Phase 10 deploy, production had a
+    working connection pool and no `jobs` table, so every assess returned 503
+    while /api/health reported pool_ok and the WS-4 probe gated on it. A monitor
+    that is green while the system is entirely broken is the failure WS-4 was
+    written to end."""
+    import psycopg2
+
+    monkeypatch.setattr("trialguard.config.settings.database_url", "postgresql://x/y")
+
+    class _Cur:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def execute(self, sql, *a):
+            if "FROM jobs" in sql:
+                raise psycopg2.errors.UndefinedTable('relation "jobs" does not exist')
+
+        def fetchone(self):
+            return (1,)
+
+        def fetchall(self):
+            return []
+
+    class _Conn:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def cursor(self):
+            return _Cur()
+
+    with patch("trialguard.db.schema.get_conn", return_value=_Conn()):
+        body = client.get("/api/health").json()
+
+    assert body["pool_ok"] is True
+    assert body["store_ok"] is False
+    assert body["store_error"] == "UndefinedTable"
+    # Still 200: the process is up and search still works. The distinction is the
+    # point -- one number cannot carry both facts.
+    assert body["ok"] is True
+
+
+def test_the_probe_gates_on_store_readiness_not_just_the_pool():
+    from trialguard.eval.served_probe import check
+
+    from tests.test_served_probe import _probe
+
+    healthy = _probe()
+    assert check(healthy)["passed"] is True
+
+    broken = {**healthy, "store_ok": False}
+    outcome = check(broken)
+    assert outcome["passed"] is False
+    assert "store_ok" in {r["check"] for r in outcome["results"] if not r["passed"]}

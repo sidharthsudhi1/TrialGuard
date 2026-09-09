@@ -39,6 +39,28 @@ if [[ -z "${PYTHON:-}" ]]; then
 fi
 [[ -n "$PYTHON" ]] || { echo "error: no python found; set PYTHON=/path/to/python" >&2; exit 1; }
 
+# The schema is part of the release, so applying it is part of deploying. Phase
+# 10 shipped code that reads and writes `jobs` and `job_events` and nothing
+# created them: init_schema() is only called by the ingest script, last run when
+# the corpus was loaded. Production answered every assess with 503
+# (UndefinedTable) while /api/health still reported pool_ok, because leasing a
+# connection and having the tables are different facts.
+#
+# Runs before the deploy, so a failed migration does not ship code that needs it,
+# and runs on --skip-deploy too, since that path exists to repair a deploy.
+# Idempotent throughout (IF NOT EXISTS / OR REPLACE) and verified to re-apply
+# cleanly against the loaded 24,866-trial corpus.
+echo "==> Applying database schema"
+if ! "$PYTHON" -c 'import sys
+from trialguard.config import settings
+if not settings.database_url:
+    sys.exit("DATABASE_URL is not set; the deploy cannot migrate the database it is about to point code at.")
+from trialguard.db.schema import init_schema
+init_schema()'; then
+  echo "error: schema migration failed; not deploying." >&2
+  exit 1
+fi
+
 if [[ "${1:-}" != "--skip-deploy" ]]; then
   echo "==> Deploying $APP"
   fly deploy --app "$APP"

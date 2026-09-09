@@ -106,6 +106,7 @@ def probe(base_url: str, *, client=None, timeout: float = 60.0) -> dict:
         "health_status": _status(r_cold, cold_err),
         "health_ok": bool(health.get("ok")),
         "pool_ok": bool(health.get("pool_ok")),
+        "store_ok": bool(health.get("store_ok")),
         "corpus_age_hours": _corpus_age_hours(health),
         "budget_ms": budget_ms,
         "budget_status": _status(r_budget, budget_err),
@@ -170,6 +171,10 @@ def check(result: dict, thresholds_path: Path = THRESHOLDS) -> dict:
     _row("health_reachable", result["health_status"] == 200, result["health_status"], "200")
     _row("health_ok", result["health_ok"], result["health_ok"], "true")
     _row("pool_ok", result["pool_ok"], result["pool_ok"], "true")
+    # Distinct from pool_ok on purpose: a leasable connection to a database
+    # missing the jobs tables answers every assess with 503 while pool_ok stays
+    # true, which is what happened after the Phase 10 deploy.
+    _row("store_ok", result["store_ok"], result["store_ok"], "true")
     _row(
         "health_warm_latency",
         result["health_warm_ms"] <= t["max_health_warm_ms"],
