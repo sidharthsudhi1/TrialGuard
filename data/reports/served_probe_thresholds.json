@@ -1,0 +1,9 @@
+{
+  "_doc": "Thresholds for the live API probe (eval/served_probe.py). These are alerting thresholds, not the latency SLO -- WS-6a states that and may tighten them. A single nightly probe is n=1, so it measures liveness and a latency spot check; it is NOT p95 and must not be quoted as one. Set where a breach means something is wrong rather than merely slower than ideal, because a nightly alert that fires on normal variance is one nobody reads. Anchors, measured against the deployed API 2026-09-05: health warm 31.9-45.3 ms, cold start 122 ms warm / 12219 ms from suspended, search server-side total_ms 617.7 with the keyword cache warm and 26870 ms client-side on a cache miss (one LLM call inside the request). max_search_server_ms gates the stable number; max_search_wall_ms only catches a request hanging outright, since a cold keyword cache legitimately costs seconds. max_corpus_age_hours is two daily refresh windows, so one missed run reports and two alert.",
+  "max_health_warm_ms": 2000,
+  "max_health_cold_ms": 60000,
+  "max_search_server_ms": 3000,
+  "max_search_wall_ms": 45000,
+  "min_search_results": 1,
+  "max_corpus_age_hours": 48
+}

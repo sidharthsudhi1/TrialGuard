@@ -647,3 +647,270 @@ def test_preset_style_synthetic_note_still_accepted(client):
     from trialguard.agent.sanitize import detect_phi
 
     assert detect_phi("58-year-old woman with stage IV NSCLC, ECOG 1, EGFR exon 19") == []
+
+
+def _parse_sse(raw: str) -> list[tuple[int | None, dict]]:
+    """(id, payload) per SSE block, so a test can assert on the resume cursor.
+
+    Comment blocks (`: keepalive`) carry no data and are skipped, the same way a
+    real client ignores them.
+    """
+    out = []
+    for block in raw.strip().split("\n\n"):
+        if not block.strip():
+            continue
+        lines = block.split("\n")
+        data_line = next((line for line in lines if line.startswith("data: ")), None)
+        if data_line is None:
+            continue
+        id_line = next((line for line in lines if line.startswith("id: ")), None)
+        seq = int(id_line[len("id: "):]) if id_line else None
+        out.append((seq, json.loads(data_line[len("data: "):])))
+    return out
+
+
+def _run_two_trial_job(client):
+    def fake_assess(note, nct_id, criteria, source_text, **kwargs):
+        return {"trial_verdict": "eligible", "assessments": STUB_ASSESS["assessments"]}
+
+    with (
+        patch("trialguard.agent.sanitize.detect_injection", return_value=False),
+        patch("trialguard.db.queries.get_trial", side_effect=lambda nct, source=None: STUB_ROWS.get(nct)),
+        patch("trialguard.agent.graph.assess", side_effect=fake_assess),
+        patch("trialguard.llm.cost.active_ledger") as ledger,
+    ):
+        ledger.return_value.exhausted.return_value = False
+        created = client.post(
+            "/api/assess",
+            json={"note": "synthetic NSCLC note", "nct_ids": ["NCT0001", "NCT0002"]},
+        )
+        job_id = created.json()["job_id"]
+        with client.stream("GET", f"/api/assess/{job_id}") as stream:
+            full = _parse_sse("".join(stream.iter_text()))
+    return job_id, full
+
+
+def test_sse_events_carry_a_monotonic_id(client):
+    _, events = _run_two_trial_job(client)
+
+    seqs = [seq for seq, _ in events]
+    assert seqs == list(range(1, len(events) + 1))
+
+
+def test_sse_resume_replays_exactly_the_missed_events(client):
+    """WS-2 acceptance: reconnect mid-stream, no gaps and no duplicates."""
+    job_id, full = _run_two_trial_job(client)
+
+    # Pretend the connection dropped after the first event.
+    cut = full[0][0]
+    with client.stream(
+        "GET", f"/api/assess/{job_id}", headers={"Last-Event-ID": str(cut)}
+    ) as stream:
+        resumed = _parse_sse("".join(stream.iter_text()))
+
+    assert resumed == full[1:]
+    assert [s for s, _ in resumed] == [s for s, _ in full[1:]]
+
+
+def test_sse_resume_after_the_job_finished_replays_the_whole_log(client):
+    """WS-2 acceptance: a late client still gets the log and the summary."""
+    job_id, full = _run_two_trial_job(client)
+
+    with client.stream("GET", f"/api/assess/{job_id}") as stream:
+        replayed = _parse_sse("".join(stream.iter_text()))
+
+    assert replayed == full
+    assert replayed[-1][1]["type"] == "summary"
+
+
+def test_sse_resume_past_the_end_returns_nothing_and_closes(client):
+    job_id, full = _run_two_trial_job(client)
+
+    with client.stream(
+        "GET", f"/api/assess/{job_id}", headers={"Last-Event-ID": str(full[-1][0])}
+    ) as stream:
+        assert _parse_sse("".join(stream.iter_text())) == []
+
+
+def test_sse_ignores_an_unparseable_last_event_id(client):
+    """A stale or mangled echo costs a replay, not a 400 on paid work."""
+    job_id, full = _run_two_trial_job(client)
+
+    for bad in ("not-a-number", "-4", ""):
+        with client.stream(
+            "GET", f"/api/assess/{job_id}", headers={"Last-Event-ID": bad}
+        ) as stream:
+            assert _parse_sse("".join(stream.iter_text())) == full
+
+
+def test_a_trial_past_the_deadline_renders_an_honest_outcome(client, monkeypatch):
+    """WS-6b: no request hangs; the timeout path claims nothing."""
+    monkeypatch.setattr(
+        "trialguard.config.settings.api_assess_trial_deadline_seconds", 0.25
+    )
+
+    def slow_assess(note, nct_id, criteria, source_text, **kwargs):
+        time.sleep(3)
+        return {"trial_verdict": "eligible", "assessments": STUB_ASSESS["assessments"]}
+
+    with (
+        patch("trialguard.agent.sanitize.detect_injection", return_value=False),
+        patch("trialguard.db.queries.get_trial", return_value=STUB_ROWS["NCT0001"]),
+        patch("trialguard.agent.graph.assess", side_effect=slow_assess),
+        patch("trialguard.llm.cost.active_ledger") as ledger,
+    ):
+        ledger.return_value.exhausted.return_value = False
+        created = client.post(
+            "/api/assess",
+            json={"note": "synthetic NSCLC note", "nct_ids": ["NCT0001"]},
+        )
+        job_id = created.json()["job_id"]
+        with client.stream("GET", f"/api/assess/{job_id}") as stream:
+            events = [ev for _, ev in _parse_sse("".join(stream.iter_text()))]
+
+    trial = next(e for e in events if e.get("type") == "trial")
+    assert trial["timed_out"] is True
+    assert trial["trial_verdict"] == "cannot_determine"
+    assert trial["assessments"] == []
+    assert "deadline" in trial["error"]
+    # The job still closes rather than hanging on the abandoned worker.
+    assert any(e.get("type") == "summary" for e in events)
+
+
+def test_an_abandoned_worker_stops_emitting_criteria(client, monkeypatch):
+    """A late provisional event would render progress on a trial already closed."""
+    monkeypatch.setattr(
+        "trialguard.config.settings.api_assess_trial_deadline_seconds", 0.25
+    )
+    emitted_after_deadline = {}
+
+    def slow_assess(note, nct_id, criteria, source_text, **kwargs):
+        on_criterion = kwargs.get("on_criterion")
+        time.sleep(1.0)  # deadline fires here
+        on_criterion({"criterion": "late", "verdict": "met"})
+        emitted_after_deadline["called"] = True
+        return {"trial_verdict": "eligible", "assessments": []}
+
+    with (
+        patch("trialguard.agent.sanitize.detect_injection", return_value=False),
+        patch("trialguard.db.queries.get_trial", return_value=STUB_ROWS["NCT0001"]),
+        patch("trialguard.agent.graph.assess", side_effect=slow_assess),
+        patch("trialguard.llm.cost.active_ledger") as ledger,
+    ):
+        ledger.return_value.exhausted.return_value = False
+        created = client.post(
+            "/api/assess",
+            json={"note": "synthetic NSCLC note", "nct_ids": ["NCT0001"]},
+        )
+        job_id = created.json()["job_id"]
+        with client.stream("GET", f"/api/assess/{job_id}") as stream:
+            list(stream.iter_text())
+        time.sleep(1.5)  # let the abandoned worker run to completion
+        store = client.app.state.jobs
+        events = [ev for _, ev in store.events_since(job_id, 0)]
+
+    assert emitted_after_deadline.get("called") is True
+    assert not [e for e in events if e.get("criterion") == "late"]
+
+
+def test_the_stream_emits_keepalives_while_a_trial_is_slow(client, monkeypatch):
+    """A provider that hangs before emitting produces silence a proxy may close."""
+    monkeypatch.setattr("trialguard.api.routes._KEEPALIVE_SECONDS", 0.2)
+    monkeypatch.setattr(
+        "trialguard.config.settings.api_assess_trial_deadline_seconds", 1.0
+    )
+
+    def slow_assess(note, nct_id, criteria, source_text, **kwargs):
+        time.sleep(0.8)
+        return {"trial_verdict": "eligible", "assessments": []}
+
+    with (
+        patch("trialguard.agent.sanitize.detect_injection", return_value=False),
+        patch("trialguard.db.queries.get_trial", return_value=STUB_ROWS["NCT0001"]),
+        patch("trialguard.agent.graph.assess", side_effect=slow_assess),
+        patch("trialguard.llm.cost.active_ledger") as ledger,
+    ):
+        ledger.return_value.exhausted.return_value = False
+        created = client.post(
+            "/api/assess",
+            json={"note": "synthetic NSCLC note", "nct_ids": ["NCT0001"]},
+        )
+        job_id = created.json()["job_id"]
+        with client.stream("GET", f"/api/assess/{job_id}") as stream:
+            raw = "".join(stream.iter_text())
+
+    assert ": keepalive" in raw
+    # Comments carry no data, so they must not appear as events to a client.
+    assert all(ev.get("type") for _, ev in _parse_sse(raw))
+
+
+def test_the_done_event_carries_this_request_s_faithfulness(client):
+    """WS-5c: the served monitor is a nightly batch, so a run that starts
+    producing ungrounded verdicts at 09:00 is caught at 21:00. This is the same
+    number on the event the client already reads."""
+    _, events = _run_two_trial_job(client)
+
+    done = events[-1][1]
+    f = done["faithfulness"]
+    assert f["n_criteria"] == 2
+    assert f["grounded"] == 2
+    assert f["grounded_rate"] == 1.0
+    assert f["unverifiable"] == 0
+    assert f["unverifiable_rate"] == 0.0
+    assert f["decisive"] == 2
+
+
+def test_an_ungrounded_verdict_moves_the_per_request_rate(client):
+    from unittest.mock import patch
+
+    def fake_assess(note, nct_id, criteria, source_text, **kwargs):
+        return {
+            "trial_verdict": "cannot_determine",
+            "assessments": [
+                {"criterion": "A", "verdict": "unverifiable", "grounded": False,
+                 "grounding_failure": True},
+                {"criterion": "B", "verdict": "met", "grounded": True,
+                 "grounded_in": "note"},
+            ],
+        }
+
+    with (
+        patch("trialguard.agent.sanitize.detect_injection", return_value=False),
+        patch("trialguard.db.queries.get_trial", side_effect=lambda nct, source=None: STUB_ROWS.get(nct)),
+        patch("trialguard.agent.graph.assess", side_effect=fake_assess),
+        patch("trialguard.llm.cost.active_ledger") as ledger,
+    ):
+        ledger.return_value.exhausted.return_value = False
+        created = client.post(
+            "/api/assess", json={"note": "synthetic note", "nct_ids": ["NCT0001"]}
+        )
+        job_id = created.json()["job_id"]
+        with client.stream("GET", f"/api/assess/{job_id}") as stream:
+            events = _parse_sse("".join(stream.iter_text()))
+
+    f = events[-1][1]["faithfulness"]
+    assert f["unverifiable"] == 1
+    assert f["unverifiable_rate"] == 0.5
+    assert f["decisive"] == 1
+    # WS-5a: the decisive verdict's only evidence is the user's own note.
+    assert f["note_only_grounded"] == 1
+
+
+def test_a_timed_out_trial_contributes_no_criteria_to_the_rate(client):
+    """A trial that claimed nothing must not read as a trial that verified
+    nothing -- it would deflate the rate exactly when the system is degraded."""
+    from trialguard.api.routes import _Faithfulness
+
+    tally = _Faithfulness()
+    tally.add([])
+    tally.add([{"verdict": "met", "grounded": True}])
+
+    assert tally.summary() == {
+        "n_criteria": 1,
+        "unverifiable": 0,
+        "unverifiable_rate": 0.0,
+        "grounded": 1,
+        "grounded_rate": 1.0,
+        "decisive": 1,
+        "note_only_grounded": 0,
+    }

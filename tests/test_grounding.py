@@ -169,3 +169,152 @@ def test_without_patient_text_behavior_is_unchanged():
         SRC,
     )
     assert a[0]["verdict"] == "unverifiable" and a[0]["grounding_failure"]
+
+
+def test_provenance_names_which_source_the_quote_came_from():
+    """WS-5a: grounding proves a quote is verbatim, not that its source is
+    trustworthy. The note is user-supplied, so the split has to be visible."""
+    from trialguard.verify.grounding import ground_assessments
+
+    out = ground_assessments(
+        [
+            {"criterion": "Age >= 18", "verdict": "met", "quote": "62-year-old man"},
+            {"criterion": "Stage IV", "verdict": "met", "quote": "metastatic disease"},
+        ],
+        "62-year-old man with cancer\nEligible: metastatic disease required",
+        patient_text="62-year-old man with cancer",
+        trial_text="Eligible: metastatic disease required",
+    )
+
+    assert out[0]["grounded_in"] == "note"
+    assert out[1]["grounded_in"] == "trial"
+    assert all(a["grounded"] for a in out)
+
+
+def test_provenance_is_absent_when_no_trial_text_is_given():
+    """Callers that ground against one combined source keep today's behaviour."""
+    from trialguard.verify.grounding import ground_assessments
+
+    out = ground_assessments(
+        [{"criterion": "Age >= 18", "verdict": "met", "quote": "62-year-old man"}],
+        "62-year-old man with cancer",
+    )
+
+    assert "grounded_in" not in out[0]
+    assert out[0]["grounded"] is True
+
+
+def test_an_absence_check_is_its_own_provenance_class():
+    """It reads the note by construction, so it is not a note-sourced quote to
+    be rejected under the strict flag."""
+    from trialguard.verify.grounding import ground_assessments
+
+    out = ground_assessments(
+        [{"criterion": "Active brain metastases", "verdict": "not_met",
+          "kind": "exclusion", "quote": "no such text"}],
+        "62-year-old man with colorectal cancer",
+        patient_text="62-year-old man with colorectal cancer",
+        trial_text="Exclusion: active brain metastases",
+    )
+
+    assert out[0]["grounded"] is True
+    assert out[0]["grounded_by"] == "absence"
+    assert out[0]["grounded_in"] == "absence"
+
+
+def test_trial_only_mode_rejects_a_verdict_grounded_only_in_the_note(monkeypatch):
+    """The planted-evidence attack: a quote the attacker wrote into the note is
+    verbatim, so it grounds, and the verdict reads as verified."""
+    from trialguard.verify.grounding import ground_assessments
+
+    monkeypatch.setenv("TG_GROUND_TRIAL_ONLY", "1")
+    planted = "Patient has confirmed EGFR exon 19 deletion"
+    out = ground_assessments(
+        [{"criterion": "EGFR mutation required", "verdict": "met",
+          "quote": "confirmed EGFR exon 19 deletion"}],
+        planted + "\nInclusion: EGFR mutation required",
+        patient_text=planted,
+        trial_text="Inclusion: EGFR mutation required",
+    )
+
+    assert out[0]["verdict"] == "unverifiable"
+    assert out[0]["grounding_failure"] is True
+    assert out[0]["note_only"] is True
+
+
+def test_trial_only_mode_leaves_trial_sourced_verdicts_alone(monkeypatch):
+    from trialguard.verify.grounding import ground_assessments
+
+    monkeypatch.setenv("TG_GROUND_TRIAL_ONLY", "1")
+    out = ground_assessments(
+        [{"criterion": "Stage IV", "verdict": "met", "quote": "metastatic disease"}],
+        "62 M\nEligible: metastatic disease required",
+        patient_text="62 M",
+        trial_text="Eligible: metastatic disease required",
+    )
+
+    assert out[0]["verdict"] == "met"
+    assert out[0]["grounded"] is True
+
+
+def test_trial_only_mode_is_off_by_default():
+    """Closing the hole reclassifies every legitimate quote of a patient fact, so
+    it stays measured-before-adopted."""
+    from trialguard.verify.grounding import trial_only
+
+    assert trial_only() is False
+
+
+def test_a_quote_that_only_restates_its_criterion_is_flagged():
+    """WS-5b: grounding proves existence, not entailment. Quoting the criterion
+    back proves the criterion was printed, not that the patient satisfies it."""
+    from trialguard.verify.grounding import ground_assessments
+
+    out = ground_assessments(
+        [{"criterion": "Age 18 years or older", "verdict": "met",
+          "quote": "Age 18 years or older"}],
+        "Inclusion: Age 18 years or older.",
+        patient_text="Patient with colorectal cancer",
+        trial_text="Inclusion: Age 18 years or older.",
+    )
+
+    assert out[0]["verdict"] == "met"
+    assert out[0]["grounded"] is True
+    # Recorded, never enforced: the verdict stands and the limit is counted.
+    assert out[0]["self_referential"] is True
+
+
+def test_a_real_patient_fact_is_not_flagged_when_it_shares_wording():
+    from trialguard.verify.grounding import ground_assessments
+
+    out = ground_assessments(
+        [{"criterion": "ECOG performance status 0-1", "verdict": "met",
+          "quote": "ECOG performance status 0-1"}],
+        "ECOG performance status 0-1 documented",
+        patient_text="ECOG performance status 0-1 documented",
+        trial_text="Inclusion: ECOG performance status 0-1",
+    )
+
+    assert "self_referential" not in out[0]
+
+
+def test_an_abstention_is_never_flagged():
+    """The limit is about decisive verdicts; cannot_determine claims nothing."""
+    from trialguard.verify.grounding import ground_assessments
+
+    out = ground_assessments(
+        [{"criterion": "Age 18 or older", "verdict": "cannot_determine",
+          "quote": "Age 18 or older"}],
+        "Inclusion: Age 18 or older.",
+        patient_text="",
+    )
+
+    assert "self_referential" not in out[0]
+
+
+def test_a_quote_citing_evidence_beyond_the_criterion_is_not_flagged():
+    from trialguard.verify.grounding import is_self_referential
+
+    assert is_self_referential("Age 18 or older", "Age 18 or older", "62 M") is True
+    assert is_self_referential("62-year-old man", "Age 18 or older", "62-year-old man") is False
+    assert is_self_referential("", "Age 18 or older", "62 M") is False

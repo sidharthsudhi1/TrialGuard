@@ -1,11 +1,15 @@
 # Production readiness: what real users would break
 
 Written 2026-09-04, against the deployed Stage A API and the tree at the
-keyword-decay commit. Scope: what stands between this and traffic from people
-who are not the author.
+keyword-decay commit. **Revised 2026-09-07** after Phase 10 built most of it.
+Scope: what stands between this and traffic from people who are not the author.
 
-Two things shipped with this assessment (§1.1, §2.1). The rest is ranked and
-unbuilt, with the reasoning recorded so it is not re-derived later.
+Two things shipped with the original assessment (§1.1, §2.1). Phase 10 closed
+§2.2, §2.3 and §4, measured §1.2 and rejected its proposed fix on evidence, and
+gave §1.3 — the entailment limit — its first number. Each section carries its own
+status tag; §5 is the ranked list as it now stands. Where a fix was rejected
+rather than deferred, it is struck from the ranking rather than left implying
+future work.
 
 ---
 
@@ -71,17 +75,49 @@ NER model); published F1 for PHI detection runs ~0.96 for commercial clinical
 NLP against ~0.79 for zero-shot GPT-4o prompting, so this is a model to
 integrate rather than a prompt to write.
 
-### 1.2 Prompt injection is detected, not neutralised  `[open]`
+### 1.2 The note is a grounding source  `[measured 2026-09-07; fix rejected, risk restated]`
 
 `detect_injection` covers known signatures and the analyst prompt fences the
-note as data. The residual risk is already documented in `sanitize.py`: the
-patient note is itself a grounding source, so an attacker who plants plausible
-evidence text in the note can produce a *grounded* wrong verdict. Grounding
-proves a quote is verbatim, not that its source is trustworthy.
+note as data. The residual risk documented in `sanitize.py` stands: the patient
+note is itself a grounding source, so evidence planted in it produces a
+*grounded* wrong verdict. Grounding proves a quote is verbatim, not that its
+source is trustworthy.
 
-**Fix, when it matters:** ground decisive verdicts against trial text only, and
-treat note-sourced quotes as a distinct, visibly weaker class. That is a change
-to the faithfulness contract, so it needs its own A/B, not a patch.
+The proposed fix — ground decisive verdicts against trial text only — was A/B'd
+on both cohorts and **rejected**. 84% of grounded quotes exist only in the note,
+because the evidence that a patient satisfies a criterion lives in the patient
+record while the trial states the requirement. Enforcing it took the criterion
+unverifiable rate from 3.1% to 42.6% (SIGIR) and 3.5% to 50.0% (TREC) and
+emptied the `eligible` tier. It also keeps the wrong survivors: of the 8
+trial-grounded quotes on SIGIR, 2 restate their own criterion and 6 quote a
+different one, so none is evidence about a patient.
+
+**The risk is therefore restated, not closed.** A quote is verified to appear
+verbatim *in the inputs*, and for patient facts the input is the user's note. A
+user who states false facts receives verdicts faithful to those false facts —
+garbage-in, not hallucination, and indistinguishable to any verifier reading the
+same note. Only a link to a real record could tell them apart, which is ruled out
+by the rule that no real patient data ever enters this system.
+
+What shipped is visibility: `grounded_in` on every assessment, `note_only_grounded`
+on every request, `TG_GROUND_TRIAL_ONLY` kept default-off so the measurement is
+reproducible. See `data/reports/ws5_guardrails_findings.md` and AD-14.
+
+### 1.3 Grounding checks existence, not entailment  `[measured 2026-09-07, open]`
+
+A verbatim quote can fail to establish the verdict it supports. Sampled at 50
+grounded decisive verdicts (seeded, 25 per cohort, adjudicated on whether the
+quote establishes the verdict rather than whether the verdict is right): **36%
+do not**, 95% CI 24-50% (SIGIR 48%, TREC 24%). Not a 36% error rate — the quote
+is real in every case and many verdicts are still correct — but the size of the
+gap between *cited* and *shown*.
+
+AD-3 rules out an LLM verifier for enforcement on correlated-error grounds and
+that reasoning survives having measured the gap. The machine-checkable subset (a
+quote restating its own criterion) is 0.12-0.37%, recorded as `self_referential`,
+and is a floor rather than an estimate. Open; an NLI second verifier is the real
+candidate and sits at P2 with NER-based PHI, as a model to evaluate rather than a
+check to add. Items and per-item reasons: `data/reports/ws5b_entailment_sample.json`.
 
 ---
 
@@ -94,33 +130,63 @@ Workers raised to the measured provider ceiling of 10 (1,095 calls, zero errors;
 retrieval fan-out against a pool ceiling of 20, and psycopg2 raises rather than
 waits when exhausted, so the headroom is a correctness property.
 
-### 2.2 Jobs die with the process  `[open, P0 for real users]`
+### 2.2 Jobs die with the process  `[SHIPPED 2026-09-06]`
 
-`JobStore` is an in-process dict with TTL eviction. Fly restarts machines
-routinely — deploys, host migrations, OOM. Every in-flight assess job vanishes,
-and its SSE stream hangs until the client gives up. The user has paid for the
-LLM calls and sees nothing.
+Jobs and their events live in Postgres (`jobs`, `job_events`), beside the analyst
+cache and the spend ledger the `cache_entries` pattern already established. The
+SSE endpoint honours `Last-Event-ID`, so a reconnecting client resumes from its
+cursor with no gaps and no duplicates.
 
-The analyst cache softens this — a retry re-reads completed trials for free —
-but the job and its event log are gone, so nothing reconnects.
+Two things the build corrected in the plan above. The analyst cache does **not**
+soften a lost job for real traffic: a free-text note sets `skip_cache_write`, so
+nothing a non-preset job computed is cached anywhere. Recovery is the durable
+event log alone. And orphan detection needs two conditions, not one — see AD-13
+and its two amendments. `fly.toml` suspends idle machines, so a heartbeat age
+test alone reports a live suspended job as dead, while an instance test alone
+fails a healthy job the moment `auto_start_machines` puts a second machine behind
+the hostname.
 
-**Fix:** move jobs and their events to Postgres, which already backs the analyst
-cache and the spend ledger. The `cache_entries` pattern is the precedent. Add a
-`Last-Event-ID` cursor to the SSE endpoint so a reconnecting client resumes
-rather than restarts.
+Orphaned jobs fail visibly and the user retries; nothing requeues itself, and a
+disowned worker stops spending (`heartbeat()` returns whether the job is still
+the caller's to run). A job store that cannot accept work now returns 503 rather
+than a bare 500, which the failure-injection suite found.
 
-### 2.3 The corpus goes stale silently  `[open, P1]`
+### 2.3 The corpus goes stale silently  `[SHIPPED 2026-09-06]`
 
-`scripts/refresh.py` exists and updates recruiting status in place without
-re-embedding. Nothing schedules it. The review already observed a
-`NOT_YET_RECRUITING` trial being served from a corpus documented as
-recruiting-only, so drift is not hypothetical: users are shown trials that are
-no longer enrolling.
+The refresh runs on a Fly scheduled machine (`scripts/deploy_api.sh` destroys and
+recreates it on every deploy, so it can never run last release's code), records
+its counts and finish time to `cache_entries`, and surfaces them at `/api/health`
+as `corpus_refresh`. The probe alerts when that stamp stops advancing, which is
+the silent failure a schedule introduces. `last_updated` is shown per trial in
+the UI and marked stale past a threshold.
 
-**Fix:** schedule the refresh, and surface `last_updated` per trial in the UI so
-a stale record is visible rather than implied.
+The `NOT_YET_RECRUITING` observation turned out to be a **documentation** defect:
+`ctgov.py` includes that status deliberately. The real defect beside it was that
+the refresh diffed on `status` alone, so a trial whose eligibility criteria were
+revised kept both its stale text and its stale embedding — meaning a verdict could
+carry a verified citation to text CT.gov no longer publishes. The diff now keys on
+`lastUpdatePostDate` and re-embeds what moved.
 
-### 2.4 Single region, single instance  `[open, accepted]`
+### 2.4 The analyst does not answer every criterion  `[found 2026-09-07, open, P1]`
+
+Under prompt v4, Llama-3.3-70B silently returns fewer assessment objects than it
+was handed criteria: **13.0% fewer on TREC 2021** (229 of 1,761), 0.7% on SIGIR.
+Not truncation — `max_tokens` is 4096 and the longest measured response was 1,732
+tokens.
+
+Invisible until Phase 10 instrumented it, and structurally so: an unanswered
+criterion produces no assessment, so it cannot fail grounding, cannot trigger the
+retry edge, and disappears into `needs_review`. Meanwhile `rollup_trial` calls a
+trial `eligible` when every criterion it *received* was met, which CLAUDE.md
+already names as unsound over a truncated list.
+
+**Fix:** numbering the criteria closes it (13.0% → 0.5%), but prompt v5 carries
+costs of its own (AD-16). The clean experiment is a v6 keeping v4's addressing and
+adding only v5's "return exactly one object per numbered criterion" instruction,
+which separates coverage from addressing. `criterion_unanswered` is now reported
+by the end-to-end harness, so the next attempt has a number to move.
+
+### 2.5 Single region, single instance  `[open, accepted]`
 
 API in `syd` beside Neon in `ap-southeast-2`. No redundancy. Correct for a
 portfolio artifact; named so it is a decision rather than an oversight.
@@ -141,17 +207,39 @@ cap is doing its job: the failure mode is a dark demo, not a surprise invoice.
 
 ---
 
-## 4 — Observability
+## 4 — Observability  `[SHIPPED 2026-09-07, one item outstanding]`
 
-`served_monitor.py` reads the `served`-tagged traces and diverges when
-abstention or grounding-failure rates leave their committed bands. It is
-committed but **dormant**: the workflow skips until `LANGFUSE_PUBLIC_KEY` and
-`LANGFUSE_SECRET_KEY` exist as repo secrets. Both workflows are SHA-pinned, so
-the supply-chain path that made storing them uncomfortable is closed.
+`served_monitor.py` reads the `served`-tagged traces and diverges when abstention
+or grounding-failure rates leave their committed bands. It is now **armed**: a
+missing secret fails the run rather than skipping it. The monitor spent its whole
+existence green and silent because the skip branch made "not configured"
+indistinguishable from "nothing diverged". To stand it down, disable the workflow
+rather than removing the secrets.
 
-Nothing alerts on API errors, latency, or budget exhaustion — only on model
-behaviour drift. A first-pass fix is Fly's own metrics plus an alert on the
-`/api/health` fields the endpoint already returns.
+**Outstanding:** `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` still have to be
+added as repo secrets — that cannot be done from the repo. Until then the nightly
+run fails loudly, which is the intended state.
+
+A trace-reading monitor is blind exactly when the API is down, because an outage
+produces *fewer* traces rather than different ones. `eval/served_probe.py` closes
+that: it hits the live endpoints and gates liveness, pool health, search latency
+and result count, budget exhaustion and corpus staleness. It runs first in the
+nightly workflow, unconditional on any secret, and again after every deploy
+against tighter bounds (`scripts/deploy_api.sh`).
+
+Latency now has an SLO (`docs/deploy_stage_a.md`, `data/reports/served_slo.json`).
+Building it produced the finding that **"780 ms warm" is not what a user meets**:
+the first search after a resume from suspend measured 20,576 ms server-side with
+the keyword cache already warm, settling to 542-570 ms by the third call. The
+probe measures cold and warm separately and gates only warm — gating the first
+call would fail every deploy, and not measuring it is how it stayed invisible.
+p95 is explicitly **not** claimed: a probe is n=1.
+
+Faithfulness is no longer only a nightly batch. Every `/api/assess` request
+reports its own `unverifiable_rate`, `grounded_rate` and `note_only_grounded` on
+the `done` event and on the trace, so a run that starts producing ungrounded
+verdicts at 09:00 is visible in minutes rather than at 21:00. Emitted off the
+request path: `emit_scores` ends in a blocking flush measured at 4.1 s.
 
 ---
 
@@ -160,15 +248,22 @@ behaviour drift. A first-pass fix is Fly's own metrics plus an alert on the
 | | item | why now |
 |---|---|---|
 | **P0** | ~~PHI refusal at the boundary~~ | **shipped** — the only item that was actively unsafe |
-| **P0** | Postgres-backed jobs + SSE resume | a restart currently loses paid work with no recovery |
-| **P1** | Scheduled corpus refresh + visible `last_updated` | users are shown trials that stopped enrolling |
-| **P1** | Arm the served monitor | the instrument exists and reads nothing |
+| **P0** | ~~Postgres-backed jobs + SSE resume~~ | **shipped** — a restart no longer loses paid work |
+| **P1** | ~~Scheduled corpus refresh + visible `last_updated`~~ | **shipped** — including the revised-criteria re-embed the plan had missed |
+| **P1** | ~~Arm the served monitor~~ | **shipped** — plus a probe, because traces cannot see an outage |
+| **P1** | Add the two Langfuse repo secrets | the only Phase 10 item that cannot be done from the repo |
+| **P1** | The analyst answers 13% fewer criteria than it is asked (TREC) | a trial roll-up over an incomplete criteria list is unsound, and nothing surfaced it |
 | **P2** | NER-based PHI detection | closes the names gap regexes cannot reach |
+| **P2** | NLI second verifier for entailment | §1.3 puts the gap at 36%; a model to evaluate, not a check to add |
 | **P2** | Stage B auth + per-user quota | the only real answer to shared-budget exhaustion |
-| **P2** | Error/latency alerting | currently only model drift is watched |
+| — | Trial-only grounding | **measured and rejected** (§1.2, AD-14) — not deferred |
 | — | Multi-region | correctly out of scope |
 
-The honest summary: after §1.1 the system is safe to show people, and it is not
-yet reliable enough to depend on. The difference is §2.2 — losing a user's paid
-work on a routine deploy is the failure a real user would hit first and forgive
-least.
+The honest summary has moved. §2.2 is closed, so the system no longer loses paid
+work on a routine deploy, and §4 no longer reports "nothing diverged" while
+reading nothing. What is left is not a reliability gap but a **claim** gap, and
+it is named rather than hidden: a citation proves a quote exists in the inputs,
+and for patient facts the input is whatever the user typed (§1.2), and existence
+is not entailment (§1.3, 36%). Both are properties of the architecture rather
+than bugs in it. The system is safe to show people and dependable enough to use;
+what it cannot do is verify the patient.

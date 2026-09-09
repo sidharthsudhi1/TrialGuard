@@ -18,6 +18,9 @@ _TRIAL_COLS = (
     "max_age",
     "sex",
     "healthy_volunteers",
+    # CT.gov's lastUpdatePostDate. Served so a reader can see how old the record
+    # is rather than infer it from a corpus described as current somewhere else.
+    "last_updated",
     "source",
 )
 

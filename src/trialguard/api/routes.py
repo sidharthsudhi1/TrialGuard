@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
+import threading
 import uuid
 from functools import lru_cache
 from typing import Any
@@ -22,9 +24,11 @@ from trialguard.api.schemas import (
 from trialguard.config import settings
 
 router = APIRouter(prefix="/api")
+logger = logging.getLogger(__name__)
 
 SOURCE = "ctgov_live"
 MAX_CRITERIA = 24
+_KEEPALIVE_SECONDS = 15.0
 
 
 def _client_ip(request: Request) -> str:
@@ -158,6 +162,20 @@ def _vector_cache_status() -> dict[str, Any]:
     return status()
 
 
+def _corpus_freshness() -> dict[str, Any] | None:
+    """When the corpus was last reconciled against CT.gov, or None if never.
+
+    A single indexed key read, because this endpoint is polled every 30s by the
+    Fly health check. The counts come from the refresh that wrote them rather
+    than from a fresh aggregate for the same reason.
+    """
+    if not settings.database_url:
+        return None
+    from trialguard.db.cache import cache_get
+
+    return cache_get("corpus", "last_refresh")
+
+
 @router.get("/health")
 def health(request: Request) -> dict[str, Any]:
     """Process up + pool leasable + MedCPT warm flag."""
@@ -179,6 +197,7 @@ def health(request: Request) -> dict[str, Any]:
         "pool_error": pool_error,
         "medcpt_warm": bool(request.app.state.medcpt_warm),
         "vector_cache": _vector_cache_status(),
+        "corpus_refresh": _corpus_freshness(),
         "prompt_version": os.environ.get("TG_PROMPT_VERSION", "v1"),
         "synthetic_only": True,
         "notice": SYNTHETIC_NOTICE,
@@ -258,6 +277,7 @@ def search(body: SearchRequest, request: Request) -> dict[str, Any]:
                 "status": t.get("status"),
                 "phase": t.get("phase"),
                 "conditions": t.get("conditions") or [],
+                "last_updated": t.get("last_updated"),
                 "score": round(float(score), 4),
             }
         )
@@ -318,7 +338,22 @@ async def assess_start(body: AssessRequest, request: Request) -> AssessCreated:
     note = body.note.strip()
     skip_cache = not _is_preset(note)
     store = request.app.state.jobs
-    job = store.create(note, nct_ids, skip_cache_write=skip_cache)
+    try:
+        job = store.create(note, nct_ids, skip_cache_write=skip_cache)
+    except Exception as e:  # noqa: BLE001 — the store is the only durable record
+        # Without this the client gets a bare 500 and cannot tell a rejected
+        # request from a broken one. Worse, returning a job id anyway would
+        # promise work that nothing is doing and no stream can ever report on.
+        # The message names the condition only: a psycopg2 OperationalError
+        # carries the host it failed to reach, which is not the client's to see.
+        logger.error("job store unavailable at create: %s", type(e).__name__)
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "The job store is unavailable, so this assessment was not "
+                "started. Nothing was charged; please retry."
+            ),
+        ) from e
     # Keep a reference: asyncio holds only a weak one, so a fire-and-forget task
     # can be garbage collected mid-await. The job would stop silently and its SSE
     # stream would hang until the TTL expired, with nothing logged.
@@ -328,9 +363,115 @@ async def assess_start(body: AssessRequest, request: Request) -> AssessCreated:
     return AssessCreated(job_id=job.job_id)
 
 
+def _ensure_terminal(store: Any, job_id: str) -> None:
+    """No job outlives its task in a non-terminal state.
+
+    The heartbeat check in the store can only see a job whose whole *process* is
+    gone; a task that dies inside a live process keeps the owning instance id and
+    so never trips it. Here the fact is known rather than inferred, and this runs
+    on every exit path including CancelledError, which the `except Exception`
+    above does not catch. AD-13.
+    """
+    try:
+        current = store.get(job_id, with_events=False)
+        if current is not None and current.status in ("queued", "running"):
+            store.fail(job_id, "worker_died: the job task exited without finishing")
+    except Exception:  # noqa: BLE001 — must not mask whatever ended the job
+        pass
+
+
+async def _heartbeat(
+    store: Any, job_id: str, interval: float, tasks: list[asyncio.Task]
+) -> None:
+    """Prove the owning process is alive, and stop the work when it is not.
+
+    Its own task on purpose: the analyst call runs in the executor, so a provider
+    that hangs to TG_LLM_TIMEOUT stalls a worker thread and not this loop. A job
+    whose heartbeat stops has genuinely lost its worker (AD-13).
+
+    The beat is also the cancellation channel. A machine can be suspended and
+    never routed to again, so another reader declares its job dead -- correctly,
+    because a job nobody can reach is stalled whether or not its process still
+    exists. If that machine is later woken it must not resume spending on a job
+    the user has already been told failed and has probably retried. The store
+    reports that on the next beat, which is the one thing a running job does on a
+    timer.
+    """
+    while True:
+        await asyncio.sleep(interval)
+        try:
+            alive = store.heartbeat(job_id)
+        except Exception:  # noqa: BLE001 — a missed beat must not kill the job
+            continue
+        if not alive:
+            for t in tasks:
+                t.cancel()
+            return
+
+
+class _Faithfulness:
+    """Per-request criterion tally: what was claimed, and what survived checking.
+
+    Counted off the terminal trial events, which carry post-grounding verdicts, so
+    this measures what the client was actually told rather than what the model
+    first said.
+    """
+
+    def __init__(self) -> None:
+        self.n = self.unverifiable = self.grounded = self.decisive = self.note_only = 0
+
+    def add(self, assessments: list[dict[str, Any]]) -> None:
+        for a in assessments:
+            self.n += 1
+            verdict = a.get("verdict")
+            if verdict == "unverifiable":
+                self.unverifiable += 1
+            elif verdict in ("met", "not_met"):
+                self.decisive += 1
+            if a.get("grounded"):
+                self.grounded += 1
+            if a.get("grounded_in") == "note":
+                self.note_only += 1
+
+    def summary(self) -> dict[str, Any]:
+        def _rate(x: int) -> float:
+            return round(x / self.n, 4) if self.n else 0.0
+
+        return {
+            "n_criteria": self.n,
+            "unverifiable": self.unverifiable,
+            "unverifiable_rate": _rate(self.unverifiable),
+            "grounded": self.grounded,
+            "grounded_rate": _rate(self.grounded),
+            "decisive": self.decisive,
+            # WS-5a: decisive verdicts whose only evidence is the user's own note.
+            "note_only_grounded": self.note_only,
+        }
+
+    def emit(self, job_id: str) -> None:
+        """Same numbers onto the trace, where the monitor and dashboard read them."""
+        if not self.n:
+            return
+        from trialguard.tracing import emit_scores
+
+        s = self.summary()
+        try:
+            emit_scores(
+                {
+                    "unverifiable_rate": s["unverifiable_rate"],
+                    "grounded_rate": s["grounded_rate"],
+                    "note_only_grounded": float(s["note_only_grounded"]),
+                },
+                session_id=job_id,
+            )
+        except Exception:  # noqa: BLE001
+            # Observability must not be able to fail a completed assessment.
+            pass
+
+
 async def _run_assess_job(app: Any, job_id: str) -> None:
     store = app.state.jobs
-    job = store.get(job_id)
+    job = store.get(job_id, with_events=False)
     if job is None:
         return
 
@@ -339,12 +480,48 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
     executor = app.state.assess_executor
     loop = asyncio.get_running_loop()
 
+    deadline = settings.api_assess_trial_deadline_seconds
+
     async def _one(nct_id: str) -> dict[str, Any]:
         """One trial. Only BudgetExhausted escapes; everything else is an event."""
+        # Set when the deadline fires, so the abandoned worker stops emitting
+        # provisional criteria for a trial the client has already been told timed
+        # out. The UI clears a trial's pending list when its trial event lands; a
+        # late criterion would repopulate it and render progress on a closed trial.
+        abandoned = threading.Event()
         try:
-            return await loop.run_in_executor(
-                executor, _assess_one, job.note, nct_id, job_id, job.skip_cache_write, store
+            return await asyncio.wait_for(
+                loop.run_in_executor(
+                    executor,
+                    _assess_one,
+                    job.note,
+                    nct_id,
+                    job_id,
+                    job.skip_cache_write,
+                    store,
+                    abandoned,
+                ),
+                timeout=deadline,
             )
+        except (asyncio.TimeoutError, TimeoutError):
+            # The executor thread cannot be interrupted, so it runs to completion
+            # and its result is discarded. That costs nothing extra -- the
+            # provider call was already made and already billed -- and it buys the
+            # user a bounded, honest answer instead of an open-ended wait. It does
+            # hold a worker slot until it finishes, so a hung trial narrows
+            # concurrency for the rest of the job.
+            abandoned.set()
+            return {
+                "type": "trial",
+                "nct_id": nct_id,
+                "error": (
+                    f"Assessment exceeded the {deadline:.0f}s per-trial deadline "
+                    "and was not completed. No verdict is claimed for this trial."
+                ),
+                "trial_verdict": "cannot_determine",
+                "assessments": [],
+                "timed_out": True,
+            }
         except BudgetExhausted:
             raise
         except Exception as e:  # noqa: BLE001 — per-trial failure must not kill the job
@@ -363,10 +540,16 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
     # the same calls, overlapped. Events carry nct_id and the SSE stream replays
     # them in append order, so completion order is not load-bearing.
     tasks = [asyncio.create_task(_one(n)) for n in job.nct_ids]
+    beat = asyncio.create_task(
+        _heartbeat(store, job_id, settings.api_job_heartbeat_seconds, tasks)
+    )
+    tally = _Faithfulness()
     try:
         try:
             for completed in asyncio.as_completed(tasks):
-                store.append(job_id, await completed)
+                event = await completed
+                tally.add(event.get("assessments") or [])
+                store.append(job_id, event)
         except BudgetExhausted as e:
             # Cancel the rest: work still queued in the executor has not started
             # and must not be paid for once the cap is hit.
@@ -374,22 +557,47 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
                 t.cancel()
             store.fail(job_id, json.dumps(_budget_exhausted_detail(e)))
             return
+        except asyncio.CancelledError:
+            # The beat cancelled the work because the job is no longer ours. It
+            # already carries a terminal status written by whoever took it.
+            return
         store.complete(
             job_id,
             {
                 "n_trials": len(job.nct_ids),
                 "status": "done",
+                # WS-5c. The served monitor is a nightly batch, so a run that
+                # starts producing ungrounded verdicts at 09:00 is caught at
+                # 21:00. This is the same number, per request, on the event the
+                # client already reads and on the trace the monitor already
+                # queries -- so the divergence is visible in minutes.
+                "faithfulness": tally.summary(),
             },
         )
+        # Off the request path, deliberately. emit_scores ends in a blocking
+        # client.flush() measured at 4.1 s against a configured Langfuse, so
+        # emitting inline would have added that to the wall clock of every
+        # completed assessment -- paying latency to report on latency. The job is
+        # already done and its events are already durable, so nothing waits on
+        # this and nothing breaks if the process dies mid-flush.
+        loop.run_in_executor(None, tally.emit, job_id)
     except Exception as e:  # noqa: BLE001
         if isinstance(e, BudgetExhausted):
             store.fail(job_id, json.dumps(_budget_exhausted_detail(e)))
         else:
             store.fail(job_id, str(e))
+    finally:
+        beat.cancel()
+        _ensure_terminal(store, job_id)
 
 
 def _assess_one(
-    note: str, nct_id: str, job_id: str, skip_cache_write: bool, store=None
+    note: str,
+    nct_id: str,
+    job_id: str,
+    skip_cache_write: bool,
+    store=None,
+    abandoned: threading.Event | None = None,
 ) -> dict[str, Any]:
     """Sync worker: load trial, build typed criteria, call assess() unchanged."""
     from trialguard.agent.graph import assess
@@ -422,18 +630,25 @@ def _assess_one(
     # pre-grounding and a retry can supersede them — and the terminal trial
     # event remains the authority.
     def _emit(assessment: dict) -> None:
-        if store is None:
+        if store is None or (abandoned is not None and abandoned.is_set()):
             return
-        store.append(
-            job_id,
-            {
-                "type": "criterion",
-                "nct_id": nct_id,
-                "provisional": True,
-                "criterion": assessment.get("criterion", ""),
-                "verdict": assessment.get("verdict", "cannot_determine"),
-            },
-        )
+        try:
+            store.append(
+                job_id,
+                {
+                    "type": "criterion",
+                    "nct_id": nct_id,
+                    "provisional": True,
+                    "criterion": assessment.get("criterion", ""),
+                    "verdict": assessment.get("verdict", "cannot_determine"),
+                },
+            )
+        except Exception:  # noqa: BLE001
+            # These events are explicitly provisional and the terminal trial
+            # event is the authority, so a store that drops one costs a UI
+            # update. Raising here would turn a transient write failure into a
+            # failed trial that had actually succeeded.
+            pass
 
     state = assess(
         note,
@@ -457,6 +672,24 @@ def _assess_one(
     }
 
 
+def _resume_cursor(request: Request) -> int:
+    """Where a reconnecting client left off, from the standard SSE header.
+
+    A browser EventSource replays the last `id:` it saw as `Last-Event-ID` on its
+    own reconnects, with no client code involved. A value that is not a
+    non-negative integer is treated as "from the beginning" rather than rejected:
+    the header is echoed by the client from a previous stream, so a stale or
+    mangled one should cost a replay, not a 400 on a job the user has paid for.
+    """
+    raw = request.headers.get("last-event-id")
+    if raw is None:
+        return 0
+    try:
+        return max(0, int(raw.strip()))
+    except ValueError:
+        return 0
+
+
 @router.get("/assess/{job_id}")
 async def assess_stream(job_id: str, request: Request) -> StreamingResponse:
     """SSE: provisional criterion events, one event per trial, then a summary.
@@ -464,29 +697,60 @@ async def assess_stream(job_id: str, request: Request) -> StreamingResponse:
     `criterion` events stream as the analyst produces them and carry
     provisional=True; the `trial` event for the same nct_id is the authoritative
     result and supersedes them.
+
+    Resumable. Each event carries its per-job `seq` as the SSE `id:`, and a
+    reconnecting client resumes from `Last-Event-ID`, so a dropped connection
+    costs the events in flight at that instant and nothing else. A client that
+    reconnects with no header replays the whole log, which is what a fresh reader
+    of a finished job wants.
     """
     store = request.app.state.jobs
-    job = store.get(job_id)
+    job = store.get(job_id, with_events=False)
     if job is None:
         raise HTTPException(status_code=404, detail="Unknown job_id.")
+    resume_from = _resume_cursor(request)
 
     async def event_gen():
-        sent = 0
+        # A per-job sequence, not a local count of what this generator sent. The
+        # count died with the connection and could only ever mean "from the
+        # start"; seq is stored with the event, so the same cursor identifies a
+        # position in a log that outlives the stream. It also keeps the poll
+        # linear: re-reading every event of a 200-event job every 150 ms is a
+        # dict slice in memory and a table scan against Neon.
+        cursor = resume_from
+        idle = 0.0
         while True:
-            current = store.get(job_id)
+            current = store.get(job_id, with_events=False)
             if current is None:
                 payload = {"type": "error", "error": "job_expired"}
                 yield f"event: error\ndata: {json.dumps(payload)}\n\n"
                 return
-            while sent < len(current.events):
-                ev = current.events[sent]
-                sent += 1
+            pending = store.events_since(job_id, cursor)
+            for seq, ev in pending:
+                cursor = seq
                 etype = ev.get("type", "trial")
-                yield f"event: {etype}\ndata: {json.dumps(ev)}\n\n"
+                # SSE `id:` is what a reconnecting client echoes back as
+                # Last-Event-ID. Emitting it costs nothing here and is the half
+                # of resume that belongs with the sequence number.
+                yield f"id: {seq}\nevent: {etype}\ndata: {json.dumps(ev)}\n\n"
                 if etype in ("summary", "error"):
                     return
-            if current.status in ("done", "error") and sent >= len(current.events):
+            # Status and events are written in one transaction, so a terminal
+            # status is never visible before the event that closed the job.
+            if current.status in ("done", "error") and not pending:
                 return
+            # An SSE comment, ignored by every client, so a stream that is waiting
+            # on a slow trial still puts bytes on the wire. Criterion events cover
+            # most of that wait, but a provider that hangs before emitting anything
+            # produces silence for the whole per-trial deadline, which an
+            # intermediary is entitled to read as a dead connection and close.
+            if pending:
+                idle = 0.0
+            else:
+                idle += 0.15
+                if idle >= _KEEPALIVE_SECONDS:
+                    idle = 0.0
+                    yield ": keepalive\n\n"
             await asyncio.sleep(0.15)
 
     return StreamingResponse(

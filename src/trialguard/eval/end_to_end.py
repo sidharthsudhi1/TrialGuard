@@ -106,6 +106,15 @@ def _is_cached(note: str, nct_id: str) -> bool:
     return (CACHE_DIR / f"{_cache_key(note, nct_id)}.json").exists()
 
 
+def _eval_workers() -> int:
+    """Parallel assessments. Default 1, so a re-run of a committed number stays
+    byte-identical unless it explicitly opts in. Mirrors the flag agent_metrics
+    already uses; 10 is the measured DeepInfra ceiling before timeouts."""
+    import os
+
+    return max(1, int(os.environ.get("TG_EVAL_WORKERS", "1")))
+
+
 def assess_retrieved(
     rows: list[dict], cohort: str, max_retries: int = 2, cached_only: bool = False
 ) -> dict:
@@ -119,6 +128,12 @@ def assess_retrieved(
 
     assessed = skipped = budget_stops = uncached = 0
     t0 = time.perf_counter()
+
+    # Flatten first so the work can run concurrently. Every (patient, trial) pair
+    # is independent -- the only shared state is the cost ledger, which serialises
+    # its own writes -- so the assessments are identical either way and only the
+    # wall clock moves.
+    work: list[tuple[dict, str, dict, list[dict], bool]] = []
     for r in rows:
         r["verdicts"] = {}
         for nct in r["retrieved"]:
@@ -133,33 +148,83 @@ def assess_retrieved(
             if cached_only and not _is_cached(r["note"], nct):
                 uncached += 1
                 continue
+            work.append((r, nct, trial, criteria, truncated))
+
+    def _one(item):
+        r, nct, trial, criteria, truncated = item
+        return item, assess(
+            r["note"],
+            nct,
+            criteria,
+            trial.get("eligibility_raw", ""),
+            max_retries=max_retries,
+            criteria_truncated=truncated,
+        )
+
+    workers = _eval_workers()
+    if workers > 1:
+        from concurrent.futures import ThreadPoolExecutor
+
+        pool = ThreadPoolExecutor(max_workers=workers)
+        results = pool.map(_one, work)
+    else:
+        pool = None
+        results = map(_one, work)
+
+    try:
+        for _ in work:
             try:
-                state = assess(
-                    r["note"],
-                    nct,
-                    criteria,
-                    trial.get("eligibility_raw", ""),
-                    max_retries=max_retries,
-                    criteria_truncated=truncated,
-                )
+                item, state = next(results)  # type: ignore[call-overload]
+            except StopIteration:
+                break
             except BudgetExhausted:
                 # Stop rather than silently scoring a partial run as if complete.
+                # Which patient the exhausted call belonged to is not recoverable
+                # once the work is pooled, so every patient still holding
+                # unassessed trials is marked incomplete -- the honest reading,
+                # since none of them was scored over its full retrieved set.
                 budget_stops += 1
-                r["incomplete"] = True
+                assessed_ids = {n for row in rows for n in row["verdicts"]}
+                for row in rows:
+                    if set(row["retrieved"]) - assessed_ids:
+                        row["incomplete"] = True
                 break
             except Exception:  # noqa: BLE001 — one bad trial must not void the run
                 skipped += 1
                 continue
+            r, nct, _trial, criteria, _truncated = item
             ass = state.get("assessments", [])
             r["verdicts"][nct] = {
                 "trial_verdict": state.get("trial_verdict", "cannot_determine"),
                 "trial_tier": state.get("trial_tier", "needs_review"),
                 "n_unknown": state.get("n_unknown", 0),
                 "n_criteria": len(ass),
+                # What the analyst was asked for, against what came back. A prompt
+                # that silently answers fewer criteria than it was given produces a
+                # trial the roll-up can only call needs_review, and every rate below
+                # would otherwise be computed over the shrunken denominator and look
+                # unchanged. This is the direct measure of that.
+                "n_criteria_asked": len(criteria),
                 "n_grounded": sum(1 for a in ass if a.get("grounded")),
                 "n_unverifiable": sum(1 for a in ass if a.get("verdict") == "unverifiable"),
+                # Full distribution, not just the abstention rate. L4 improved the
+                # faithfulness proxy 26% while making the system strictly worse, and
+                # only the criterion-level split showed that the vanished grounding
+                # failures had become abstentions rather than recoveries.
+                "verdicts": _verdict_counts(ass),
+                # WS-5a: which source each grounded quote actually came from. A
+                # "note" span means the verdict rests on text the user supplied,
+                # which is the class an attacker controls.
+                "grounded_in": _provenance_counts(ass),
+                # WS-5b: grounded decisive verdicts whose quote only restates the
+                # criterion. A deterministic lower bound on non-entailment.
+                "self_referential": sum(1 for a in ass if a.get("self_referential")),
             }
             assessed += 1
+    finally:
+        if pool is not None:
+            pool.shutdown(wait=False, cancel_futures=True)
+
     total = assessed + uncached
     return {
         "assessed": assessed,
@@ -174,12 +239,40 @@ def assess_retrieved(
     }
 
 
+_VERDICTS = ("met", "not_met", "cannot_determine", "unverifiable")
+
+
+_PROVENANCE = ("trial", "note", "absence")
+
+
+def _provenance_counts(assessments: list[dict]) -> dict[str, int]:
+    counts = dict.fromkeys(_PROVENANCE, 0)
+    for a in assessments:
+        src = a.get("grounded_in")
+        if a.get("grounded") and src in counts:
+            counts[src] += 1
+    return counts
+
+
+def _verdict_counts(assessments: list[dict]) -> dict[str, int]:
+    counts = dict.fromkeys(_VERDICTS, 0)
+    for a in assessments:
+        v = a.get("verdict")
+        if v in counts:
+            counts[v] += 1
+    return counts
+
+
 def score(rows: list[dict]) -> dict:
     """Compose retrieval and verdicts into the numbers that describe the system."""
     n_gold = n_retrieved = n_correct = 0
     said_eligible = said_eligible_right = 0
     verdict_counts: dict[str, int] = {}
     crit_total = crit_unver = 0
+    crit_asked = crit_grounded = 0
+    crit_verdicts = dict.fromkeys(_VERDICTS, 0)
+    crit_provenance = dict.fromkeys(_PROVENANCE, 0)
+    crit_self_ref = 0
 
     for r in rows:
         gold_elig = set(r["gold_eligible"])
@@ -194,6 +287,15 @@ def score(rows: list[dict]) -> dict:
             verdict_counts[v["trial_verdict"]] = verdict_counts.get(v["trial_verdict"], 0) + 1
             crit_total += v["n_criteria"]
             crit_unver += v["n_unverifiable"]
+            crit_asked += v.get("n_criteria_asked", v["n_criteria"])
+            crit_grounded += v.get("n_grounded", 0)
+            for name, n in (v.get("verdicts") or {}).items():
+                if name in crit_verdicts:
+                    crit_verdicts[name] += n
+            for name, n in (v.get("grounded_in") or {}).items():
+                if name in crit_provenance:
+                    crit_provenance[name] += n
+            crit_self_ref += v.get("self_referential", 0)
             if v["trial_verdict"] == "eligible":
                 said_eligible += 1
                 if r["gold_labels"].get(nct) == "eligible":
@@ -239,6 +341,22 @@ def score(rows: list[dict]) -> dict:
         "eligible_precision": _rate(said_eligible_right, said_eligible),
         "trial_verdicts": verdict_counts,
         "criterion_unverifiable_rate": _rate(crit_unver, crit_total),
+        "criterion_verdicts": crit_verdicts,
+        "criterion_grounded": crit_grounded,
+        "criterion_total": crit_total,
+        # Criteria the analyst was handed but never answered. Non-zero means the
+        # rates above describe a subset of what was asked.
+        "criterion_asked": crit_asked,
+        "criterion_unanswered": crit_asked - crit_total,
+        "criterion_grounded_rate": _rate(crit_grounded, crit_asked),
+        "criterion_grounded_in": crit_provenance,
+        # The share of grounded criteria whose only evidence is user-supplied
+        # text. This is the size of the hole WS-5a is about, not an error rate.
+        "note_only_grounded_rate": _rate(crit_provenance["note"], crit_grounded),
+        "self_referential": crit_self_ref,
+        # Lower bound, not an estimate: a quote citing the wrong patient fact is
+        # equally unsupported and no string comparison can see it.
+        "self_referential_rate": _rate(crit_self_ref, crit_grounded),
         "incomplete_patients": sum(1 for r in rows if r.get("incomplete")),
     }
 

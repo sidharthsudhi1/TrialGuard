@@ -95,8 +95,14 @@ class Settings(BaseSettings):
     # Per-IP sliding-window limits (keyword extract / analyst spend).
     api_search_rate_per_min: int = 10
     api_assess_rate_per_min: int = 5
-    # In-process assess job TTL (seconds).
+    # Assess job retention (seconds). Enforced as a DELETE on job create, not
+    # eviction-on-read, now that job rows are durable.
     api_job_ttl_seconds: int = 3600
+    # Orphan detection (AD-13). The beat runs in its own asyncio task, so it keeps
+    # ticking through a provider call that hangs to the 180s TG_LLM_TIMEOUT; the
+    # stale window only has to clear scheduling jitter, not analyst latency.
+    api_job_heartbeat_seconds: int = 15
+    api_job_stale_seconds: int = 90
     # Bounded threadpool for assess() — also a spend concurrency limit. A standard
     # request finishes in one wave; a deep one lands in three rather than five.
     # 10 is the measured ceiling for this provider, not a guess: the H1 prewarm
@@ -115,6 +121,14 @@ class Settings(BaseSettings):
     # assess latency from Langfuse traces.
     api_assess_usd_per_trial: float = 0.000425
     api_assess_seconds_per_trial: float = 29.2
+
+    # WS-6b. Nothing bounded a trial before this. TG_LLM_TIMEOUT is 180s per HTTP
+    # attempt, the provider client retries twice, and the graph retries the whole
+    # assessment twice, so one trial could legitimately occupy ~27 minutes and the
+    # UI showed nothing at any point in it. 240s is ~8x the 29.2s median and ~2.7x
+    # the measured two-retry path (~88s), so a genuinely slow trial still finishes
+    # and a hung one stops being an unbounded promise.
+    api_assess_trial_deadline_seconds: float = 240.0
 
     # Hugging Face
     hf_token: str = ""

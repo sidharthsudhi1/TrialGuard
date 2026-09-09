@@ -7,6 +7,7 @@ import { EligibilityHighlight } from "../../../components/EligibilityHighlight";
 import { SyntheticNotice } from "../../../components/SyntheticNotice";
 import { fetchTrial } from "../../../lib/api";
 import type { Assessment, TrialDetail } from "../../../lib/types";
+import { freshness } from "@/lib/freshness";
 
 function TrialDetailInner() {
   const params = useParams<{ nctId: string }>();
@@ -84,6 +85,17 @@ function TrialDetailInner() {
               .filter(Boolean)
               .join(" · ")}
           </p>
+          {(() => {
+            const f = freshness(trial.last_updated);
+            if (!f) return null;
+            // Beside the eligibility text on purpose: this is the age of the
+            // source a quote is grounded in, not a detail about the page.
+            return (
+              <p className={f.stale ? "muted stale" : "muted"}>
+                Source record {f.label} on ClinicalTrials.gov
+              </p>
+            );
+          })()}
           <h2
             style={{
               fontFamily: "var(--font-display)",
