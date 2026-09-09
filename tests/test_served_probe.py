@@ -24,6 +24,7 @@ class _FakeClient:
         self.health = health if health is not None else {
             "ok": True,
             "pool_ok": True,
+            "store_ok": True,
             "corpus_refresh": {"at": now, "corpus": 25965},
         }
         self.budget = budget if budget is not None else {
@@ -104,7 +105,7 @@ def test_an_unreachable_api_fails_rather_than_raising():
 
 def test_a_broken_database_pool_alerts():
     """/api/health returns 200 with pool_ok false; a status check alone misses it."""
-    result = _probe(health={"ok": True, "pool_ok": False})
+    result = _probe(health={"ok": True, "pool_ok": False, "store_ok": False})
 
     outcome = check(result)
     assert outcome["passed"] is False
@@ -159,7 +160,8 @@ def test_a_stalled_corpus_refresh_alerts():
     """WS-3's schedule fails silently; this is what notices."""
     stale = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=5)).isoformat()
     result = _probe(
-        health={"ok": True, "pool_ok": True, "corpus_refresh": {"at": stale}}
+        health={"ok": True, "pool_ok": True, "store_ok": True,
+               "corpus_refresh": {"at": stale}}
     )
 
     assert result["corpus_age_hours"] > 48
@@ -170,7 +172,7 @@ def test_a_stalled_corpus_refresh_alerts():
 
 def test_a_never_refreshed_corpus_is_reported_not_gated():
     """A fresh deploy has no refresh stamp yet, which is not a defect."""
-    result = _probe(health={"ok": True, "pool_ok": True})
+    result = _probe(health={"ok": True, "pool_ok": True, "store_ok": True})
 
     assert result["corpus_age_hours"] is None
     assert check(result)["passed"] is True
