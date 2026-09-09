@@ -151,7 +151,7 @@ disowned worker stops spending (`heartbeat()` returns whether the job is still
 the caller's to run). A job store that cannot accept work now returns 503 rather
 than a bare 500, which the failure-injection suite found.
 
-### 2.3 The corpus goes stale silently  `[SHIPPED 2026-09-06]`
+### 2.3 The corpus goes stale silently  `[SHIPPED 2026-09-06; verified in production 2026-09-09]`
 
 The refresh runs on a Fly scheduled machine (`scripts/deploy_api.sh` destroys and
 recreates it on every deploy, so it can never run last release's code), records
@@ -159,6 +159,11 @@ its counts and finish time to `cache_entries`, and surfaces them at `/api/health
 as `corpus_refresh`. The probe alerts when that stamp stops advancing, which is
 the silent failure a schedule introduces. `last_updated` is shown per trial in
 the UI and marked stale past a threshold.
+
+First two cycles on the deployed schedule: 2,982 trials had moved their
+`lastUpdatePostDate` since the corpus was loaded and were re-embedded, then an
+immediate second cycle reported `embedded: 0` with no model load at all. The
+2,982 is the size of the defect below, measured.
 
 The `NOT_YET_RECRUITING` observation turned out to be a **documentation** defect:
 `ctgov.py` includes that status deliberately. The real defect beside it was that
