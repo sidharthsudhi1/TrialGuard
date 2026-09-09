@@ -27,14 +27,33 @@ RUN pip install --no-cache-dir -e ".[web]"
 # boot downloads ~440 MB from HuggingFace inside the FastAPI lifespan hook, which
 # outlasts the health-check grace period: the machine never answers, Fly marks it
 # critical and restarts it, and it never escapes the loop.
+#
+# BOTH encoders. MedCPT is a dual encoder and these are two separate models:
+# serving only ever embeds queries, so baking the query side alone looked
+# complete and was, for the API. The scheduled refresh embeds trial *documents*,
+# so it needed the article encoder that was never baked -- and HF_HUB_OFFLINE
+# below then made fetching it impossible. Its first run died on
+# "We couldn't connect to 'https://huggingface.co'", which would have repeated
+# every night that CT.gov had a new or revised trial, which is most nights.
 ENV TG_EMBED_BACKEND=medcpt
-RUN python -c "from trialguard.ingestion.embed import embed_text; embed_text('warmup', is_query=True)"
+RUN python -c "from trialguard.ingestion.embed import embed_batch, embed_text; \
+    embed_text('warmup', is_query=True); \
+    embed_batch(['warmup'], is_query=False)"
 
 # Set after the bake, which needs the network. From here every weight is local,
 # so a Hub round trip on each from_pretrained is pure boot latency — and if a
 # model were ever missing, failing loudly beats silently pulling 440 MB during
 # the health-check grace period.
 ENV HF_HUB_OFFLINE=1
+
+# Assert the invariant the line above creates, rather than assume it. The bake
+# proves a model can be downloaded; this proves it is present with the network
+# gone, which is the condition the container actually runs under. It fails the
+# build instead of the 3am refresh, and it is the check the article encoder
+# needed and did not have.
+RUN python -c "from trialguard.ingestion.embed import embed_batch, embed_text; \
+    embed_text('offline check', is_query=True); \
+    embed_batch(['offline check'], is_query=False)"
 
 ENV TG_PROMPT_VERSION=v4
 ENV TG_ANALYST_DELAY=0
