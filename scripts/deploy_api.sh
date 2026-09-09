@@ -24,9 +24,20 @@ REGION="${FLY_REGION:-syd}"
 GROUP="refresh"
 SCHEDULE="${REFRESH_SCHEDULE:-daily}"
 
-for cmd in fly jq; do
+for cmd in fly jq curl; do
   command -v "$cmd" >/dev/null || { echo "error: $cmd not found on PATH" >&2; exit 1; }
 done
+
+# The SLO probe below needs this repo's dependencies, and bare `python` is not a
+# thing on a current macOS. Prefer the project venv, then python3.
+if [[ -z "${PYTHON:-}" ]]; then
+  if [[ -x .venv/bin/python ]]; then
+    PYTHON=.venv/bin/python
+  else
+    PYTHON="$(command -v python3 || true)"
+  fi
+fi
+[[ -n "$PYTHON" ]] || { echo "error: no python found; set PYTHON=/path/to/python" >&2; exit 1; }
 
 if [[ "${1:-}" != "--skip-deploy" ]]; then
   echo "==> Deploying $APP"
@@ -34,8 +45,22 @@ if [[ "${1:-}" != "--skip-deploy" ]]; then
 fi
 
 echo "==> Resolving the image just deployed"
-IMAGE="$(fly image show --app "$APP" --json | jq -r '.Ref')"
-[[ -n "$IMAGE" && "$IMAGE" != "null" ]] || { echo "error: could not resolve image ref" >&2; exit 1; }
+# Read it off the app machine's own config, not `fly image show`. That command
+# returns an array of {Registry, Repository, Tag, Digest} with no ref field to
+# index, and no process group on the rows -- so once this script has also created
+# a refresh machine it cannot answer "which image is the web app running". The
+# machine config carries the fully qualified ref and is filterable by group.
+IMAGE="$(fly machines list --app "$APP" --json | jq -r '
+  [.[] | select(.config.metadata.fly_process_group == "app") | .config.image]
+  | unique
+  | if length == 1 then .[0] else "" end')"
+if [[ -z "$IMAGE" || "$IMAGE" == "null" ]]; then
+  echo "error: could not resolve a single image for the 'app' process group." >&2
+  echo "       Is $APP deployed, and do its machines agree on an image?" >&2
+  fly machines list --app "$APP" --json | jq -r '.[] |
+    "  \(.id) group=\(.config.metadata.fly_process_group // "-") image=\(.config.image)"' >&2
+  exit 1
+fi
 echo "    $IMAGE"
 
 echo "==> Removing any existing refresh machine"
@@ -48,6 +73,10 @@ for id in $existing; do
 done
 
 echo "==> Creating the scheduled refresh machine ($SCHEDULE)"
+# The `--` before the command is load-bearing: -m is flyctl's short form of
+# --metadata, so without it `python -m trialguard.scripts.refresh` has its -m
+# parsed as a flag and the run fails with "invalid key/value pairs specified for
+# flag metadata", pointing at the wrong argument entirely.
 # --restart no: a failed CT.gov crawl waits for the next schedule instead of
 # retrying straight back into the rate limit that failed it.
 # 4 GB because MedCPT loads to embed new and revised trials. A refresh that finds
@@ -61,12 +90,43 @@ fly machine run "$IMAGE" \
   --vm-cpu-kind performance \
   --vm-cpus 2 \
   --metadata "fly_process_group=$GROUP" \
-  python -m trialguard.scripts.refresh
+  -- python -m trialguard.scripts.refresh
 
 echo "==> Result"
 fly machines list --app "$APP" --json | jq -r --arg g "$GROUP" '
   .[] | select(.config.metadata.fly_process_group == $g)
   | "  id=\(.id)  schedule=\(.config.schedule // "NONE")  image=\(.config.image)"'
+
+# fly.toml keeps min_machines_running = 0 and suspends idle machines, so a deploy
+# leaves the app stopped and the probe's own first request is what resumes it.
+# Measured on this app: that path answers 502, then takes 34.9 s for the call the
+# probe records as "warm", and the gate fails on a boot instead of a regression.
+# The SLO file used to assert the machine would already have answered /api/health
+# by this point; it does not. Establishing that precondition is the gate's job,
+# not the probe's -- the probe should keep reporting whatever it actually sees.
+echo "==> Waiting for $APP to answer /api/health"
+BASE="${TG_API_BASE_URL:-https://$APP.fly.dev}"
+code=""
+for attempt in $(seq 1 60); do
+  code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$BASE/api/health" || true)"
+  [[ "$code" == "200" ]] && { echo "    healthy after $attempt attempt(s)"; break; }
+  sleep 5
+done
+if [[ "$code" != "200" ]]; then
+  echo "error: $APP never answered /api/health (last status: ${code:-none})." >&2
+  echo "       The release is live; check: fly logs --app $APP" >&2
+  exit 1
+fi
+
+# Health answering 200 does not mean the search path is warm: the dense index
+# loads lazily and its first queries are still descending. Measured across
+# resumes, server-side total_ms goes 20576 -> 1023.7 -> 542.8 -> 570.1, and this
+# gate failed at 1512.4 ms against a 1500 ms bound on what was only the second
+# call. Two samples do not reach steady state, so the gate takes a throwaway pass
+# first and measures on the one after it. Loosening the bound instead would have
+# tuned away a real signal to hide a warm-up artifact.
+echo "==> Warming the search path"
+"$PYTHON" -m trialguard.eval.served_probe --base-url "$BASE" >/dev/null 2>&1 || true
 
 # WS-6a. CI has no deployed environment, so latency cannot be gated there; this
 # is the post-deploy smoke check that can. Tighter bounds than the nightly
@@ -74,7 +134,7 @@ fly machines list --app "$APP" --json | jq -r --arg g "$GROUP" '
 # machine Fly has already health-checked -- it is a regression gate, not a drift
 # detector.
 echo "==> Post-deploy SLO check"
-if ! python -m trialguard.eval.served_probe \
+if ! "$PYTHON" -m trialguard.eval.served_probe \
       --base-url "${TG_API_BASE_URL:-https://$APP.fly.dev}" \
       --thresholds data/reports/served_slo.json; then
   echo
