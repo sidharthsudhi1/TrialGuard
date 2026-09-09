@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import math
 import os
 import threading
 import uuid
@@ -64,11 +65,21 @@ def _client_ip(request: Request) -> str:
 def _rate_or_429(request: Request, kind: str) -> None:
     limiters = request.app.state.rate_limiters
     limiter = limiters[kind]
-    if not limiter.allow(_client_ip(request)):
-        raise HTTPException(
-            status_code=429,
-            detail=f"Rate limit exceeded for /api/{kind}. Try again shortly.",
-        )
+    wait = limiter.take(_client_ip(request))
+    if wait is None:
+        return
+    # Retry-After, with the real number rather than "shortly". A client that is
+    # told to wait but not how long can only guess, and guessing wrong is how a
+    # user turns one rate-limited request into five.
+    seconds = max(1, math.ceil(wait))
+    raise HTTPException(
+        status_code=429,
+        detail=(
+            f"Rate limit reached for /api/{kind}: at most "
+            f"{limiter.limit} requests per minute. Try again in {seconds}s."
+        ),
+        headers={"Retry-After": str(seconds)},
+    )
 
 
 def _reject_empty_or_injection(note: str) -> None:

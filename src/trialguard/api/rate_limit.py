@@ -36,7 +36,14 @@ class RateLimiter:
         for key in [k for k, q in self._hits.items() if not q or q[-1] < cutoff]:
             del self._hits[key]
 
-    def allow(self, key: str) -> bool:
+    def take(self, key: str) -> float | None:
+        """Record a hit and return None, or return seconds until a slot frees.
+
+        One method rather than allow() plus a separate retry_after(), because the
+        two answers have to come from the same look at the window: between two
+        calls the oldest hit can age out and the caller would report a wait it had
+        already stopped needing.
+        """
         now = time.monotonic()
         with self._lock:
             self._sweep(now)
@@ -45,6 +52,10 @@ class RateLimiter:
             while q and q[0] < cutoff:
                 q.popleft()
             if len(q) >= self.limit:
-                return False
+                # The oldest hit leaving the window is what frees the next slot.
+                return max(0.0, q[0] + self.window_seconds - now)
             q.append(now)
-            return True
+            return None
+
+    def allow(self, key: str) -> bool:
+        return self.take(key) is None

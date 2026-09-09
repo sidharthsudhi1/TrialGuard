@@ -94,7 +94,7 @@ class Settings(BaseSettings):
 
     # Per-IP sliding-window limits (keyword extract / analyst spend).
     api_search_rate_per_min: int = 10
-    api_assess_rate_per_min: int = 5
+    api_assess_rate_per_min: int = 15
     # Assess job retention (seconds). Enforced as a DELETE on job create, not
     # eviction-on-read, now that job rows are durable.
     api_job_ttl_seconds: int = 3600
