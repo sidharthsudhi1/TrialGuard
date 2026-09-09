@@ -345,9 +345,8 @@ def test_health_separates_a_leasable_pool_from_a_usable_store(client, monkeypatc
 
 
 def test_the_probe_gates_on_store_readiness_not_just_the_pool():
-    from trialguard.eval.served_probe import check
-
     from tests.test_served_probe import _probe
+    from trialguard.eval.served_probe import check
 
     healthy = _probe()
     assert check(healthy)["passed"] is True
