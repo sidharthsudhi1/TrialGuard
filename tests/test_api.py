@@ -914,3 +914,57 @@ def test_a_timed_out_trial_contributes_no_criteria_to_the_rate(client):
         "decisive": 1,
         "note_only_grounded": 0,
     }
+
+
+def test_a_rate_limited_request_says_how_long_to_wait(client, monkeypatch):
+    """"Try again shortly" is not actionable: a client told to wait but not how
+    long can only guess, and guessing wrong is how one rate-limited request
+    becomes five."""
+    monkeypatch.setattr("trialguard.config.settings.api_search_rate_per_min", 2)
+    from trialguard.api.app import create_app
+
+    with TestClient(create_app()) as c:
+        with (
+            patch("trialguard.agent.sanitize.detect_injection", return_value=False),
+            patch("trialguard.retrieval.pipeline.retrieve", return_value=(STUB_HITS, STUB_LATENCY)),
+            patch("trialguard.db.queries.get_trials", return_value=STUB_ROWS),
+            patch("trialguard.llm.cost.active_ledger") as ledger,
+        ):
+            ledger.return_value.exhausted.return_value = False
+            for _ in range(2):
+                assert c.post("/api/search", json={"note": "synthetic note"}).status_code == 200
+            r = c.post("/api/search", json={"note": "synthetic note"})
+
+    assert r.status_code == 429
+    seconds = int(r.headers["Retry-After"])
+    # A whole window at most, and never 0 -- "retry in 0s" invites an instant retry
+    # into the same wall.
+    assert 1 <= seconds <= 60
+    assert f"{seconds}s" in r.json()["detail"]
+    assert "at most 2 requests per minute" in r.json()["detail"]
+
+
+def test_the_limiter_reports_the_wait_from_the_same_look_at_the_window():
+    """allow() plus a separate retry_after() would answer from two different
+    reads, and the oldest hit can age out between them."""
+    from trialguard.api.rate_limit import RateLimiter
+
+    limiter = RateLimiter(limit=2, window_seconds=30.0)
+
+    assert limiter.take("ip") is None
+    assert limiter.take("ip") is None
+    wait = limiter.take("ip")
+    assert wait is not None
+    assert 29.0 < wait <= 30.0
+    # A refused request must not consume a slot, or the wait would grow each try.
+    assert limiter.take("ip") is not None
+
+
+def test_a_freed_slot_reports_no_wait():
+    from trialguard.api.rate_limit import RateLimiter
+
+    limiter = RateLimiter(limit=1, window_seconds=0.05)
+    assert limiter.take("ip") is None
+    assert limiter.take("ip") is not None
+    time.sleep(0.06)
+    assert limiter.take("ip") is None

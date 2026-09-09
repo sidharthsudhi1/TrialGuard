@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SyntheticNotice } from "../components/SyntheticNotice";
-import { fetchLimits, searchTrials, startAssess } from "../lib/api";
+import { ApiError, fetchLimits, searchTrials, startAssess } from "../lib/api";
 import type { Limits, SearchTrial } from "../lib/types";
 import { freshness } from "@/lib/freshness";
 
@@ -25,6 +25,10 @@ export default function SearchPage() {
   const [trials, setTrials] = useState<SearchTrial[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<"search" | "assess" | null>(null);
+  // Seconds left on a rate-limit cooldown. A 429 is not a failure and must not
+  // read as one: shown as a bare error it looks like the deploy is broken, which
+  // is what makes a user retry into the limit they already hit.
+  const [cooldown, setCooldown] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [latency, setLatency] = useState<string | null>(null);
   // Depth is opt-in: assessing a wider pool is what raises how many eligible
@@ -67,6 +71,7 @@ export default function SearchPage() {
     } catch (e) {
       setTrials([]);
       setError(e instanceof Error ? e.message : String(e));
+      setCooldown(e instanceof ApiError && e.isRateLimited ? e.retryAfter ?? 60 : 0);
     } finally {
       setBusy(null);
     }
@@ -81,9 +86,21 @@ export default function SearchPage() {
     });
   }
 
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const id = setTimeout(() => {
+      setCooldown((s) => {
+        if (s <= 1) setError(null);
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearTimeout(id);
+  }, [cooldown]);
+
   async function onAssess() {
     if (!selected.size) return;
     setError(null);
+    setCooldown(0);
     setBusy("assess");
     try {
       const ids = [...selected];
@@ -95,6 +112,7 @@ export default function SearchPage() {
       router.push(`/assess/${job_id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      setCooldown(e instanceof ApiError && e.isRateLimited ? e.retryAfter ?? 60 : 0);
       setBusy(null);
     }
   }
@@ -144,7 +162,13 @@ export default function SearchPage() {
             time and money. You still choose which trials to assess.
           </label>
         )}
-        {error && <p className="error">{error}</p>}
+        {error && (
+          <p className={cooldown > 0 ? "muted" : "error"}>
+            {cooldown > 0
+              ? `Too many assessments started in the last minute. Try again in ${cooldown}s.`
+              : error}
+          </p>
+        )}
       </section>
 
       {trials.length > 0 && (
