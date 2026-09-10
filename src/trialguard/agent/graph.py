@@ -54,7 +54,57 @@ def _retry_failed_only() -> bool:
     return os.environ.get("TG_RETRY_FAILED_ONLY") == "1"
 
 
-def _merge_retry(prior: list[dict], retried: list[dict]) -> list[dict]:
+def _retry_missing() -> bool:
+    """P1: re-ask for criteria the analyst never answered at all.
+
+    Measured on TREC 2021: the analyst returns ~9-13% fewer assessment objects
+    than it was handed. Not truncation -- max_tokens is 4096 against a
+    1,732-token longest response. It is invisible by construction: a criterion
+    with no assessment cannot fail grounding, so it never reaches the retry edge,
+    and it vanishes into needs_review while rollup_trial still calls the trial
+    eligible over the subset it did receive, which CLAUDE.md names unsound.
+
+    Two prompt fixes were measured and rejected first -- v5's numbering works but
+    costs 26% of TREC surfaced recall (AD-16), and v6's instruction alone does
+    nothing (AD-17). This is the mechanism fix: ask again for what is missing,
+    reusing the edge that already re-asks for named criteria.
+
+    **On by default**, unlike the flag above, because the behaviour it replaces
+    is not merely lower-recall but unsound: rollup_trial calls a trial
+    `eligible` when every criterion it *received* was met, and CLAUDE.md already
+    names that unsound over a truncated list. The recall this costs was never
+    earned -- it came from not looking.
+
+    Measured on TREC 2021, 20 patients, top-10: criteria never answered fall
+    229 -> 71 (13.0% -> 4.0%), grounded rises 840 -> 916, and `eligible`
+    precision rises 0.625 -> 0.800 while surfaced recall falls 0.0336 -> 0.0289.
+    On SIGIR, where only 12 of 1,814 criteria were being skipped, it is
+    neutral-to-positive: surfaced recall unchanged, precision 0.339 -> 0.351.
+
+    `TG_RETRY_MISSING=0` restores the previous behaviour and is what reproduces
+    retry numbers committed before 2026-09-10, the same way TG_KEYWORD_DECAY=0
+    reproduces pre-2026-09-04 rankings. It has to exist: this changes the retry
+    prompt and therefore the cache key of every retry entry.
+    """
+    return os.environ.get("TG_RETRY_MISSING", "1") != "0"
+
+
+def _missing_criteria(assessments: list[dict], typed: list[dict]) -> list[dict]:
+    """Criteria that came back with no assessment at all.
+
+    Matched on normalized text, the same anchor attach_kinds trusts second, so a
+    criterion the model echoed with different spacing or casing is not re-asked
+    as though it had been skipped.
+    """
+    from trialguard.verify.grounding import normalize
+
+    answered = {normalize(str(a.get("criterion", ""))) for a in assessments}
+    return [c for c in typed if normalize(c["text"]) not in answered]
+
+
+def _merge_retry(
+    prior: list[dict], retried: list[dict], recoverable: set[str] | None = None
+) -> list[dict]:
     """Overlay retried assessments onto the criteria they were re-asked for.
 
     Only entries that failed grounding are eligible for replacement, so a
@@ -84,6 +134,21 @@ def _merge_retry(prior: list[dict], retried: list[dict]) -> list[dict]:
         if replacement is not None and replacement in unconsumed:
             unconsumed.remove(replacement)
         out.append(replacement if replacement is not None else a)
+
+    # A criterion that was missing from attempt one is not in `prior`, so the
+    # loop above cannot place it and the recovery would be silently thrown away
+    # -- the exact defect this retry exists to fix. Appended here, and only when
+    # the text matches a criterion that really was missing, so a model that
+    # invents a criterion on retry still cannot add one.
+    if recoverable:
+        from trialguard.verify.grounding import normalize
+
+        placed = {normalize(str(a.get("criterion", ""))) for a in out}
+        for a in unconsumed:
+            key = normalize(str(a.get("criterion", "")))
+            if key in recoverable and key not in placed:
+                placed.add(key)
+                out.append(a)
     return out
 
 
@@ -97,22 +162,40 @@ def _analyst_node(state: State) -> State:
     # recovered paraphrase failures (SIGIR); pointing at the source span gives the
     # model the characters to copy, the intended fix for TREC's verbatim misses.
     prior: list[dict] = []
+    missing: list[dict] = []
+    asked_subset = False
     if attempt > 0:
         prior = state.get("assessments", [])
         failed = [a.get("criterion", "") for a in prior if a.get("grounding_failure")]
         crit_list = "\n".join(f"- {c}" for c in failed)
+        # Criteria that came back with no assessment at all. Asked for
+        # separately, because the instruction they need is the opposite one: a
+        # failed criterion is told its quote was not verbatim, while a missing
+        # one was never answered and telling it to "copy the quote more
+        # carefully" would be nonsense.
+        missing = _missing_criteria(prior, typed) if _retry_missing() else []
+        missing_block = ""
+        if missing:
+            listed = "\n".join(f"- {c['text']}" for c in missing)
+            missing_block = (
+                f"\n\nThese criteria were not answered at all last time. Answer "
+                f"each one now, and do not omit any:\n{listed}"
+            )
         # L4: re-ask only what failed. A median trial has 6 criteria and few
         # fail, so the retry call shrinks to a fraction of the original instead
         # of re-deciding verdicts that already grounded.
         if _retry_failed_only():
             failed_set = {c for c in failed if c}
-            subset = [c for c in typed if c["text"] in failed_set]
+            missing_set = {c["text"] for c in missing}
+            subset = [c for c in typed if c["text"] in failed_set | missing_set]
             if subset:
                 typed = subset
+                asked_subset = True
         span = state["source_text"].strip()
         note = (
             f"{note}\n\n[Retry {attempt}] These criteria need a verbatim quote that "
-            f"was not found in the source last time:\n{crit_list}\n\nCopy quotes "
+            f"was not found in the source last time:\n{crit_list}{missing_block}"
+            f"\n\nCopy quotes "
             f"character-for-character from this exact trial source text:\n"
             f'"""\n{span}\n"""'
         )
@@ -151,17 +234,35 @@ def _analyst_node(state: State) -> State:
         patient_text=state["patient_note"],
         trial_text=state["source_text"],
     )
-    # A partial retry answered only the failed criteria, so its result is an
-    # overlay on attempt one rather than the whole trial.
-    if attempt > 0 and prior and _retry_failed_only() and len(grounded) < len(prior):
-        grounded = _merge_retry(prior, grounded)
+    # A partial retry answered only the criteria it was re-asked, so its result
+    # is an overlay on attempt one rather than the whole trial.
+    #
+    # Gated on having actually narrowed the list, not on the retry returning
+    # fewer entries than attempt one. That heuristic held only while a retry
+    # could not add anything: recovering a criterion that was never answered
+    # makes the retry *longer* than the prior list, and the comparison then
+    # skipped the merge and threw attempt one away.
+    if attempt > 0 and prior and asked_subset:
+        from trialguard.verify.grounding import normalize
+
+        grounded = _merge_retry(
+            prior, grounded, {normalize(c["text"]) for c in missing}
+        )
     return {"assessments": grounded}
 
 
 def _needs_retry(state: State) -> str:
-    failures = any(a.get("grounding_failure") for a in state["assessments"])
-    if failures and state.get("retries", 0) < state.get("max_retries", 0):
+    if state.get("retries", 0) >= state.get("max_retries", 0):
+        return "report"
+    if any(a.get("grounding_failure") for a in state["assessments"]):
         return "retry"
+    # A criterion that was never answered produces no assessment, so it cannot
+    # fail grounding and this edge never saw it. That is the whole reason the
+    # shortfall stayed invisible.
+    if _retry_missing():
+        typed = normalize_criteria(state["criteria"])
+        if _missing_criteria(state["assessments"], typed):
+            return "retry"
     return "report"
 
 

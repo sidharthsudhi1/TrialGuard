@@ -190,7 +190,33 @@ def ground_assessments(
         # rather than a note-sourced quote to be rejected below.
         if grounded_by == "absence":
             grounded_in = "absence"
+        # An exclusion answered "not_met" claims the patient does NOT match a
+        # disqualifier. That is a statement about absence, and a verbatim span
+        # cannot establish absence -- which is why is_absence_grounded exists.
+        # It runs only as a fallback, so any verbatim quote pre-empts it and the
+        # model can satisfy the verifier by quoting anything at all.
+        #
+        # Measured over both cohorts: 48 of 107 quote-grounded exclusion not_met
+        # rows have an absence check that disagrees. About half of those are
+        # legitimate refutations the absence check would wrongly reject -- "2+
+        # aortic insufficiency" against "Severe aortic regurgitation", "18-week
+        # sized uterus" against "Uterine size > 32 weeks" -- and the rest
+        # establish nothing, or argue the opposite. Nothing deterministic
+        # separates a refutation from a contradiction: both quote the same
+        # subject and differ by negation, severity, laterality or count. So this
+        # is recorded and never enforced. Making absence primary was measured
+        # first and would have destroyed the correct half.
+        weak_absence = (
+            grounded
+            and grounded_by == "quote"
+            and verdict == "not_met"
+            and a.get("kind") == "exclusion"
+            and patient_text is not None
+            and not is_absence_grounded(str(a.get("criterion", "")), patient_text)
+        )
         result = {**a, "grounded": grounded}
+        if weak_absence:
+            result["weak_absence"] = True
         if grounded and verdict in ("met", "not_met") and is_self_referential(
             quote, str(a.get("criterion", "")), patient_text
         ):

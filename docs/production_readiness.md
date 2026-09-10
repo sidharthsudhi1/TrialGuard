@@ -172,7 +172,7 @@ revised kept both its stale text and its stale embedding — meaning a verdict c
 carry a verified citation to text CT.gov no longer publishes. The diff now keys on
 `lastUpdatePostDate` and re-embeds what moved.
 
-### 2.4 The analyst does not answer every criterion  `[found 2026-09-07, open, P1]`
+### 2.4 The analyst does not answer every criterion  `[found 2026-09-07, FIXED 2026-09-10]`
 
 Under prompt v4, Llama-3.3-70B silently returns fewer assessment objects than it
 was handed criteria: **13.0% fewer on TREC 2021** (229 of 1,761), 0.7% on SIGIR.
@@ -192,16 +192,43 @@ over 1,071 paired criteria (AD-17, `v6_coverage_findings.md`). Both v5 and v6
 carry that instruction; only v5 recovers coverage, so the gain belongs to
 numbering rather than to the instruction.
 
-**Fix, remaining candidate:** not a prompt. Detect the shortfall and re-ask for
-the missing criteria, reusing the retry edge that already re-asks for named
-criteria after a grounding failure. Independent of prompt version, keeps v4,
-costs a second call on the ~9% of trials that come back short. L4 is the warning:
-a re-ask under pressure tends to produce `cannot_determine` rather than recovery,
-so it needs criterion-level measurement before adoption and may fail the same
-way. `criterion_unanswered` is reported by the end-to-end harness, so the attempt
-has a number to move.
+**Fixed on the retry edge, not in the prompt** (AD-18,
+`p1_coverage_findings.md`). Criteria never answered fall 229 to 71 on TREC
+(13.0% to 4.0%), grounded rises 840 to 916, `eligible` precision rises 0.625 to
+0.800. SIGIR is the control and moves not at all. It costs 14% of TREC surfaced
+recall, adopted anyway because the recall removed was produced by not looking.
+On by default; `TG_RETRY_MISSING=0` reproduces pre-2026-09-10 numbers.
 
-### 2.5 Single region, single instance  `[open, accepted]`
+**Residual:** 71 criteria (4.0%) are still never answered. The retry is bounded
+at 2 and the model still skips on the re-ask. L4's warning did not materialise
+here: grounded rose on both cohorts rather than abstention replacing assertion.
+
+### 2.5 A quote cannot prove absence  `[found 2026-09-10, measured, open]`
+
+An exclusion answered `not_met` claims the patient does **not** match a
+disqualifier. `is_absence_grounded` exists for that claim, but it runs only as a
+fallback, so any verbatim quote pre-empts it and the model can satisfy the
+verifier by quoting anything at all. Spotted in the served UI: *History of
+previous lung malignancy or other metastatic malignant tumors* answered
+`not_met` and cited with *58-year-old woman with stage IV non-small cell lung
+cancer*, a citation saying she has one.
+
+**129 of 840 grounded criteria on TREC (15.4%)**; 48 of 107 quote-grounded
+exclusion `not_met` rows across both cohorts.
+
+**Not enforced, and that was measured rather than assumed.** Making absence
+primary destroys about half the class, which are legitimate refutations: *2+
+aortic insufficiency* against *Severe aortic regurgitation*, *18-week sized
+uterus* against *Uterine size > 32 weeks*. Nothing deterministic separates a
+refutation from a contradiction, since both quote the same subject and differ by
+negation, severity, laterality or count. So the row is stamped `weak_absence`,
+counted per request and in the eval, and the UI says *quote verified, but it
+does not establish absence* rather than showing a clean grounded badge. AD-19.
+
+A sharper instance of 1.3's entailment gap, and unlike the rest of it, its size
+is known exactly.
+
+### 2.6 Single region, single instance  `[open, accepted]`
 
 API in `syd` beside Neon in `ap-southeast-2`. No redundancy. Correct for a
 portfolio artifact; named so it is a decision rather than an oversight.

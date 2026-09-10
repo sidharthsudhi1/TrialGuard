@@ -913,6 +913,7 @@ def test_a_timed_out_trial_contributes_no_criteria_to_the_rate(client):
         "grounded_rate": 1.0,
         "decisive": 1,
         "note_only_grounded": 0,
+        "weak_absence": 0,
     }
 
 

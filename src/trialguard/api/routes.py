@@ -447,6 +447,7 @@ class _Faithfulness:
 
     def __init__(self) -> None:
         self.n = self.unverifiable = self.grounded = self.decisive = self.note_only = 0
+        self.weak_absence = 0
 
     def add(self, assessments: list[dict[str, Any]]) -> None:
         for a in assessments:
@@ -460,6 +461,8 @@ class _Faithfulness:
                 self.grounded += 1
             if a.get("grounded_in") == "note":
                 self.note_only += 1
+            if a.get("weak_absence"):
+                self.weak_absence += 1
 
     def summary(self) -> dict[str, Any]:
         def _rate(x: int) -> float:
@@ -474,6 +477,9 @@ class _Faithfulness:
             "decisive": self.decisive,
             # WS-5a: decisive verdicts whose only evidence is the user's own note.
             "note_only_grounded": self.note_only,
+            # Exclusion not_met resting on a quote that does not establish
+            # absence. A weaker class, reported rather than refused.
+            "weak_absence": self.weak_absence,
         }
 
     def emit(self, job_id: str) -> None:

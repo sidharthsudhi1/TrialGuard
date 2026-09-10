@@ -219,6 +219,9 @@ def assess_retrieved(
                 # WS-5b: grounded decisive verdicts whose quote only restates the
                 # criterion. A deterministic lower bound on non-entailment.
                 "self_referential": sum(1 for a in ass if a.get("self_referential")),
+                # Exclusion not_met grounded on a quote the absence check
+                # disagrees with. Recorded, never enforced -- see grounding.py.
+                "weak_absence": sum(1 for a in ass if a.get("weak_absence")),
             }
             assessed += 1
     finally:
@@ -273,6 +276,7 @@ def score(rows: list[dict]) -> dict:
     crit_verdicts = dict.fromkeys(_VERDICTS, 0)
     crit_provenance = dict.fromkeys(_PROVENANCE, 0)
     crit_self_ref = 0
+    crit_weak_absence = 0
 
     for r in rows:
         gold_elig = set(r["gold_eligible"])
@@ -296,6 +300,7 @@ def score(rows: list[dict]) -> dict:
                 if name in crit_provenance:
                     crit_provenance[name] += n
             crit_self_ref += v.get("self_referential", 0)
+            crit_weak_absence += v.get("weak_absence", 0)
             if v["trial_verdict"] == "eligible":
                 said_eligible += 1
                 if r["gold_labels"].get(nct) == "eligible":
@@ -357,6 +362,8 @@ def score(rows: list[dict]) -> dict:
         # Lower bound, not an estimate: a quote citing the wrong patient fact is
         # equally unsupported and no string comparison can see it.
         "self_referential_rate": _rate(crit_self_ref, crit_grounded),
+        "weak_absence": crit_weak_absence,
+        "weak_absence_rate": _rate(crit_weak_absence, crit_grounded),
         "incomplete_patients": sum(1 for r in rows if r.get("incomplete")),
     }
 
