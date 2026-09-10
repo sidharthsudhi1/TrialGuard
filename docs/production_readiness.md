@@ -185,11 +185,21 @@ retry edge, and disappears into `needs_review`. Meanwhile `rollup_trial` calls a
 trial `eligible` when every criterion it *received* was met, which CLAUDE.md
 already names as unsound over a truncated list.
 
-**Fix:** numbering the criteria closes it (13.0% → 0.5%), but prompt v5 carries
-costs of its own (AD-16). The clean experiment is a v6 keeping v4's addressing and
-adding only v5's "return exactly one object per numbered criterion" instruction,
-which separates coverage from addressing. `criterion_unanswered` is now reported
-by the end-to-end harness, so the next attempt has a number to move.
+Numbering the criteria closes it (13.0% → 0.5%), but prompt v5 carries costs of
+its own (AD-16). **The cheaper hypothesis is now measured and dead**: v6 — v4
+plus only the instruction to answer every criterion — moved coverage by −0.65 pp
+over 1,071 paired criteria (AD-17, `v6_coverage_findings.md`). Both v5 and v6
+carry that instruction; only v5 recovers coverage, so the gain belongs to
+numbering rather than to the instruction.
+
+**Fix, remaining candidate:** not a prompt. Detect the shortfall and re-ask for
+the missing criteria, reusing the retry edge that already re-asks for named
+criteria after a grounding failure. Independent of prompt version, keeps v4,
+costs a second call on the ~9% of trials that come back short. L4 is the warning:
+a re-ask under pressure tends to produce `cannot_determine` rather than recovery,
+so it needs criterion-level measurement before adoption and may fail the same
+way. `criterion_unanswered` is reported by the end-to-end harness, so the attempt
+has a number to move.
 
 ### 2.5 Single region, single instance  `[open, accepted]`
 

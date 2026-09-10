@@ -33,7 +33,7 @@ import time
 from pathlib import Path
 
 REPORT_DIR = Path("data/reports")
-ARMS = ("v4", "v5")
+ARMS = ("v4", "v5")  # default; --arms overrides (v4,v6 isolates coverage)
 
 
 def _index_health(raw: str, typed: list[dict]) -> dict:
@@ -138,7 +138,7 @@ def _workers() -> int:
     return max(1, int(os.environ.get("TG_EVAL_WORKERS", "8")))
 
 
-def run(cohort: str, n_trials: int) -> dict:
+def run(cohort: str, n_trials: int, arms: tuple[str, str] = ARMS) -> dict:
     from trialguard.eval.agent_metrics import _build_subset
     from trialguard.llm.cost import active_ledger
     from trialguard.llm.provider import active_model, active_provider
@@ -153,10 +153,10 @@ def run(cohort: str, n_trials: int) -> dict:
         # latency drifts over a run of this length, and splitting the pair across
         # workers or across time would hand that drift to whichever arm was
         # unlucky. The order alternates for the same reason.
-        order = ARMS if i % 2 == 0 else tuple(reversed(ARMS))
+        order = arms if i % 2 == 0 else tuple(reversed(arms))
         return [_one_call(note, tr["nct_id"], tr["criteria"], v) for v in order]
 
-    calls: dict[str, list[dict]] = {a: [] for a in ARMS}
+    calls: dict[str, list[dict]] = {a: [] for a in arms}
     workers = _workers()
     if workers > 1:
         from concurrent.futures import ThreadPoolExecutor
@@ -169,8 +169,8 @@ def run(cohort: str, n_trials: int) -> dict:
         for call in pair:
             calls[call["version"]].append(call)
 
-    summary = {a: _summarise(calls[a]) for a in ARMS}
-    base, new = summary["v4"], summary["v5"]
+    summary = {a: _summarise(calls[a]) for a in arms}
+    base, new = summary[arms[0]], summary[arms[1]]
 
     def _delta(key: str) -> float:
         return round(new[key] - base[key], 2)
@@ -180,6 +180,7 @@ def run(cohort: str, n_trials: int) -> dict:
 
     return {
         "cohort": cohort,
+        "arms_compared": list(arms),
         "provider": active_provider(),
         "model": active_model(),
         "arms": summary,
@@ -206,18 +207,26 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="L1: v4 vs v5 output cost (WS-6c)")
     ap.add_argument("--cohort", default="sigir", choices=["sigir", "trec_2021", "trec_2022"])
     ap.add_argument("--n-trials", type=int, default=20)
+    ap.add_argument(
+        "--arms",
+        default=",".join(ARMS),
+        help="two prompt versions, baseline first (e.g. v4,v6)",
+    )
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
+    arms = tuple(a.strip() for a in args.arms.split(","))
+    if len(arms) != 2:
+        ap.error("--arms takes exactly two versions, baseline first")
 
     console = Console()
     console.print(
         f"[bold]L1 paired prompt cost[/bold] {args.cohort} · {args.n_trials} trials × 2 arms "
         f"· uncached, billed"
     )
-    result = run(args.cohort, args.n_trials)
+    result = run(args.cohort, args.n_trials, arms)
 
-    t = Table("metric", "v4", "v5", "ratio")
-    a, b, d = result["arms"]["v4"], result["arms"]["v5"], result["delta"]
+    t = Table("metric", arms[0], arms[1], "ratio")
+    a, b, d = result["arms"][arms[0]], result["arms"][arms[1]], result["delta"]
     t.add_row("median output tokens", str(a["median_output_tokens"]),
               str(b["median_output_tokens"]), str(d["output_tokens_ratio"]))
     t.add_row("median seconds", str(a["median_seconds"]),
@@ -228,16 +237,18 @@ def main() -> None:
               str(b["median_tokens_per_second"]), "")
     console.print(t)
 
-    h = result["arms"]["v5"]["index_health"]
+    h = result["arms"][arms[1]]["index_health"]
     console.print(
-        f"v5 index health · returned {h['returned']} of {result['arms']['v5']['criteria_asked']} "
+        f"{arms[1]} objects · returned {h['returned']} of "
+        f"{result['arms'][arms[1]]['criteria_asked']} "
         f"asked · by index {h['by_index']} · echoed text {h['by_text']} · "
         f"out of range {h['out_of_range']} · duplicate {h['duplicate']} · "
         f"unusable {h['unusable']}"
     )
     console.print(f"run cost ${result['run_usd']:.6f}")
 
-    out = Path(args.out) if args.out else REPORT_DIR / f"l1_prompt_cost_{args.cohort}.json"
+    tag = "_".join(arms)
+    out = Path(args.out) if args.out else REPORT_DIR / f"l1_prompt_cost_{tag}_{args.cohort}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(result, indent=2, sort_keys=True))
     console.print(f"\nReport: [cyan]{out}[/cyan]")
