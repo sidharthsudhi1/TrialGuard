@@ -379,7 +379,8 @@ button:disabled {
 }
 
 .quote-ok,
-.quote-fail {
+.quote-fail,
+.quote-weak {
   margin: 0.4rem 0 0;
   font-size: 0.88rem;
 }
@@ -390,6 +391,14 @@ button:disabled {
 
 .quote-fail {
   color: var(--unv);
+}
+
+/* Neither green nor red: the quote is real and the verdict may well be right,
+   but the citation does not prove the absence the verdict claims. Reusing the
+   stale-record accent rather than inventing a colour, since it carries the same
+   meaning here -- look at this yourself. */
+.quote-weak {
+  color: var(--accent-2);
 }
 
 .eligibility-raw {

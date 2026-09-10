@@ -318,3 +318,56 @@ def test_a_quote_citing_evidence_beyond_the_criterion_is_not_flagged():
     assert is_self_referential("Age 18 or older", "Age 18 or older", "62 M") is True
     assert is_self_referential("62-year-old man", "Age 18 or older", "62-year-old man") is False
     assert is_self_referential("", "Age 18 or older", "62 M") is False
+
+
+def test_a_quote_cannot_establish_absence_and_is_marked_when_it_pretends_to():
+    """An exclusion answered not_met claims the patient does NOT match a
+    disqualifier. is_absence_grounded exists for exactly that claim, but it runs
+    only as a fallback, so any verbatim quote pre-empts it. This is the case the
+    served UI showed: a citation that the patient HAS metastatic lung cancer,
+    offered as proof she does not."""
+    from trialguard.verify.grounding import ground_assessments
+
+    note = "58-year-old woman with stage IV non-small cell lung cancer."
+    out = ground_assessments(
+        [{"criterion": "History of previous lung malignancy or other metastatic tumors",
+          "kind": "exclusion", "verdict": "not_met",
+          "quote": "58-year-old woman with stage IV non-small cell lung cancer"}],
+        note, patient_text=note, trial_text="Exclusion: History of previous lung malignancy",
+    )
+
+    # The verdict stands. About half of this class are legitimate refutations
+    # ("2+ aortic insufficiency" against "Severe aortic regurgitation"), and
+    # nothing deterministic separates a refutation from a contradiction.
+    assert out[0]["verdict"] == "not_met"
+    assert out[0]["grounded"] is True
+    assert out[0]["weak_absence"] is True
+
+
+def test_an_absence_grounded_exclusion_is_not_weak():
+    """It was verified by the mechanism the claim actually calls for."""
+    from trialguard.verify.grounding import ground_assessments
+
+    note = "58-year-old woman with lung cancer."
+    out = ground_assessments(
+        [{"criterion": "Active brain metastases", "kind": "exclusion",
+          "verdict": "not_met", "quote": ""}],
+        note, patient_text=note,
+    )
+
+    assert out[0]["grounded_by"] == "absence"
+    assert "weak_absence" not in out[0]
+
+
+def test_inclusion_verdicts_are_never_marked_weak_absence():
+    """The class is about absence claims, which only exclusion not_met makes."""
+    from trialguard.verify.grounding import ground_assessments
+
+    note = "58-year-old woman with stage IV lung cancer."
+    out = ground_assessments(
+        [{"criterion": "Stage IV disease", "kind": "inclusion", "verdict": "met",
+          "quote": "stage IV lung cancer"}],
+        note, patient_text=note,
+    )
+
+    assert "weak_absence" not in out[0]

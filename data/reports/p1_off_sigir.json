@@ -1,0 +1,62 @@
+{
+  "cached_only": false,
+  "cohort": "sigir",
+  "counts": {
+    "assess_s": 0.3,
+    "assessed": 200,
+    "budget_stops": 0,
+    "cache_coverage": 1.0,
+    "skipped": 0,
+    "uncached_skipped": 0
+  },
+  "metrics": {
+    "agent_loss": 0.1736,
+    "criterion_asked": 1814,
+    "criterion_grounded": 807,
+    "criterion_grounded_in": {
+      "absence": 127,
+      "note": 665,
+      "trial": 15
+    },
+    "criterion_grounded_rate": 0.4449,
+    "criterion_total": 1802,
+    "criterion_unanswered": 12,
+    "criterion_unverifiable_rate": 0.0233,
+    "criterion_verdicts": {
+      "cannot_determine": 962,
+      "met": 245,
+      "not_met": 553,
+      "unverifiable": 42
+    },
+    "eligible_precision": 0.8,
+    "end_to_end_recall": 0.0278,
+    "gold_eligible_total": 144,
+    "incomplete_patients": 0,
+    "note_only_grounded_rate": 0.824,
+    "patients": 20,
+    "retrieval_recall": 0.2014,
+    "self_referential": 4,
+    "self_referential_rate": 0.005,
+    "tier_surfaced": {
+      "precision": 0.339,
+      "recall": 0.1389,
+      "shown": 91
+    },
+    "trial_verdicts": {
+      "cannot_determine": 86,
+      "eligible": 5,
+      "excluded": 109
+    },
+    "weak_absence": 89,
+    "weak_absence_rate": 0.1103
+  },
+  "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+  "prompt_version": "v4",
+  "provider": "deepinfra",
+  "run_usd": 0.0,
+  "timing": {
+    "assess_s": 0.3,
+    "retrieval_s": 12.5
+  },
+  "top_k": 10
+}

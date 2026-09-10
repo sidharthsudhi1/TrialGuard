@@ -32,6 +32,8 @@ export interface Assessment {
   quote?: string;
   grounded?: boolean;
   grounding_failure?: boolean;
+  /** Exclusion not_met whose quote does not establish absence. See grounding.py. */
+  weak_absence?: boolean;
   rationale?: string;
 }
 
