@@ -92,14 +92,14 @@ def _retry_missing() -> bool:
 def _missing_criteria(assessments: list[dict], typed: list[dict]) -> list[dict]:
     """Criteria that came back with no assessment at all.
 
-    Matched on normalized text, the same anchor attach_kinds trusts second, so a
-    criterion the model echoed with different spacing or casing is not re-asked
-    as though it had been skipped.
+    Aligned rather than matched on exact text. The model routinely answers a
+    criterion while echoing it differently, and re-asking for something it
+    already answered spends a call to be told the same thing.
     """
-    from trialguard.verify.grounding import normalize
+    from trialguard.agent.schema import align_assessments
 
-    answered = {normalize(str(a.get("criterion", ""))) for a in assessments}
-    return [c for c in typed if normalize(c["text"]) not in answered]
+    slots, _ = align_assessments(assessments, typed)
+    return [c for c, answer in zip(typed, slots) if answer is None]
 
 
 def _merge_retry(
