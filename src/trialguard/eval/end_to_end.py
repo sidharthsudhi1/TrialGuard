@@ -249,19 +249,18 @@ _VERDICTS = ("met", "not_met", "cannot_determine", "unverifiable")
 
 def _unanswered(assessments: list[dict], criteria: list[dict]) -> list[dict]:
     """Asked criteria with no assessment against them."""
-    from trialguard.verify.grounding import normalize
+    from trialguard.agent.schema import align_assessments
 
-    answered = {normalize(str(a.get("criterion", ""))) for a in assessments}
-    return [c for c in criteria if normalize(c["text"]) not in answered]
+    slots, _ = align_assessments(assessments, criteria)
+    return [c for c, answer in zip(criteria, slots) if answer is None]
 
 
 def _unmatched(assessments: list[dict], criteria: list[dict]) -> list[dict]:
     """Assessments naming a criterion that was never asked for."""
-    from trialguard.verify.grounding import normalize
+    from trialguard.agent.schema import align_assessments
 
-    asked = {normalize(c["text"]) for c in criteria}
-    return [a for a in assessments
-            if normalize(str(a.get("criterion", ""))) not in asked]
+    _, leftover = align_assessments(assessments, criteria)
+    return leftover
 
 
 _PROVENANCE = ("trial", "note", "absence")

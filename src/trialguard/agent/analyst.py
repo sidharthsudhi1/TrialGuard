@@ -298,6 +298,7 @@ def _cache_key(patient_note: str, nct_id: str) -> str:
     precision. Two hosts sharing a cache entry would let one host's results be
     reported as the other's.
     """
+    from trialguard.ingestion.normalise import strict_criteria
     from trialguard.llm.provider import active_model, active_provider
 
     pair = (active_provider(), active_model())
@@ -305,6 +306,16 @@ def _cache_key(patient_note: str, nct_id: str) -> str:
         raw = f"{prompt_version()}|{nct_id}|{patient_note}"
     else:
         raw = f"{prompt_version()}|{pair[0]}|{pair[1]}|{nct_id}|{patient_note}"
+    # Dropping parser artifacts changes the criteria list, which is the question
+    # the cached answer answers -- and the criteria have never been in this key.
+    # Without a discriminator a pre-2026-09-11 entry would be replayed against a
+    # different question, with the dropped headers still present as assessments
+    # of criteria that no longer exist.
+    #
+    # Appended rather than woven in, so TG_STRICT_CRITERIA=0 reproduces every
+    # committed key byte for byte, the LEGACY_PAIR format included.
+    if strict_criteria():
+        raw = f"{raw}|s1"
     return hashlib.sha256(raw.encode()).hexdigest()[:20]
 
 

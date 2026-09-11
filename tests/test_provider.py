@@ -136,16 +136,39 @@ NCT = "NCT01234567"
 def test_legacy_pair_reproduces_the_original_key_format(groq, monkeypatch):
     """Recomputed independently here rather than asserted against the
     implementation, so a change to the format fails this test instead of being
-    silently mirrored by it."""
+    silently mirrored by it.
+
+    Pinned to TG_STRICT_CRITERIA=0 since 2026-09-11. The contract is that the
+    Groq pair keeps emitting the original key for the Phase 3/4 entries it
+    backs, and those entries answer the criteria list the parser produced at the
+    time. Reproducing them therefore needs the old parse as well as the old
+    host, and under those conditions the key is byte-identical. Leaving the
+    format frozen while the criteria moved underneath it would have been the
+    worse contract: the same key, a different question.
+    """
     import hashlib
 
     from trialguard.agent.analyst import _cache_key, prompt_version
 
+    monkeypatch.setenv("TG_STRICT_CRITERIA", "0")
     monkeypatch.setattr(settings, "groq_model", "llama-3.3-70b-versatile")
     expected = hashlib.sha256(
         f"{prompt_version()}|{NCT}|{NOTE}".encode()
     ).hexdigest()[:20]
     assert _cache_key(NOTE, NCT) == expected
+
+
+def test_the_strict_parser_moves_even_the_legacy_namespace(monkeypatch):
+    """Freezing the legacy format through a criteria change would mean the same
+    key answering a different question."""
+    from trialguard.agent.analyst import _cache_key
+
+    monkeypatch.setattr(settings, "groq_model", "llama-3.3-70b-versatile")
+    monkeypatch.setenv("TG_STRICT_CRITERIA", "0")
+    old = _cache_key(NOTE, NCT)
+    monkeypatch.setenv("TG_STRICT_CRITERIA", "1")
+
+    assert _cache_key(NOTE, NCT) != old
 
 
 def test_deepinfra_gets_a_separate_cache_namespace(monkeypatch):

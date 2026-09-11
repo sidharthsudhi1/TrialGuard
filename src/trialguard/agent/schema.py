@@ -63,6 +63,53 @@ def build_typed_criteria(
     return items[:max_total], truncated
 
 
+def align_assessments(
+    assessments: list[dict], typed: list[dict]
+) -> tuple[list[dict | None], list[dict]]:
+    """Pair each asked criterion with the assessment answering it.
+
+    Returns (per-criterion answers, assessments matching no criterion).
+
+    Exact normalized text first, then containment. Containment is needed because
+    the model routinely answers a criterion while echoing it differently: asked
+    "General: Age equal to or greater than 18.", it returns "Age equal to or
+    greater than 18". Measured over the eval cohorts, exact matching alone
+    called 7.2% of TREC criteria unanswered that had in fact been answered.
+
+    One-to-one, longest criterion first. A short echo must not claim a long
+    criterion that a longer echo answers, and neither may be consumed twice --
+    two entries against one criterion is how a trial gets excluded on a
+    disqualifier that does not exist.
+    """
+    from trialguard.verify.grounding import normalize
+
+    keys = [normalize(c["text"]) for c in typed]
+    slots: list[dict | None] = [None] * len(typed)
+    free = list(range(len(assessments)))
+    echo = [normalize(str(a.get("criterion", ""))) for a in assessments]
+
+    for i, key in enumerate(keys):
+        for j in list(free):
+            if echo[j] and echo[j] == key:
+                slots[i] = assessments[j]
+                free.remove(j)
+                break
+
+    # Longest first: the most specific criterion gets first claim on an echo
+    # that several could contain.
+    for i in sorted(range(len(typed)), key=lambda i: -len(keys[i])):
+        if slots[i] is not None or not keys[i]:
+            continue
+        for j in list(free):
+            e = keys[i]
+            if echo[j] and (echo[j] in e or e in echo[j]):
+                slots[i] = assessments[j]
+                free.remove(j)
+                break
+
+    return slots, [assessments[j] for j in free]
+
+
 def attach_kinds(assessments: list[dict], typed: list[dict]) -> list[dict]:
     """Stamp each assessment with its criterion kind.
 
