@@ -204,12 +204,20 @@ used to replace attempt one wholesale, so a retry that answered less made
 coverage *worse* than not retrying. `_backfill` now guarantees a retry can only
 add.
 
-**Residual, and larger than first reported: 167 criteria (9.5%) on TREC are
-still never answered**, plus 81 answered that were never asked. The original
-claim of 4.0% came from a metric that subtracted answered from asked, which
-nets those two phenomena against each other; AD-20. Three further attempts to
-close the gap were measured and rejected (narrowing the re-ask, and two prompt
-variants).
+**Decomposed 2026-09-11, and it was mostly never the analyst** (AD-21,
+`coverage_residual.md`). Of TREC's 18.9% shortfall: 8.4% were entries that are
+not criteria at all, 7.2% were criteria the model answered while echoing them
+differently, and **3.3% genuine omission**. Two deterministic fixes followed —
+the parser no longer emits section headers and stranded labels, and matching is
+by containment rather than exact text — taking never-answered to 147 on TREC
+and 6 on SIGIR, and pulling 74 and 28 real criteria into the assessed window.
+
+**Residual ~3%, stated rather than closed.** It is three things: genuine
+omission, criteria the parser never emitted at all (the ten-character line
+minimum removes "Pregnancy" and "Prisoners" alongside "Age:"), and compound
+lines the model correctly splits. Each remaining route is an ingestion change
+that could destroy correct criteria, and the roll-up already reports affected
+trials as `needs_review` rather than claiming a verdict over them.
 
 ### 2.5 A quote cannot prove absence  `[found 2026-09-10, measured, open]`
 
