@@ -212,7 +212,13 @@ the parser no longer emits section headers and stranded labels, and matching is
 by containment rather than exact text — taking never-answered to 147 on TREC
 and 6 on SIGIR, and pulling 74 and 28 real criteria into the assessed window.
 
-**Residual ~3%, stated rather than closed.** It is three things: genuine
+**Measured together 2026-09-12** (AD-22, `combined_coverage_result.md`):
+criteria never answered fall to **1 of 1,560 on TREC** and 2 of 1,799 on SIGIR.
+Roughly 99% of the shortfall was the parser and the matcher, and the retry's
+recorded cost to surfaced recall was itself an artifact of the junk criteria,
+reversing once they are gone.
+
+**Residual under 1%, stated rather than closed.** It is three things: genuine
 omission, criteria the parser never emitted at all (the ten-character line
 minimum removes "Pregnancy" and "Prisoners" alongside "Age:"), and compound
 lines the model correctly splits. Each remaining route is an ingestion change
