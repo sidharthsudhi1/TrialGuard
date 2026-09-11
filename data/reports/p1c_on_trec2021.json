@@ -1,0 +1,62 @@
+{
+  "cached_only": false,
+  "cohort": "trec_2021",
+  "counts": {
+    "assess_s": 488.6,
+    "assessed": 200,
+    "budget_stops": 0,
+    "cache_coverage": 1.0,
+    "skipped": 0,
+    "uncached_skipped": 0
+  },
+  "metrics": {
+    "agent_loss": 0.0434,
+    "criterion_asked": 1761,
+    "criterion_grounded": 828,
+    "criterion_grounded_in": {
+      "absence": 86,
+      "note": 668,
+      "trial": 74
+    },
+    "criterion_grounded_rate": 0.4702,
+    "criterion_total": 1492,
+    "criterion_unanswered": 269,
+    "criterion_unverifiable_rate": 0.0684,
+    "criterion_verdicts": {
+      "cannot_determine": 567,
+      "met": 353,
+      "not_met": 470,
+      "unverifiable": 102
+    },
+    "eligible_precision": 0.75,
+    "end_to_end_recall": 0.0059,
+    "gold_eligible_total": 1520,
+    "incomplete_patients": 0,
+    "note_only_grounded_rate": 0.8068,
+    "patients": 20,
+    "retrieval_recall": 0.0493,
+    "self_referential": 4,
+    "self_referential_rate": 0.0048,
+    "tier_surfaced": {
+      "precision": 0.6267,
+      "recall": 0.0309,
+      "shown": 84
+    },
+    "trial_verdicts": {
+      "cannot_determine": 72,
+      "eligible": 12,
+      "excluded": 116
+    },
+    "weak_absence": 110,
+    "weak_absence_rate": 0.1329
+  },
+  "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+  "prompt_version": "v4",
+  "provider": "deepinfra",
+  "run_usd": 0.032859,
+  "timing": {
+    "assess_s": 488.6,
+    "retrieval_s": 17.7
+  },
+  "top_k": 10
+}

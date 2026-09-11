@@ -192,16 +192,24 @@ over 1,071 paired criteria (AD-17, `v6_coverage_findings.md`). Both v5 and v6
 carry that instruction; only v5 recovers coverage, so the gain belongs to
 numbering rather than to the instruction.
 
-**Fixed on the retry edge, not in the prompt** (AD-18,
-`p1_coverage_findings.md`). Criteria never answered fall 229 to 71 on TREC
-(13.0% to 4.0%), grounded rises 840 to 916, `eligible` precision rises 0.625 to
-0.800. SIGIR is the control and moves not at all. It costs 14% of TREC surfaced
-recall, adopted anyway because the recall removed was produced by not looking.
-On by default; `TG_RETRY_MISSING=0` reproduces pre-2026-09-10 numbers.
+**Improved on the retry edge, not in the prompt** (AD-18, corrected by AD-20;
+`p1_coverage_findings.md` and `p1_correction.md`). Criteria never answered fall
+230 to 167 on TREC (13.1% to 9.5%) and 43 to 14 on SIGIR, grounded rises 848 to
+918 and 814 to 824, `eligible` precision rises 0.571 to 0.714 on TREC and
+end-to-end recall 0.0026 to 0.0033. It costs 12% of TREC surfaced recall.
+On by default; `TG_RETRY_MISSING=0` reproduces the previous behaviour.
 
-**Residual:** 71 criteria (4.0%) are still never answered. The retry is bounded
-at 2 and the model still skips on the re-ask. L4's warning did not materialise
-here: grounded rose on both cohorts rather than abstention replacing assertion.
+The load-bearing part is an invariant rather than a number: the full-list retry
+used to replace attempt one wholesale, so a retry that answered less made
+coverage *worse* than not retrying. `_backfill` now guarantees a retry can only
+add.
+
+**Residual, and larger than first reported: 167 criteria (9.5%) on TREC are
+still never answered**, plus 81 answered that were never asked. The original
+claim of 4.0% came from a metric that subtracted answered from asked, which
+nets those two phenomena against each other; AD-20. Three further attempts to
+close the gap were measured and rejected (narrowing the re-ask, and two prompt
+variants).
 
 ### 2.5 A quote cannot prove absence  `[found 2026-09-10, measured, open]`
 

@@ -148,3 +148,168 @@ def test_a_criterion_the_model_invents_on_retry_is_not_added(monkeypatch):
         state = G.assess(NOTE, "NCT1", CRITERIA, TRIAL, max_retries=2)
 
     assert "Must own a bicycle" not in {a["criterion"] for a in state["assessments"]}
+
+
+def test_a_missing_only_retry_still_re_asks_the_whole_list(monkeypatch):
+    """Narrowing to just the skipped criteria was measured and is worse: 144 of
+    1,761 TREC criteria left unanswered against 71, because a narrowed ask has
+    to be merged back by text match and what the merge cannot place is lost."""
+    monkeypatch.delenv("TG_RETRY_MISSING", raising=False)
+    monkeypatch.delenv("TG_RETRY_FAILED_ONLY", raising=False)
+    asked = []
+
+    def short_then_full(note, nct_id, criteria, **kw):
+        asked.append([c["text"] for c in criteria])
+        if len(asked) == 1:
+            return [{"criterion": "Age 18 or older", "verdict": "met", "quote": "62-year-old"}]
+        return [
+            {"criterion": c["text"], "verdict": "cannot_determine", "quote": ""}
+            for c in CRITERIA
+        ]
+
+    with patch.object(G, "analyze_trial", side_effect=short_then_full):
+        G.assess(NOTE, "NCT1", CRITERIA, TRIAL, max_retries=2)
+
+    assert asked[1] == [c["text"] for c in CRITERIA]
+
+
+def test_a_grounding_failure_still_re_asks_the_whole_list(monkeypatch):
+    """L4 measured the narrowed failed-retry and rejected it. Narrowing the
+    omission case must not quietly adopt it for the failure case too."""
+    monkeypatch.delenv("TG_RETRY_MISSING", raising=False)
+    monkeypatch.delenv("TG_RETRY_FAILED_ONLY", raising=False)
+    asked = []
+
+    def ungrounded_then_fixed(note, nct_id, criteria, **kw):
+        asked.append([c["text"] for c in criteria])
+        quote = "62-year-old" if len(asked) > 1 else "not in the source at all"
+        return [
+            {"criterion": "Age 18 or older", "verdict": "met", "quote": quote},
+            {"criterion": "Stage IV disease", "verdict": "met", "quote": "Stage IV disease"},
+            {"criterion": "Prior chemotherapy", "verdict": "not_met", "quote": "no chemotherapy"},
+        ]
+
+    with patch.object(G, "analyze_trial", side_effect=ungrounded_then_fixed):
+        G.assess(NOTE, "NCT1", CRITERIA, TRIAL, max_retries=2)
+
+    assert len(asked) == 2
+    assert asked[1] == [c["text"] for c in CRITERIA]
+
+
+def test_an_omission_only_retry_does_not_claim_a_quote_failed(monkeypatch):
+    """The prompt is built from parts, so a retry with nothing ungrounded must
+    not open with a verbatim-quote complaint followed by an empty list."""
+    monkeypatch.delenv("TG_RETRY_MISSING", raising=False)
+    notes = []
+
+    def short(note, nct_id, criteria, **kw):
+        notes.append(note)
+        return [{"criterion": "Age 18 or older", "verdict": "met", "quote": "62-year-old"}]
+
+    with patch.object(G, "analyze_trial", side_effect=short):
+        G.assess(NOTE, "NCT1", CRITERIA, TRIAL, max_retries=1)
+
+    assert "need a verbatim quote" not in notes[1]
+    assert "were not answered at all" in notes[1]
+
+
+def test_a_retry_can_never_lose_a_criterion_attempt_one_answered(monkeypatch):
+    """The full-list retry replaced attempt one wholesale, so a retry that came
+    back shorter made coverage worse than not retrying at all. Measured at 71,
+    144 and 269 unanswered across three runs of one configuration, against 229
+    with no retry: that spread was output length varying, not the prompt."""
+    monkeypatch.delenv("TG_RETRY_MISSING", raising=False)
+    monkeypatch.delenv("TG_RETRY_FAILED_ONLY", raising=False)
+    calls = []
+
+    def two_then_one(note, nct_id, criteria, **kw):
+        calls.append(note)
+        if len(calls) == 1:
+            return [
+                {"criterion": "Age 18 or older", "verdict": "met", "quote": "62-year-old"},
+                {"criterion": "Stage IV disease", "verdict": "met", "quote": "Stage IV disease"},
+            ]
+        # A shorter retry. Without the backfill this would drop "Stage IV
+        # disease" entirely and leave the trial worse off than before.
+        return [{"criterion": "Prior chemotherapy", "verdict": "not_met",
+                 "quote": "no chemotherapy"}]
+
+    with patch.object(G, "analyze_trial", side_effect=two_then_one):
+        state = G.assess(NOTE, "NCT1", CRITERIA, TRIAL, max_retries=1)
+
+    assert {a["criterion"] for a in state["assessments"]} == {
+        "Age 18 or older", "Stage IV disease", "Prior chemotherapy"
+    }
+
+
+def test_the_retry_answer_wins_where_both_attempts_answered(monkeypatch):
+    """Backfill fills gaps; it must not resurrect a verdict the retry replaced."""
+    monkeypatch.delenv("TG_RETRY_MISSING", raising=False)
+    calls = []
+
+    def ungrounded_then_grounded(note, nct_id, criteria, **kw):
+        calls.append(note)
+        quote = "62-year-old" if len(calls) > 1 else "nowhere in any source"
+        return [{"criterion": "Age 18 or older", "verdict": "met", "quote": quote}]
+
+    with patch.object(G, "analyze_trial", side_effect=ungrounded_then_grounded):
+        state = G.assess(NOTE, "NCT1", CRITERIA, TRIAL, max_retries=1)
+
+    age = [a for a in state["assessments"] if a["criterion"] == "Age 18 or older"]
+    assert len(age) == 1
+    assert age[0]["verdict"] == "met"
+    assert age[0]["grounded"] is True
+
+
+def test_backfill_does_not_duplicate_on_casing_drift():
+    from trialguard.agent.graph import _backfill
+
+    out = _backfill(
+        [{"criterion": "Age 18 or Older", "verdict": "met"}],
+        [{"criterion": "age 18 or older", "verdict": "cannot_determine"}],
+        [{"text": "Age 18 or older", "kind": "inclusion"}],
+    )
+
+    assert len(out) == 1
+    assert out[0]["verdict"] == "met"
+
+
+def test_a_rephrased_criterion_is_not_answered_twice(monkeypatch):
+    """Deduplicating on the model's echoed text is not enough: a retry that
+    rephrases a criterion does not match attempt one, and the criterion ends up
+    answered twice. Two entries with opposing verdicts flip a trial to excluded
+    on a disqualifier that does not exist."""
+    monkeypatch.delenv("TG_RETRY_MISSING", raising=False)
+    calls = []
+
+    def rephrase(note, nct_id, criteria, **kw):
+        calls.append(note)
+        if len(calls) == 1:
+            return [{"criterion": "Prior chemotherapy", "verdict": "not_met",
+                     "quote": "no chemotherapy"}]
+        # Same criterion, different wording, opposite verdict.
+        return [{"criterion": "Prior  CHEMOTHERAPY.", "verdict": "met",
+                 "quote": "no chemotherapy"}]
+
+    with patch.object(G, "analyze_trial", side_effect=rephrase):
+        state = G.assess(NOTE, "NCT1", CRITERIA, TRIAL, max_retries=1)
+
+    chemo = [a for a in state["assessments"]
+             if "chemo" in a["criterion"].lower()]
+    assert len(chemo) == 1
+
+
+def test_backfill_never_returns_more_entries_than_criteria_asked():
+    """criterion_unanswered is asked minus answered, so a duplicate made it
+    negative -- which is how this was caught."""
+    from trialguard.agent.graph import _backfill
+
+    out = _backfill(
+        [{"criterion": "Age  18 or older", "verdict": "met"}],
+        [{"criterion": "age 18 or older", "verdict": "cannot_determine"},
+         {"criterion": "Stage IV disease", "verdict": "met"}],
+        CRITERIA,
+    )
+
+    assert len(out) <= len(CRITERIA)
+    assert len(out) == 2
