@@ -56,6 +56,68 @@ _NEST = 2
 _GROUP_MAX_CHARS = 1500
 
 
+# Lines the parser emits that are not criteria. Measured over the eval cohorts:
+# 340 of 1,472 TREC entries and 203 of 1,013 SIGIR entries, dominated by
+# "inclusion criteria:" surviving as its own criterion 91 times.
+#
+# The rule is structural, never length. Short does not mean junk: "Karnofsky
+# 60-100%", "Contrast allergy", "Nonpalpable femoral pulses" and "Age below 18"
+# are all real criteria of three words or fewer, and a word-count filter would
+# delete them.
+#
+# Why it matters beyond tidiness: build_typed_criteria caps a trial at
+# MAX_CRITERIA, and 17.7% of TREC trials hit that cap with 92 junk entries
+# occupying slots inside them. Real criteria were being pushed past the cap and
+# never assessed at all.
+_SECTION_HEADER = re.compile(
+    r"^(?:inclusion|exclusion|eligibility|protocol entry)?\s*"
+    r"(?:criteria|characteristics)\b|^(?:disease|patient|prior/concurrent)\s+"
+    r"(?:characteristics|therapy)\b",
+    re.IGNORECASE,
+)
+
+# A label with nothing after its colon: "Performance status:", "Hematopoietic:".
+# Its content is on the following lines and parses as its own criteria, so the
+# label is a heading that lost its children, not a thing to assess.
+_BARE_LABEL = re.compile(r"^[^:]{1,40}[:\-\u2014]+\s*$")
+
+# CT.gov's own nulls and cross-references.
+_PLACEHOLDER = frozenset({"not specified", "none", "no eligibility criteria", "n/a"})
+
+
+def _is_not_a_criterion(line: str) -> bool:
+    """True for section headers, stranded labels and placeholders.
+
+    Group headers are deliberately exempt: "any of the following:" carries a
+    disjunction the roll-up depends on, and _GROUP_HEADER already owns the
+    decision about what happens to it.
+    """
+    stripped = line.strip().rstrip(":-\u2014 ").strip()
+    if not stripped:
+        return True
+    if _GROUP_HEADER.search(line):
+        return False
+    if stripped.lower() in _PLACEHOLDER:
+        return True
+    if _BARE_LABEL.match(line.strip()) and _SECTION_HEADER.search(stripped):
+        return True
+    if _BARE_LABEL.match(line.strip()):
+        return True
+    return bool(_SECTION_HEADER.match(stripped)) and len(stripped.split()) <= 4
+
+
+def strict_criteria() -> bool:
+    """Drop parser artifacts from the criteria list. On by default.
+
+    `TG_STRICT_CRITERIA=0` restores the previous behaviour, and is what
+    reproduces results cached before 2026-09-11: this changes the question the
+    analyst is asked, so it changes the analyst cache namespace with it.
+    """
+    import os
+
+    return os.environ.get("TG_STRICT_CRITERIA", "1") != "0"
+
+
 def _split_criteria(raw: str) -> tuple[list[str], list[str]]:
     """Split raw eligibility text into inclusion and exclusion criterion lists."""
     if not raw:
@@ -96,6 +158,8 @@ def _split_criteria(raw: str) -> tuple[list[str], list[str]]:
                         continue
             criteria.append(line)
             i += 1
+        if strict_criteria():
+            criteria = [c for c in criteria if not _is_not_a_criterion(c)]
         return criteria
 
     if inc_match and exc_match:
