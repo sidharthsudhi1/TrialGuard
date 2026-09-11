@@ -90,9 +90,15 @@ def test_the_verdict_distribution_is_reported_not_just_the_abstention_rate():
 
 def test_criteria_the_analyst_never_answered_are_counted():
     """A prompt that answers fewer criteria than it was handed shrinks every
-    denominator below, so the rates look unchanged while coverage fell."""
+    denominator below, so the rates look unchanged while coverage fell.
+
+    Counted against the criteria list rather than as asked minus answered: the
+    model sometimes returns an entry matching no asked criterion, and the
+    subtraction then went negative and hid the shortfall behind the excess.
+    """
     rows = [_row("p1", ["A"], ["A"], {"A": "eligible"})]
     rows[0]["verdicts"]["A"]["n_criteria_asked"] = 6
+    rows[0]["verdicts"]["A"]["n_unanswered"] = 2
 
     m = score(rows)
 
@@ -100,6 +106,18 @@ def test_criteria_the_analyst_never_answered_are_counted():
     assert m["criterion_unanswered"] == 2
     # Over what was asked, not over what came back.
     assert m["criterion_grounded_rate"] == round(4 / 6, 4)
+
+
+def test_an_entry_for_a_criterion_never_asked_does_not_hide_a_shortfall():
+    rows = [_row("p1", ["A"], ["A"], {"A": "eligible"})]
+    rows[0]["verdicts"]["A"]["n_criteria_asked"] = 4
+    rows[0]["verdicts"]["A"]["n_unanswered"] = 1
+    rows[0]["verdicts"]["A"]["n_unmatched"] = 1
+
+    m = score(rows)
+
+    assert m["criterion_unanswered"] == 1
+    assert m["criterion_unmatched"] == 1
 
 
 def test_an_arm_that_answers_everything_reports_no_shortfall():

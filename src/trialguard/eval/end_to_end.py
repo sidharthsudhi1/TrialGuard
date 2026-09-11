@@ -205,6 +205,8 @@ def assess_retrieved(
                 # would otherwise be computed over the shrunken denominator and look
                 # unchanged. This is the direct measure of that.
                 "n_criteria_asked": len(criteria),
+                "n_unanswered": len(_unanswered(ass, criteria)),
+                "n_unmatched": len(_unmatched(ass, criteria)),
                 "n_grounded": sum(1 for a in ass if a.get("grounded")),
                 "n_unverifiable": sum(1 for a in ass if a.get("verdict") == "unverifiable"),
                 # Full distribution, not just the abstention rate. L4 improved the
@@ -245,6 +247,23 @@ def assess_retrieved(
 _VERDICTS = ("met", "not_met", "cannot_determine", "unverifiable")
 
 
+def _unanswered(assessments: list[dict], criteria: list[dict]) -> list[dict]:
+    """Asked criteria with no assessment against them."""
+    from trialguard.verify.grounding import normalize
+
+    answered = {normalize(str(a.get("criterion", ""))) for a in assessments}
+    return [c for c in criteria if normalize(c["text"]) not in answered]
+
+
+def _unmatched(assessments: list[dict], criteria: list[dict]) -> list[dict]:
+    """Assessments naming a criterion that was never asked for."""
+    from trialguard.verify.grounding import normalize
+
+    asked = {normalize(c["text"]) for c in criteria}
+    return [a for a in assessments
+            if normalize(str(a.get("criterion", ""))) not in asked]
+
+
 _PROVENANCE = ("trial", "note", "absence")
 
 
@@ -273,6 +292,7 @@ def score(rows: list[dict]) -> dict:
     verdict_counts: dict[str, int] = {}
     crit_total = crit_unver = 0
     crit_asked = crit_grounded = 0
+    crit_unanswered = crit_unmatched = 0
     crit_verdicts = dict.fromkeys(_VERDICTS, 0)
     crit_provenance = dict.fromkeys(_PROVENANCE, 0)
     crit_self_ref = 0
@@ -292,6 +312,8 @@ def score(rows: list[dict]) -> dict:
             crit_total += v["n_criteria"]
             crit_unver += v["n_unverifiable"]
             crit_asked += v.get("n_criteria_asked", v["n_criteria"])
+            crit_unanswered += v.get("n_unanswered", 0)
+            crit_unmatched += v.get("n_unmatched", 0)
             crit_grounded += v.get("n_grounded", 0)
             for name, n in (v.get("verdicts") or {}).items():
                 if name in crit_verdicts:
@@ -352,7 +374,12 @@ def score(rows: list[dict]) -> dict:
         # Criteria the analyst was handed but never answered. Non-zero means the
         # rates above describe a subset of what was asked.
         "criterion_asked": crit_asked,
-        "criterion_unanswered": crit_asked - crit_total,
+        "criterion_unanswered": crit_unanswered,
+        # Assessments naming something never asked. attach_kinds marks these
+        # "unknown" and the roll-up treats them as unresolved, but they inflate
+        # the total, which is why unanswered is no longer a subtraction: it
+        # went negative on SIGIR and hid the real shortfall behind the excess.
+        "criterion_unmatched": crit_unmatched,
         "criterion_grounded_rate": _rate(crit_grounded, crit_asked),
         "criterion_grounded_in": crit_provenance,
         # The share of grounded criteria whose only evidence is user-supplied

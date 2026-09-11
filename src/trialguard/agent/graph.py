@@ -152,6 +152,45 @@ def _merge_retry(
     return out
 
 
+def _backfill(
+    retried: list[dict], prior: list[dict], typed: list[dict]
+) -> list[dict]:
+    """Retried answers, plus any criterion only attempt one answered.
+
+    Resolved against the real criteria list rather than between the two
+    attempts. Deduplicating on the model's own echoed text is not enough: if the
+    retry rephrases a criterion, its text does not match attempt one's and the
+    criterion ends up answered twice. Measured on SIGIR, that produced 32 more
+    assessments than there were criteria -- and two entries for one criterion
+    with opposing verdicts can flip a trial to excluded on a disqualifier that
+    does not exist.
+
+    So exactly one entry per criterion, the retry's where it answered. Retried
+    entries matching no criterion pass through unchanged, as they always have;
+    attach_kinds marks those "unknown" and the roll-up treats them as unresolved.
+    """
+    from trialguard.verify.grounding import normalize
+
+    def _index(rows: list[dict]) -> dict[str, dict]:
+        by: dict[str, dict] = {}
+        for a in rows:
+            key = normalize(str(a.get("criterion", "")))
+            if key and key not in by:
+                by[key] = a
+        return by
+
+    ret_by, prior_by = _index(retried), _index(prior)
+    known = {normalize(c["text"]) for c in typed}
+
+    out = [a for a in retried if normalize(str(a.get("criterion", ""))) not in known]
+    for c in typed:
+        key = normalize(c["text"])
+        answer = ret_by.get(key) or prior_by.get(key)
+        if answer is not None:
+            out.append(answer)
+    return out
+
+
 def _analyst_node(state: State) -> State:
     attempt = state.get("retries", 0)
     note = state["patient_note"]
@@ -174,13 +213,6 @@ def _analyst_node(state: State) -> State:
         # one was never answered and telling it to "copy the quote more
         # carefully" would be nonsense.
         missing = _missing_criteria(prior, typed) if _retry_missing() else []
-        missing_block = ""
-        if missing:
-            listed = "\n".join(f"- {c['text']}" for c in missing)
-            missing_block = (
-                f"\n\nThese criteria were not answered at all last time. Answer "
-                f"each one now, and do not omit any:\n{listed}"
-            )
         # L4: re-ask only what failed. A median trial has 6 criteria and few
         # fail, so the retry call shrinks to a fraction of the original instead
         # of re-deciding verdicts that already grounded.
@@ -191,14 +223,34 @@ def _analyst_node(state: State) -> State:
             if subset:
                 typed = subset
                 asked_subset = True
+        # Narrowing a missing-only retry to just the skipped criteria was the
+        # obvious next move and was measured: it left 144 of 1,761 TREC criteria
+        # unanswered against 71 for the full-list re-ask, and dropped `eligible`
+        # precision 0.800 -> 0.571. Re-asking everything lets the model produce a
+        # fresh complete answer that replaces attempt one wholesale; a narrowed
+        # ask produces a handful of entries that have to be merged back by text
+        # match, and what the merge cannot place is lost. Not done, deliberately.
+
+        # Built from parts: a retry driven only by omissions must not open with
+        # "these criteria need a verbatim quote", followed by nothing.
+        blocks = []
+        if failed:
+            blocks.append(
+                "These criteria need a verbatim quote that was not found in the "
+                f"source last time:\n{crit_list}"
+            )
+        if missing:
+            listed = "\n".join(f"- {c['text']}" for c in missing)
+            blocks.append(
+                "These criteria were not answered at all last time. Answer each "
+                f"one now, and do not omit any:\n{listed}"
+            )
         span = state["source_text"].strip()
-        note = (
-            f"{note}\n\n[Retry {attempt}] These criteria need a verbatim quote that "
-            f"was not found in the source last time:\n{crit_list}{missing_block}"
-            f"\n\nCopy quotes "
-            f"character-for-character from this exact trial source text:\n"
-            f'"""\n{span}\n"""'
+        blocks.append(
+            "Copy quotes character-for-character from this exact trial source "
+            f'text:\n"""\n{span}\n"""'
         )
+        note = f"{note}\n\n[Retry {attempt}] " + "\n\n".join(blocks)
         # In cached-only mode a cold retry cache must not trigger a fresh Groq call.
         # Keep the first-attempt assessments; the bounded loop then exhausts to
         # "unverifiable" without spending quota. Lets all cohorts regenerate the
@@ -234,6 +286,20 @@ def _analyst_node(state: State) -> State:
         patient_text=state["patient_note"],
         trial_text=state["source_text"],
     )
+    # A retry must never lose a criterion attempt one answered. Without this the
+    # full-list retry replaces attempt one wholesale, so a retry that happens to
+    # return a shorter list makes coverage *worse*: measured at 71, 144 and 269
+    # criteria left unanswered across three runs of the same configuration on
+    # TREC, against 229 with no retry at all. That spread is not the prompt, it
+    # is the model's output length varying and the result being taken whole.
+    #
+    # Backfilled rather than preferred: the retry's answer wins for every
+    # criterion it did answer, and attempt one fills the gaps. A restored entry
+    # can be a grounding failure, which is the honest outcome -- unverifiable
+    # beats a criterion that silently vanished.
+    if attempt > 0 and prior and not asked_subset:
+        grounded = _backfill(grounded, prior, typed)
+
     # A partial retry answered only the criteria it was re-asked, so its result
     # is an overlay on attempt one rather than the whole trial.
     #
