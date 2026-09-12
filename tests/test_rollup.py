@@ -116,3 +116,69 @@ def test_unknown_kind_can_never_disqualify_a_trial():
     assert roll["tier"] == "needs_review"
     assert roll["n_disqualifying"] == 0
     assert roll["n_unknown"] == 1
+
+
+# --- criteria budget (2026-09-12) --------------------------------------------
+
+
+def test_a_long_trial_still_gets_its_exclusion_criteria_assessed():
+    """Filling the cap with inclusion criteria dropped every disqualifier: 7.2%
+    of the live corpus had zero exclusion criteria assessed, so those trials
+    could only ever come back eligible or cannot_determine."""
+    from trialguard.agent.schema import MAX_CRITERIA, build_typed_criteria
+
+    trial = {
+        "inclusion_criteria": [f"inc {i}" for i in range(28)],
+        "exclusion_criteria": [f"exc {i}" for i in range(27)],
+    }
+
+    criteria, truncated = build_typed_criteria(trial)
+
+    assert truncated is True
+    assert len(criteria) == MAX_CRITERIA
+    kinds = [c["kind"] for c in criteria]
+    assert kinds.count("exclusion") > 0, "every disqualifier was dropped"
+    assert kinds.count("inclusion") > 0
+
+
+def test_an_unused_half_of_the_budget_goes_to_the_other_kind():
+    """A trial with few inclusion criteria must still spend the whole cap."""
+    from trialguard.agent.schema import MAX_CRITERIA, build_typed_criteria
+
+    criteria, truncated = build_typed_criteria(
+        {
+            "inclusion_criteria": ["inc 0", "inc 1", "inc 2"],
+            "exclusion_criteria": [f"exc {i}" for i in range(40)],
+        }
+    )
+
+    assert truncated is True
+    assert len(criteria) == MAX_CRITERIA
+    assert sum(1 for c in criteria if c["kind"] == "inclusion") == 3
+    assert sum(1 for c in criteria if c["kind"] == "exclusion") == MAX_CRITERIA - 3
+
+
+def test_one_sided_trials_are_unaffected():
+    from trialguard.agent.schema import MAX_CRITERIA, build_typed_criteria
+
+    criteria, truncated = build_typed_criteria(
+        {"inclusion_criteria": [f"inc {i}" for i in range(30)], "exclusion_criteria": []}
+    )
+
+    assert truncated is True
+    assert len(criteria) == MAX_CRITERIA
+    assert all(c["kind"] == "inclusion" for c in criteria)
+
+
+def test_a_trial_under_the_cap_keeps_every_criterion_and_the_original_order():
+    """Inclusion first is the order the analyst prompt has always presented;
+    changing it would change every fresh assessment for no reason."""
+    from trialguard.agent.schema import build_typed_criteria
+
+    criteria, truncated = build_typed_criteria(
+        {"inclusion_criteria": ["a", "b"], "exclusion_criteria": ["c"]}
+    )
+
+    assert truncated is False
+    assert [c["text"] for c in criteria] == ["a", "b", "c"]
+    assert [c["kind"] for c in criteria] == ["inclusion", "inclusion", "exclusion"]

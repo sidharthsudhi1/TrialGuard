@@ -56,11 +56,42 @@ def normalize_criteria(criteria: list) -> list[dict]:
 def build_typed_criteria(
     trial: dict, max_total: int = MAX_CRITERIA
 ) -> tuple[list[dict], bool]:
-    """Inclusion then exclusion, capped. Returns (criteria, truncated)."""
-    items = [{"text": t, "kind": "inclusion"} for t in (trial.get("inclusion_criteria") or [])]
-    items += [{"text": t, "kind": "exclusion"} for t in (trial.get("exclusion_criteria") or [])]
-    truncated = len(items) > max_total
-    return items[:max_total], truncated
+    """Criteria for one trial, capped with both kinds represented.
+
+    Returns (criteria, truncated). Inclusion criteria come first in the returned
+    list, because that is the order the analyst prompt has always presented and
+    changing it would change every fresh assessment for no reason.
+
+    The *budget* is shared, though, which it was not. Filling the cap with
+    inclusion criteria and letting exclusion take what is left meant a trial with
+    more than `max_total` inclusion criteria had **none of its exclusion criteria
+    assessed at all** -- measured at 7.2% of the live corpus (287 of 4,000
+    sampled), 10.3% of TREC and 5.2% of SIGIR. Those trials could only ever come
+    back `eligible` or `cannot_determine`, because every disqualifier had been
+    dropped before the analyst saw it. Exclusion criteria are the reasons a
+    patient does not qualify, so dropping all of them is not a smaller sample of
+    the same thing: it is a systematic bias toward saying yes.
+
+    Each kind gets half the budget; whatever one side does not use goes to the
+    other, so a trial with 3 inclusion and 40 exclusion criteria still spends the
+    full cap. Truncation is reported exactly as before and callers surface it.
+    """
+    inclusion = [
+        {"text": t, "kind": "inclusion"} for t in (trial.get("inclusion_criteria") or [])
+    ]
+    exclusion = [
+        {"text": t, "kind": "exclusion"} for t in (trial.get("exclusion_criteria") or [])
+    ]
+    truncated = len(inclusion) + len(exclusion) > max_total
+    if not truncated:
+        return inclusion + exclusion, False
+
+    half = max_total // 2
+    n_inc = min(len(inclusion), half)
+    n_exc = min(len(exclusion), max_total - n_inc)
+    # Redistribute what the exclusion side could not use.
+    n_inc = min(len(inclusion), max_total - n_exc)
+    return inclusion[:n_inc] + exclusion[:n_exc], True
 
 
 def align_assessments(
