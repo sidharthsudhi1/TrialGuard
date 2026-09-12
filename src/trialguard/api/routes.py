@@ -709,6 +709,10 @@ def _assess_one(
         "status": trial.get("status"),
         "trial_verdict": state.get("trial_verdict", "cannot_determine"),
         "criteria_truncated": truncated,
+        # True when every assessed criterion passed and the only thing standing
+        # between this trial and `eligible` is the criteria the cap dropped. It
+        # is a different statement from "we could not tell", and the UI says so.
+        "truncated_block": state.get("truncated_block", False),
         "assessments": state.get("assessments", []),
     }
 

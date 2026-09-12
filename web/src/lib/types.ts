@@ -44,6 +44,8 @@ export interface TrialEvent {
   status?: string | null;
   trial_verdict: TrialVerdict;
   criteria_truncated?: boolean;
+  /** Every assessed criterion passed; only the dropped ones are unresolved. */
+  truncated_block?: boolean;
   assessments: Assessment[];
   error?: string;
 }

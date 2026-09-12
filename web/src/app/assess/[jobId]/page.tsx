@@ -105,7 +105,11 @@ export default function AssessPage() {
             </div>
             {ev.error && <p className="error">{ev.error}</p>}
             {ev.criteria_truncated && (
-              <p className="muted">Criteria list truncated at cap — roll-up may be incomplete.</p>
+              <p className="muted">
+                {ev.truncated_block
+                  ? "Every criterion assessed here passed, but this trial has more than the cap allows. Eligible is withheld because it is a claim about all criteria, and some were never assessed."
+                  : "Criteria list truncated at cap — some criteria were not assessed."}
+              </p>
             )}
             <ul className="criterion-list">
               {(ev.assessments || []).map((a, i) => (

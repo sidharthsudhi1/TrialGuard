@@ -189,7 +189,7 @@ def attach_kinds(assessments: list[dict], typed: list[dict]) -> list[dict]:
     return out
 
 
-def rollup_trial(assessments: list[dict]) -> dict:
+def rollup_trial(assessments: list[dict], truncated: bool = False) -> dict:
     """Tiered trial roll-up: the verdict, and what stands between it and eligible.
 
     Inclusion not_met → excluded. Exclusion met → excluded (patient matches a
@@ -208,6 +208,12 @@ def rollup_trial(assessments: list[dict]) -> dict:
 
     `verdict` is unchanged from the original three-way roll-up so the regression
     gate and the committed faithfulness floors keep measuring what they measured.
+
+    `truncated` blocks `eligible` and nothing else. The asymmetry is the point: a
+    disqualifier that was found is still found, and no criterion the cap dropped
+    can un-find it, so `excluded` stands over a truncated list. `eligible` is the
+    only verdict that quantifies over *every* criterion, so it is the only one a
+    cut list cannot support.
     """
     disqualifying: list[str] = []
     unknown: list[str] = []
@@ -235,6 +241,13 @@ def rollup_trial(assessments: list[dict]) -> dict:
         verdict, tier = "excluded", "excluded"
     elif unknown:
         verdict, tier = "cannot_determine", "needs_review"
+    elif truncated:
+        # "Eligible only if every criterion is met" cannot be said over a list
+        # that was cut to fit MAX_CRITERIA. CLAUDE.md has named this unsound
+        # since the cap was introduced; until 2026-09-12 the mitigation was to
+        # surface truncation in the UI and let the verdict stand, which put the
+        # honest caveat next to a claim the caveat contradicts.
+        verdict, tier = "cannot_determine", "needs_review"
     else:
         verdict, tier = "eligible", "eligible"
 
@@ -246,12 +259,15 @@ def rollup_trial(assessments: list[dict]) -> dict:
         "n_disqualifying": len(disqualifying),
         "unknown": unknown,
         "disqualifying": disqualifying,
+        # Set when a complete list would have been needed to say eligible and
+        # the list was not complete. The UI reads it to explain the downgrade.
+        "truncated_block": bool(truncated and not disqualifying and not unknown),
     }
 
 
-def rollup_trial_verdict(assessments: list[dict]) -> str:
+def rollup_trial_verdict(assessments: list[dict], truncated: bool = False) -> str:
     """Three-way verdict. Thin wrapper on rollup_trial for existing callers."""
-    return rollup_trial(assessments)["verdict"]
+    return rollup_trial(assessments, truncated=truncated)["verdict"]
 
 
 def validate_assessments(raw: object) -> list[dict]:
