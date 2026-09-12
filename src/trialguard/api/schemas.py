@@ -27,6 +27,10 @@ class LimitsResponse(BaseModel):
     assess_workers: int
     usd_per_trial: float
     seconds_per_trial: float
+    # Served rather than hardcoded in the client: a note the UI offers but the
+    # allowlist does not know is uncacheable, and that is how the demo ended up
+    # paying full price on every run.
+    presets: list[dict[str, str]] = []
 
 
 class AssessCreated(BaseModel):

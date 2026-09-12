@@ -81,7 +81,13 @@ export interface BudgetInfo {
 }
 
 /** Caps and measured per-trial rates, so the UI can quote before spending. */
+export interface Preset {
+  label: string;
+  note: string;
+}
+
 export interface Limits {
+  presets?: Preset[];
   max_assess_trials: number;
   max_assess_trials_deep: number;
   assess_workers: number;

@@ -128,12 +128,16 @@ def _preset_notes() -> frozenset[str]:
     treated as free text, and the cache write is skipped — the conservative side
     of the WS-4 policy. Cached because the answer cannot change within a process.
     """
+    from trialguard.api.demo_presets import DEMO_PRESET_NOTES
     from trialguard.demo import presets
 
     try:
-        return frozenset(presets().values())
+        fixture = frozenset(presets().values())
     except (FileNotFoundError, OSError):
-        return frozenset()
+        fixture = frozenset()
+    # The UI's own notes are always allowed, fixtures or not. They are the only
+    # notes most users will ever submit, and they were the ones being excluded.
+    return fixture | DEMO_PRESET_NOTES
 
 
 def _is_preset(note: str) -> bool:
@@ -241,12 +245,15 @@ def limits() -> LimitsResponse:
     the median served assess span. Quoting anything else would put a number in
     front of a user that no run supports.
     """
+    from trialguard.api.demo_presets import DEMO_PRESETS
+
     return LimitsResponse(
         max_assess_trials=settings.api_max_assess_trials,
         max_assess_trials_deep=settings.api_max_assess_trials_deep,
         assess_workers=settings.api_assess_workers,
         usd_per_trial=settings.api_assess_usd_per_trial,
         seconds_per_trial=settings.api_assess_seconds_per_trial,
+        presets=[dict(p) for p in DEMO_PRESETS],
     )
 
 
