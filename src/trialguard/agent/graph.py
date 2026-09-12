@@ -38,6 +38,7 @@ class State(TypedDict, total=False):
     unknown_criteria: list[str]
     disqualifying_criteria: list[str]
     criteria_truncated: bool
+    truncated_block: bool
     skip_cache_write: bool
     on_criterion: object
 
@@ -338,13 +339,16 @@ def _retry_node(state: State) -> State:
 
 def _report_node(state: State) -> State:
     """Trial roll-up with inverted exclusion semantics (see rollup_trial)."""
-    roll = rollup_trial(state["assessments"])
+    roll = rollup_trial(
+        state["assessments"], truncated=state.get("criteria_truncated", False)
+    )
     return {
         "trial_verdict": roll["verdict"],
         "trial_tier": roll["tier"],
         "n_unknown": roll["n_unknown"],
         "unknown_criteria": roll["unknown"],
         "disqualifying_criteria": roll["disqualifying"],
+        "truncated_block": roll["truncated_block"],
     }
 
 

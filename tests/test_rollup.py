@@ -182,3 +182,89 @@ def test_a_trial_under_the_cap_keeps_every_criterion_and_the_original_order():
     assert truncated is False
     assert [c["text"] for c in criteria] == ["a", "b", "c"]
     assert [c["kind"] for c in criteria] == ["inclusion", "inclusion", "exclusion"]
+
+
+# --- truncation blocks eligible (2026-09-12) ---------------------------------
+
+
+def test_a_truncated_list_cannot_support_eligible():
+    """"Eligible only if every criterion is met" cannot be said over a list cut
+    to fit the cap. CLAUDE.md named this unsound when the cap was introduced;
+    the mitigation was a UI note beside a verdict the note contradicts."""
+    from trialguard.agent.schema import rollup_trial
+
+    passing = [
+        {"kind": "inclusion", "verdict": "met"},
+        {"kind": "exclusion", "verdict": "not_met"},
+    ]
+
+    complete = rollup_trial(passing, truncated=False)
+    cut = rollup_trial(passing, truncated=True)
+
+    assert complete["verdict"] == "eligible"
+    assert cut["verdict"] == "cannot_determine"
+    assert cut["tier"] == "needs_review"
+    assert cut["truncated_block"] is True
+
+
+def test_truncation_never_rescues_a_disqualified_trial():
+    """The asymmetry is the point: a disqualifier that was found is still found,
+    and no criterion the cap dropped can un-find it."""
+    from trialguard.agent.schema import rollup_trial
+
+    roll = rollup_trial(
+        [
+            {"kind": "inclusion", "verdict": "met"},
+            {"kind": "exclusion", "verdict": "met", "criterion": "Prior chemo"},
+        ],
+        truncated=True,
+    )
+
+    assert roll["verdict"] == "excluded"
+    assert roll["tier"] == "excluded"
+    assert roll["truncated_block"] is False
+
+
+def test_an_already_unresolved_trial_is_not_relabelled_as_a_truncation_block():
+    """needs_review for unstated facts and needs_review for dropped criteria are
+    different things, and the flag must name only the second."""
+    from trialguard.agent.schema import rollup_trial
+
+    roll = rollup_trial(
+        [{"kind": "inclusion", "verdict": "cannot_determine", "criterion": "ECOG"}],
+        truncated=True,
+    )
+
+    assert roll["verdict"] == "cannot_determine"
+    assert roll["truncated_block"] is False
+
+
+def test_truncation_defaults_to_off_for_existing_callers():
+    from trialguard.agent.schema import rollup_trial, rollup_trial_verdict
+
+    passing = [{"kind": "inclusion", "verdict": "met"}]
+
+    assert rollup_trial(passing)["verdict"] == "eligible"
+    assert rollup_trial_verdict(passing) == "eligible"
+
+
+def test_the_graph_passes_truncation_through_to_the_verdict():
+    from unittest.mock import patch
+
+    from trialguard.agent import graph as G
+
+    G._GRAPH = None
+    src = "Inclusion Criteria: Age 18 or older."
+
+    def _analyst(note, nct_id, criteria, handler=None, **kw):
+        return [{"criterion": "Age 18 or older", "verdict": "met",
+                 "quote": "Age 18 or older"}]
+
+    with patch.object(G, "analyze_trial", _analyst):
+        whole = G.assess("62 M", "NCT1", ["Age 18 or older"], src, max_retries=0)
+        cut = G.assess("62 M", "NCT1", ["Age 18 or older"], src, max_retries=0,
+                       criteria_truncated=True)
+
+    assert whole["trial_verdict"] == "eligible"
+    assert cut["trial_verdict"] == "cannot_determine"
+    assert cut["truncated_block"] is True
