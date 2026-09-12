@@ -115,9 +115,19 @@ gap between *cited* and *shown*.
 AD-3 rules out an LLM verifier for enforcement on correlated-error grounds and
 that reasoning survives having measured the gap. The machine-checkable subset (a
 quote restating its own criterion) is 0.12-0.37%, recorded as `self_referential`,
-and is a floor rather than an estimate. Open; an NLI second verifier is the real
-candidate and sits at P2 with NER-based PHI, as a model to evaluate rather than a
-check to add. Items and per-item reasons: `data/reports/ws5b_entailment_sample.json`.
+and is a floor rather than an estimate.
+
+**The NLI counter-proposal was evaluated 2026-09-12 and is not shippable yet**
+(AD-23, `nli_feasibility.md`). `deberta-large-mnli` ranks entailment on the
+adjudicated set at AUC 0.79 but is miscalibrated to the point of uselessness:
+median p(entail) is 0.027 for citations a human judged sound, so any natural
+threshold rejects everything, and the one precise operating point rests on 3
+items. The blocker is now specific, and it is a labelling exercise rather than
+an engineering one: several hundred adjudicated items, ideally two raters,
+before a threshold is defensible. A biomedical NLI checkpoint is the untried
+variable and the harness takes `--model`.
+
+Items and per-item reasons: `data/reports/ws5b_entailment_sample.json`.
 
 ---
 
