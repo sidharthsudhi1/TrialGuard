@@ -127,6 +127,13 @@ def test_build_typed_criteria_includes_exclusion():
 
 
 def test_criteria_truncation_flagged():
+    """Truncation is reported, and the one exclusion criterion survives it.
+
+    This asserted `all(kind == "inclusion")` until 2026-09-12, which codified the
+    defect rather than the contract: the cap was filled with inclusion criteria
+    and every disqualifier dropped. A trial that keeps none of its exclusion
+    criteria can only come back eligible or cannot_determine.
+    """
     from trialguard.agent.schema import MAX_CRITERIA, build_typed_criteria
 
     trial = {
@@ -136,7 +143,7 @@ def test_criteria_truncation_flagged():
     crit, truncated = build_typed_criteria(trial)
     assert truncated
     assert len(crit) == MAX_CRITERIA
-    assert all(c["kind"] == "inclusion" for c in crit)
+    assert sum(1 for c in crit if c["kind"] == "exclusion") == 1
 
 
 def test_cache_write_policy_does_not_leak_between_concurrent_assessments():
