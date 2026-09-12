@@ -260,7 +260,44 @@ does not establish absence* rather than showing a clean grounded badge. AD-19.
 A sharper instance of 1.3's entailment gap, and unlike the rest of it, its size
 is known exactly.
 
-### 2.6 Single region, single instance  `[open, accepted]`
+### 2.6 The cap dropped every disqualifier  `[found and FIXED 2026-09-12]`
+
+`build_typed_criteria` filled the `MAX_CRITERIA` cap with inclusion criteria and
+gave exclusion whatever was left, so a trial with more than 24 inclusion
+criteria had **none of its exclusion criteria assessed at all**: 287 of 4,000
+live trials sampled (7.2%), 10.3% of TREC, 5.2% of SIGIR. Those trials could
+only ever come back `eligible` or `cannot_determine`, because every disqualifier
+was dropped before the analyst saw it.
+
+Not a smaller sample of the same thing. Exclusion criteria are the reasons a
+patient does not qualify, so dropping all of them biases the system toward
+saying yes, on exactly the trials with the most to check.
+
+Each kind now gets half the budget and the unused half goes to the other. 287
+affected trials become 0. Found by inspecting a live assessment rather than by
+any test, which is the reason it survived: no eval metric reads the
+inclusion/exclusion split of what was *asked*.
+
+**Related and still open:** `rollup_trial` does not know a list was truncated,
+so it can still call a trial `eligible` over one. CLAUDE.md names that unsound
+and requires callers to surface truncation, which the UI does with a muted note.
+Making truncation block an `eligible` verdict is a verdict-semantics change that
+moves the regression gate, so it is named here rather than bundled into the fix.
+
+### 2.7 The demo could not cache its own presets  `[found and FIXED 2026-09-12]`
+
+The web app hardcoded two preset notes; the API's cache allowlist came from the
+SIGIR queries fixture. They were never the same strings, so `_is_preset` was
+False for every note the demo could produce, every run set `skip_cache_write`,
+and each one paid a fresh LLM call per trial at ~29 s. Forever.
+
+One definition now, served by `/api/limits`, so the notes the client offers and
+the notes the API will cache cannot drift apart again. Verified live: a preset
+assess went 31 s cold to 0 s warm, where before it would have been 31 s every
+time. Free text still skips the write, which is what stops an
+attacker-controlled note being persisted or growing the store without bound.
+
+### 2.8 Single region, single instance  `[open, accepted]`
 
 API in `syd` beside Neon in `ap-southeast-2`. No redundancy. Correct for a
 portfolio artifact; named so it is a decision rather than an oversight.
