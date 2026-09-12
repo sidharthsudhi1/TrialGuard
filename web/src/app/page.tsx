@@ -5,23 +5,23 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SyntheticNotice } from "../components/SyntheticNotice";
 import { ApiError, fetchLimits, searchTrials, startAssess } from "../lib/api";
-import type { Limits, SearchTrial } from "../lib/types";
+import type { Limits, Preset, SearchTrial } from "../lib/types";
 import { freshness } from "@/lib/freshness";
 
-const PRESETS: { label: string; note: string }[] = [
+// Served by /api/limits rather than hardcoded. A note the UI offers but the
+// API's allowlist does not know is uncacheable, and these two were exactly that
+// for the life of the demo: every run paid a fresh call per trial. Kept here as
+// the fallback only for when limits has not loaded yet.
+const FALLBACK_PRESETS: Preset[] = [
   {
     label: "NSCLC stage IV",
     note: "58-year-old woman with stage IV non-small cell lung cancer, ECOG performance status 1, never-smoker, EGFR wild-type. No prior systemic therapy. Adequate organ function.",
-  },
-  {
-    label: "Breast cancer adjuvant",
-    note: "45-year-old woman with early-stage hormone receptor-positive breast cancer, status post lumpectomy, planning adjuvant endocrine therapy. No metastatic disease. ECOG 0.",
   },
 ];
 
 export default function SearchPage() {
   const router = useRouter();
-  const [note, setNote] = useState(PRESETS[0].note);
+  const [note, setNote] = useState(FALLBACK_PRESETS[0].note);
   const [trials, setTrials] = useState<SearchTrial[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<"search" | "assess" | null>(null);
@@ -44,6 +44,9 @@ export default function SearchPage() {
   }, []);
 
   const searchTopK = deep && limits ? limits.max_assess_trials_deep : 5;
+  // Whatever the API says it will cache. Falling back only until it answers.
+  const presets =
+    limits?.presets?.length ? limits.presets : FALLBACK_PRESETS;
   const quote =
     limits && selected.size
       ? {
@@ -129,7 +132,7 @@ export default function SearchPage() {
           placeholder="Paste a synthetic clinical narrative…"
         />
         <div className="actions">
-          {PRESETS.map((p) => (
+          {presets.map((p) => (
             <button
               key={p.label}
               type="button"

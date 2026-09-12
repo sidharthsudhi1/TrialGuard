@@ -969,3 +969,69 @@ def test_a_freed_slot_reports_no_wait():
     assert limiter.take("ip") is not None
     time.sleep(0.06)
     assert limiter.take("ip") is None
+
+
+def test_the_ui_presets_are_on_the_cache_allowlist(client):
+    """They were not, for the life of the demo. The web app hardcoded its own
+    notes while the allowlist came from the SIGIR fixture, so _is_preset was
+    False for every note the demo could actually produce: skip_cache_write was
+    set on every run and each one paid a fresh LLM call per trial, forever."""
+    from trialguard.api.demo_presets import DEMO_PRESETS
+    from trialguard.api.routes import _is_preset, _preset_notes
+
+    _preset_notes.cache_clear()
+    for preset in DEMO_PRESETS:
+        assert _is_preset(preset["note"]) is True, preset["label"]
+
+
+def test_free_text_is_still_not_cacheable(client):
+    """The allowlist is what stops an attacker-controlled note being persisted
+    or growing the store without bound; widening it must not weaken that."""
+    from trialguard.api.routes import _is_preset, _preset_notes
+
+    _preset_notes.cache_clear()
+    assert _is_preset("62-year-old man with a cough") is False
+
+
+def test_limits_serves_the_presets_the_client_should_offer(client):
+    """Served rather than hardcoded, so the notes the UI offers and the notes
+    the API will cache cannot drift apart again."""
+    from trialguard.api.routes import _is_preset, _preset_notes
+
+    body = client.get("/api/limits").json()
+
+    assert body["presets"], "the client has nothing to offer"
+    _preset_notes.cache_clear()
+    for preset in body["presets"]:
+        assert preset["label"] and preset["note"]
+        assert _is_preset(preset["note"]) is True
+
+
+def test_a_preset_assess_does_not_skip_the_cache_write(client):
+    from unittest.mock import patch
+
+    from trialguard.api.demo_presets import DEMO_PRESETS
+    from trialguard.api.routes import _preset_notes
+
+    seen = {}
+
+    def fake_assess(note, nct_id, criteria, source_text, **kwargs):
+        seen["skip"] = kwargs.get("skip_cache_write")
+        return {"trial_verdict": "eligible", "assessments": []}
+
+    _preset_notes.cache_clear()
+    with (
+        patch("trialguard.agent.sanitize.detect_injection", return_value=False),
+        patch("trialguard.db.queries.get_trial", side_effect=lambda nct, source=None: STUB_ROWS.get(nct)),
+        patch("trialguard.agent.graph.assess", side_effect=fake_assess),
+        patch("trialguard.llm.cost.active_ledger") as ledger,
+    ):
+        ledger.return_value.exhausted.return_value = False
+        created = client.post(
+            "/api/assess",
+            json={"note": DEMO_PRESETS[0]["note"], "nct_ids": ["NCT0001"]},
+        )
+        with client.stream("GET", f"/api/assess/{created.json()['job_id']}") as stream:
+            "".join(stream.iter_text())
+
+    assert seen["skip"] is False
