@@ -278,11 +278,13 @@ affected trials become 0. Found by inspecting a live assessment rather than by
 any test, which is the reason it survived: no eval metric reads the
 inclusion/exclusion split of what was *asked*.
 
-**Related and still open:** `rollup_trial` does not know a list was truncated,
-so it can still call a trial `eligible` over one. CLAUDE.md names that unsound
-and requires callers to surface truncation, which the UI does with a muted note.
-Making truncation block an `eligible` verdict is a verdict-semantics change that
-moves the regression gate, so it is named here rather than bundled into the fix.
+**Related, and now closed** (AD-24, `truncation_block.md`): `rollup_trial` takes
+`truncated` and refuses `eligible` over a cut list. Only `eligible` is blocked --
+a disqualifier that was found is still found, so `excluded` stands. Measured
+effect on both cohorts is zero, because `eligible` already requires no unresolved
+criteria and a truncated trial essentially never has none; it ships as a
+guarantee rather than an improvement, since 29.4% of the live corpus truncates
+and the eval cohorts are biased toward shorter, gold-labelled trials.
 
 ### 2.7 The demo could not cache its own presets  `[found and FIXED 2026-09-12]`
 
