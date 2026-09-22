@@ -31,6 +31,10 @@ FIELDS = ",".join([
 
 # Fixed enums — case-sensitive
 RECRUITING_STATUSES = ["RECRUITING", "NOT_YET_RECRUITING", "ENROLLING_BY_INVITATION"]
+ALL_STATUSES = RECRUITING_STATUSES + ["ACTIVE_NOT_RECRUITING", "COMPLETED", "TERMINATED",
+                                      "SUSPENDED", "WITHDRAWN", "UNKNOWN"]
+ONCOLOGY_CONDITION = "cancer OR oncology OR tumor OR neoplasm"
+ALL_CONDITIONS = "*"
 
 
 def _safe_list(value) -> list[str]:
@@ -77,16 +81,25 @@ def _extract_trial(study: dict) -> dict:
 
 def fetch_oncology_trials(
     max_trials: int = 5000,
+    condition: str | None = None,
+    statuses: list[str] | None = None,
 ) -> Generator[dict, None, None]:
-    """Yield trial dicts from CT.gov v2 API, oncology scope, recruiting only."""
+    """Yield trial dicts from CT.gov v2 API, oncology scope, recruiting only.
+
+    condition=ALL_CONDITIONS drops the condition filter entirely (E1c scale work);
+    CLAUDE.md locks production scope to oncology, so widening it is a deliberate
+    call at the call site rather than a default.
+    """
 
     params: dict = {
-        "query.cond": "cancer OR oncology OR tumor OR neoplasm",
-        "filter.overallStatus": ",".join(RECRUITING_STATUSES),
+        "filter.overallStatus": ",".join(statuses or RECRUITING_STATUSES),
         "pageSize": settings.ctgov_page_size,
         "format": "json",
         "fields": FIELDS,
     }
+    cond = ONCOLOGY_CONDITION if condition is None else condition
+    if cond != ALL_CONDITIONS:
+        params["query.cond"] = cond
 
     url = f"{settings.ctgov_api_base}/studies"
     fetched = 0
