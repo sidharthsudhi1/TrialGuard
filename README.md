@@ -74,6 +74,12 @@ resident.
 | Tracing | Langfuse free tier | free tier |
 | Demo hosting | Gradio on HF Spaces ($0 SIGIR); FastAPI + Next.js Stage A (live corpus) | free / small metered |
 
+The vector-store row carries an expiry. Dense search runs from an in-process matrix
+because at 26k rows the planner declines ivfflat and scans anyway — but matrix
+latency is linear in corpus size while HNSW is flat, and the two cross near **50k
+rows**. Production sits at 26,037, so roughly 2x of headroom
+([AD-25](docs/adr/0025-matrix-hnsw-crossover.md)).
+
 Two paid lines, both small. The production vector store: the 26k-trial oncology
 corpus (531 MB) exceeds Neon's 512 MB free ceiling. And inference: the free tier's
 100k-tokens/day cap, not its price, was what stalled two Phase 4 measurements for
@@ -89,7 +95,18 @@ a free HF Spaces CPU.
 - **SIGIR 2016 patient–trial matching cohort** — 183 synthetic patients, published labels
 - **TREC Clinical Trials 2021/2022** — 75k+ eligibility annotations (gold eval standard)
 
-Scope locked to **oncology** trials (richest trial volume, best eval overlap).
+Production scope is **oncology** by default — what `ctgov_live` holds — but it is no
+longer locked: `fetch_oncology_trials` takes explicit `condition` and `statuses`
+overrides, so widening is a call-site decision
+([AD-26](docs/adr/0026-oncology-scope-unlocked.md)). Widening is not free: the
+all-conditions corpus is ~125k trials, which crosses the ~50k in-process-matrix
+crossover in [AD-25](docs/adr/0025-matrix-hnsw-crossover.md), so scope and vector
+index have to move together.
+
+**The eval cohorts were never oncology-only**, which is a separate point and was
+unstated until it was measured: 61 of TREC 2021's 75 scored topics never mention a
+cancer term, so every headline below is **81% non-oncology** by patient count and by
+gold volume ([AD-28](docs/adr/0028-specialty-split-of-published-numbers.md)).
 
 All patient profiles in demos are **synthetic**. No real patient data enters this system.
 
@@ -123,6 +140,28 @@ Full reports: [`data/reports/phase2_3_results.md`](data/reports/phase2_3_results
 
 **The assessed-pool size, not the embedding model, was the binding constraint.** A depth diagnostic showed gold trials are not missing from the candidate space — they are present and misordered (recall 0.766@500 on 2021, 0.788@500 on 2022, under 6% never ranked; median gold rank 130–180). Widening the pool handed to the agent from 10 to 100 lifts surfaced recall **6.4x / 6.0x** with no change to retrieval, prompt or verifier, and the agent's lift over its pool's own base rate stays flat-to-rising through the full 10x dilution — it filters at a constant rate rather than borrowing its precision from a rich pool. Reports: [`h1_pool_curve_trec2021.md`](data/reports/h1_pool_curve_trec2021.md), [`h1_pool_curve_trec2022.md`](data/reports/h1_pool_curve_trec2022.md). Quote the lift, not the raw precision: TREC's retrieved pool is already 34–55% gold-eligible. Deep pools are a serving-cost question (~$0.05 and ~10 min/patient at top-100), so the demo makes depth an explicit opt-in: search returns 5 candidates by default, or up to 25 with **Deep search** checked, and the UI quotes the measured cost and wait before you commit to it.
 
+**Split by specialty, the two halves pull opposite ways.** The tables above are a
+mix nobody had labelled, so the same patients were partitioned and each group scored
+with `end_to_end.score` unchanged — no new data, groups composing to the published
+aggregate by construction, $0 because every assessment was already cached.
+**Retrieval is 54% better outside oncology** (recall@100 0.4701 vs 0.3052), which is
+corpus density rather than model quality: 26k recruiting oncology trials compete for
+the same slots with overlapping eligibility language. **The agent is better inside
+it** — tiered lift 1.90x vs 1.61x, and faithfulness 2.6x cleaner (criterion
+unverifiable 0.0138 vs 0.0355, zero self-referential citations across 621 grounded
+criteria). The lift the thesis actually claims holds in **both** cells above the
+published 1.60x, so nothing in the system's value depends on the patient having
+cancer. Stated with its limit: 14 oncology patients, so the 1.90x carries roughly
+±0.4. [`e3_findings.md`](data/reports/e3_findings.md),
+[AD-28](docs/adr/0028-specialty-split-of-published-numbers.md).
+
+**Retrieval under dilution.** Growing the haystack with 99,098 real all-conditions
+trials takes recall@100 from 0.1759 to 0.1102 at **4.79x dilution** — retaining
+62.6% where chance dilution would retain 20.9%, so **3.0x better than chance**, with
+the same retention at k=50, 100 and 200. Dense-only on raw-note queries to isolate
+the embedder, so the level is not a system number; the shape is the finding.
+[`e1c_findings.md`](data/reports/e1c_findings.md).
+
 **Faithfulness — verifier mechanism:** deterministic catch-rate stress test — **51/51 corrupted quotes rejected, 0 false rejections** (14 genuine quotes; artifact: [`data/reports/verifier_stress.json`](data/reports/verifier_stress.json)). Sample-size-independent.
 
 **Faithfulness — verified vs single-pass A/B (matched paired):**
@@ -149,7 +188,7 @@ Full reports: [`data/reports/phase2_3_results.md`](data/reports/phase2_3_results
 
 **The faithfulness floor holds regardless of cohort or host**: deterministic grounding catches 100% of ungrounded verdicts and forces them to *unverifiable* (51/51 corrupted-quote catch rate); a hallucinated citation never passes as grounded. What was cohort-dependent is whether a caught failure gets *fixed* by retry or converted to an honest *abstention*. Replication also surfaced and fixed a grounding bug (short clinical facts like "48 M", "EF was 25%" were rejected by a char-length guard, now a token guard).
 
-> **What the citation does not prove, with a number (Phase 10 WS-5b).** Grounding settles *existence*, not *entailment*: a quote can be genuinely verbatim and still not establish the verdict it supports. On a seeded random sample of **50 grounded decisive verdicts** (25 per cohort, adjudicated on one question — does this quote establish this verdict, not is the verdict correct), **36% did not** (95% CI 24–50%; SIGIR 48%, TREC 2021 24%). The recurring shapes are evidence pointing the other way, one conjunct of a compound criterion, and an adjacent fact standing in for the required one. This is not a 36% error rate — the quote is real in every case and many of the verdicts are still right — it is the size of the gap between *cited* and *shown*. The machine-checkable subset of it (a quote that only restates its own criterion) is 0.12–0.37% and is recorded as `self_referential`. [AD-3](docs/adr/0003-deterministic-grounding.md) rules out an LLM verifier on correlated-error grounds, so this stays open rather than fixed. Items, per-item reasons and caveats: [`ws5b_entailment_sample.json`](data/reports/ws5b_entailment_sample.json), [`ws5_guardrails_findings.md`](data/reports/ws5_guardrails_findings.md).
+> **What the citation does not prove, with a number (Phase 10 WS-5b).** Grounding settles *existence*, not *entailment*: a quote can be genuinely verbatim and still not establish the verdict it supports. On a seeded random sample of **50 grounded decisive verdicts** (25 per cohort, adjudicated on one question — does this quote establish this verdict, not is the verdict correct), **36% did not** (95% CI 24–50%; SIGIR 48%, TREC 2021 24%). The recurring shapes are evidence pointing the other way, one conjunct of a compound criterion, and an adjacent fact standing in for the required one. This is not a 36% error rate — the quote is real in every case and many of the verdicts are still right — it is the size of the gap between *cited* and *shown*. The machine-checkable subset of it (a quote that only restates its own criterion) is 0.12–0.37% and is recorded as `self_referential`. [AD-3](docs/adr/0003-deterministic-grounding.md) rules out an LLM verifier on correlated-error grounds, so this stays open rather than fixed. The standing counter-proposal is now much worse supported: a biomedical NLI checkpoint separates the classes 4.4x better than the general one and still has no operating point ([AD-29](docs/adr/0029-biomedical-nli-not-shippable.md)), and re-tested on **350 items** two architectures sit at AUC 0.58 and 0.61 with best precision within 0.14 of the base rate ([AD-32](docs/adr/0032-nli-route-at-350-items.md)) — though 86% of those labels are model-generated and lenient, so that result reorders the human labelling pass rather than closing the route. Items, per-item reasons and caveats: [`ws5b_entailment_sample.json`](data/reports/ws5b_entailment_sample.json), [`ws5_guardrails_findings.md`](data/reports/ws5_guardrails_findings.md).
 
 > **The patient note is a grounding source, and that cannot be removed (Phase 10 WS-5a).** Restricting decisive verdicts to quotes found in the *trial's* text was measured on both cohorts and rejected: **84% of grounded quotes exist only in the patient note** (SIGIR 458/545, TREC 673/818), because the evidence that a patient satisfies a criterion lives in the patient record while the trial states only the requirement. Enforcing it raised the criterion unverifiable rate from 3.1% to 42.6% (SIGIR) and 3.5% to 50.0% (TREC) and emptied the `eligible` tier entirely. So the honest statement of the contract is: *a quote is verified to appear verbatim in the inputs, and for patient facts the input is the user's note.* A user who states false facts gets verdicts faithful to those false facts — garbage-in, not hallucination, and indistinguishable to any verifier reading the same note. What ships is visibility: `grounded_in` per assessment, `note_only_grounded` per request, and the flag kept behind `TG_GROUND_TRIAL_ONLY` (default off) so the measurement is reproducible.
 
@@ -234,6 +273,31 @@ The CI gate stays anchored to Phase 8 SIGIR
 (`verified.unsupported_verdict_rate` 0.0287, threshold 0.05); the TREC reports
 (v4 0.184, v5 0.084) are not a new baseline.
 
+**The verifier is independent of the model, measured across six families.** Every
+faithfulness figure above came from one model family, which made the architecture
+claim an assertion at n=1. Re-run on SIGIR under prompt v4 across **six families
+from five vendors spanning 24B to 671B**:
+
+| model | vendor | baseline → verified | relative | Fisher p |
+|---|---|---|---|---|
+| Llama-3.3-70B | Meta | 0.0709 → 0.0426 | −39.9% | 0.0319 |
+| Qwen2.5-72B | Alibaba | 0.0698 → 0.0337 | −51.7% | 0.0039 |
+| Mistral-Small-24B | Mistral | 0.0507 → 0.0152 | −70.1% | 0.0152 |
+| Gemma-3-27B | Google | 0.1366 → 0.0894 | −34.6% | 0.0083 |
+| gpt-oss-120b | OpenAI | 0.0902 → 0.0112 | **−87.6%** | **0.0000** |
+| DeepSeek-V3 | DeepSeek | 0.0404 → 0.0120 | −70.3% | 0.0155 |
+
+**Six of six significant**, the whole matrix cost **$0.5210**, and it needed no code
+change because Phase 8 had already made `(provider, model)` a value the system reads.
+What moves is the verifier's workload: the rate at which a model attempts a decisive
+verdict on a non-verbatim quote varies **8.1x** across the set (1.10% to 8.87%).
+What reaches a user does not move at all, because grounding forces every ungrounded
+verdict to `unverifiable` on a code path that never learns which model produced the
+quote. Trial accuracy follows coverage rather than citation precision — Llama leads
+at 0.2584 with the second-worst citations — so no model can be ranked on
+faithfulness alone. [`e2_findings.md`](data/reports/e2_findings.md),
+[AD-27](docs/adr/0027-verifier-independent-of-model.md).
+
 **Provider parity.** Inference moved to an FP8-quantized build, which changes numerical precision on the model that produces verbatim quotes — a failure that would be *silent*, since a paraphrased quote just fails grounding and downgrades to *unverifiable*, a legitimate output. Measured rather than assumed: on a matched 180-trial baseline arm, citation precision was unchanged (0.9057 → 0.9086). [`phase8_provider_parity.md`](data/reports/phase8_provider_parity.md)
 
 > **Note on `criterion-matching accuracy ≥ 87%`:** retired as a target (2026-08-31). It was never measurable here — every label in SIGIR and both TREC cohorts is trial-level (`qrels`: 0=irrelevant, 1=excluded, 2=eligible), and no criterion-level gold exists. Trial-level roll-up had been standing in for it, which answers a different question. The claim in its place is **faithfulness** (2.76% unverifiable on SIGIR, 3.95% on TREC 2021; verifier catch rate 100%) plus the **tiered contract** — trials separate into `eligible` / `needs_review` / `excluded`, where `needs_review` means no disqualifier and N unstated facts. Worth **1.60x lift over base rate on TREC, 1.39x on SIGIR** ([`e1b_findings.md`](data/reports/e1b_findings.md)); quote the lift, not raw precision, because TREC's retrieved pool is already 42.9% gold-eligible.
@@ -241,6 +305,13 @@ The CI gate stays anchored to Phase 8 SIGIR
 > **Note on `recall@10 ≥ 90%`:** retired as a target. It is mathematically capped at `min(10, |gold|)/|gold|` per patient — TREC patients average 60+ eligible trials (ceiling ~0.25). TrialGPT's ">90% recall" was measured at large depth. Primary retrieval metric is now **recall@pool** (recall@50/100).
 
 ### Serving latency (Stage A, live `ctgov_live`)
+
+> **`780 ms` describes the demo's preset buttons, not the product.** A user who
+> pastes their own note pays LLM keyword extraction first: **median 10,973 ms, worst
+> 19,130 ms**, of which 94% is that one stage while retrieval is unchanged at ~590
+> ms. Caching keywords for the presets made the demo fast without making the product
+> fast. The warm path below is real and is what a repeat query costs.
+> [`e6_findings.md`](data/reports/e6_findings.md).
 
 Measured end to end against the deployed API, same synthetic note and same 12
 extracted keywords throughout, so each figure is comparable to the one above it.
@@ -280,6 +351,17 @@ suspect:
   Diagnosed by noticing boot was identical on shared and performance CPUs, which
   rules out compute.
 
+**The distribution, replacing an n=1 probe.** Over 40 warm requests at 6.5 s spacing,
+40/40 HTTP 200: wall **p50 787.3 / p95 981.9 / p99 1106.3 ms**, server-side 703.8 /
+859.3 / 1023.1. Nearest-rank, so every figure is an observed request, and the 1500 ms
+SLO holds with headroom rather than by luck. **Concurrency buys almost nothing**:
+across bursts sized to fit inside the per-IP budget, latency grows 1.84x / 3.55x /
+6.80x at c=2/4/8 while throughput stays flat at 1.27–1.45 req/s, so search is
+effectively serial — the 12-keyword fan-out already saturates the cores. Practical
+capacity is **~1.4 searches/second, ~85/minute**, roughly 8 concurrent users. A load
+test is impossible from one host at 10 req/min per IP; it would measure the limiter.
+[AD-30](docs/adr/0030-served-latency-p95-and-capacity.md).
+
 Dense retrieval no longer touches Postgres, which keeps the lexical half where a
 GIN index answers in 7 ms. The matrix loads on a background thread in ~33 s and
 search falls back to pgvector until it is resident, so the fast path is an
@@ -299,6 +381,9 @@ earns its keep.
 | Verifier catch rate | 100% (deterministic) | ✅ 51/51 ([`verifier_stress.json`](data/reports/verifier_stress.json)) |
 | Hallucination rate | < single-pass baseline (measured) | ✅ all three cohorts: SIGIR −68.6% (p=0.0004), TREC 2021 −70.2% (p=0.0103), TREC 2022 −66.7% (p=0.0168) |
 | Correct-refusal rate ("cannot determine") | Logged per run | ✅ abstention reported jointly with accuracy |
+| Verifier independence | contract holds regardless of model | ✅ retry significant on 6/6 families, 5 vendors, 24B–671B ([AD-27](docs/adr/0027-verifier-independent-of-model.md)) |
+| Served search latency | p95 under the 1500 ms SLO | ✅ p95 981.9 ms wall / 859.3 ms server, n=40 ([AD-30](docs/adr/0030-served-latency-p95-and-capacity.md)) |
+| Cold-keyword path | reported, not hidden | ⚠️ 10,973 ms median on an unseen note — 14x the warm path |
 
 ---
 
@@ -317,6 +402,7 @@ earns its keep.
 | 8 — Provider migration & cost ops | ✅ Done | Provider-agnostic LLM layer; analyst cache keyed by (provider, model) with a legacy carve-out so committed Phase 3/4 entries are never orphaned; USD cost ledger with a daily circuit breaker, billed from the provider's reported cost; FP8 parity gate before adopting the new host; the two quota-blocked Phase 4 A/Bs completed for $0.10. Reports: [`phase8_provider_parity.md`](data/reports/phase8_provider_parity.md), [`phase8_carryover.md`](data/reports/phase8_carryover.md) |
 | 9 — Close the production loop | ✅ Done (Stage A) | Typed inclusion+exclusion (prompt v4) and inverted trial roll-up; Gradio hits `ctgov_live` behind `TG_DEMO_SOURCE` (SIGIR `FileIndex` remains the $0 default); FastAPI Stage A (`src/trialguard/api/`) + Next.js (`web/`) wrap `retrieve()` / `assess()` unchanged with search/assess split, SSE, and quote-in-source highlighting. TREC 2021 v4 exclusion caveat (unsupported 31.2% vs 9.2% inclusion, retry ns at p=0.2514) resolved by absence grounding: exclusion 8.9%, retry significant at p=0.0048 ([`phase9v5_exclusion_grounding.md`](data/reports/phase9v5_exclusion_grounding.md)). Deploy: [`docs/deploy_stage_a.md`](docs/deploy_stage_a.md); retrieval latency 24.4 s → 780 ms end to end (region, concurrency, in-memory dense index) with rankings unchanged; spend ledger and keyword cache moved to Postgres; served path traced to Langfuse |
 | 10 — Reliability | ✅ Done | Jobs and their events in Postgres with `Last-Event-ID` SSE resume, so a killed machine loses no completed work and a disowned worker stops spending ([AD-13](docs/adr/0013-orphaned-jobs-fail-visibly.md) and its two amendments); corpus refresh on a Fly scheduled machine recreated by `scripts/deploy_api.sh` on every deploy, diffing on `lastUpdatePostDate` so revised eligibility text is re-embedded rather than served stale; a live-endpoint probe (`eval/served_probe.py`) because a trace-reading monitor is blind exactly when the API is down, plus the monitor armed to fail rather than skip on a missing secret; a 240 s per-trial deadline — the real bound was ~27 min, since `TG_LLM_TIMEOUT` is per HTTP attempt and both the provider client and the graph retry; latency SLO enforced post-deploy, which is how the **20,576 ms first search after a resume from suspend** was found ("780 ms warm" is the steady state, not what a user meets); per-request faithfulness on the `done` event and the trace; a 13-case failure-injection suite. Two guardrail experiments returned negatives and are recorded as such: trial-only grounding ([AD-14](docs/adr/0014-patient-note-stays-a-grounding-source.md)) and prompt v5 ([AD-16](docs/adr/0016-prompt-v5-not-adopted.md)). Reports: [`ws5_guardrails_findings.md`](data/reports/ws5_guardrails_findings.md), [`l1_findings.md`](data/reports/l1_findings.md) |
+| 11 — Limits, measured | ✅ Done | Seven experiments turning standing assumptions into measurements, two of which inverted the assumption. The in-process matrix expires at ~50k rows and production sits at 26k ([AD-25](docs/adr/0025-matrix-hnsw-crossover.md)); retrieval survives 4.79x dilution at 3.0x better than chance ([`e1c_findings.md`](data/reports/e1c_findings.md)); the retry holds on 6 model families from 5 vendors for $0.52 ([AD-27](docs/adr/0027-verifier-independent-of-model.md)); the published cohort numbers were 81% non-oncology all along and retrieval is *better* outside oncology ([AD-28](docs/adr/0028-specialty-split-of-published-numbers.md)); the served API gets a p95 and a capacity number, and the cold path a real user meets is 14x the advertised one ([AD-30](docs/adr/0030-served-latency-p95-and-capacity.md)); the job engine moves out of the HTTP layer as a verified-identical refactor; the CI gate is widened until it can fail, which caught production asserts, 21 silently truncating zips and live CVEs in the request path ([AD-31](docs/adr/0031-ci-gates-widened.md)); and the NLI route is re-tested at 350 items ([AD-32](docs/adr/0032-nli-route-at-350-items.md)). Reports: [`e1a_findings.md`](data/reports/e1a_findings.md), [`e2_findings.md`](data/reports/e2_findings.md), [`e3_findings.md`](data/reports/e3_findings.md), [`e5_findings.md`](data/reports/e5_findings.md), [`e6_findings.md`](data/reports/e6_findings.md), [`e7_nli350_findings.md`](data/reports/e7_nli350_findings.md) |
 
 ---
 
@@ -350,6 +436,26 @@ TG_PROMPT_VERSION=v2 python -m trialguard.eval.agent_metrics --cohort sigir --ta
 
 # v4: inclusion + exclusion (additive cache namespace; app.py defaults to v4)
 TG_PROMPT_VERSION=v4 python -m trialguard.eval.agent_metrics --cohort sigir --tag phase9v4
+```
+
+The Phase 11 harnesses, none of which need the production database:
+
+```bash
+# Where the in-process matrix stops being the right answer (needs a local
+# pgvector; never point --dsn at production)
+python scripts/bench_ann_scale.py --dsn postgresql://... --sizes 100000,500000,1000000
+
+# Does retrieval survive leaving oncology? Gold held fixed, haystack grown
+python scripts/e1c_distractor_recall.py --fetch 100000   # then --embed, then --eval
+
+# Split the published end-to-end numbers by patient specialty ($0 from cache)
+python scripts/e3_specialty_split.py --cohort trec_2021 --top-k 10
+
+# Latency distribution and capacity against the deployed API
+python scripts/e6_latency_profile.py --n 40 --novel 5 --burst 2,4,8
+
+# Draw and merge the entailment adjudication set (see docs/e7_adjudication_protocol.md)
+python scripts/e7_entailment_sample.py --draw 300
 ```
 
 > Inference defaults to DeepInfra (metered). Every analyst call is cached by `(prompt_version, provider, model, patient, trial)`, so a rerun costs nothing and an interrupted run resumes rather than repeats — a killed parity run replayed 92 calls for free. A daily USD cap (`llm/cost.py`) refuses calls past the ceiling instead of overspending, and a per-day history keeps the cost story auditable. Set `LLM_PROVIDER=groq` to reproduce Phase 3/4 from the committed Groq cache; the free tier's ~12k tokens/min and 100k tokens/day still apply on that arm, and `TG_ANALYST_DELAY` paces calls under the TPM window.
@@ -416,7 +522,14 @@ when the limit is throughput.
   locally. Eval and the demo use numpy `FileIndex` and stay free. The size
   ceiling — not query speed — is why the corpora were split in the first place
   ([`phase5_vectorstore.md`](data/reports/phase5_vectorstore.md)).
-- **CI:** the regression gate runs on committed artifacts only, so it makes no LLM
+- **CI:** six blocking gates — ruff across ten rule families, mypy over all 65 source
+  files, tests with a 55% coverage floor against a measured 59-60%, the regression
+  gate, secret hygiene, and a **blocking** dependency audit. Widening them caught
+  `assert` used as a production state guard, 21 `zip` calls that truncate silently,
+  and live CVEs in the served request path
+  ([AD-31](docs/adr/0031-ci-gates-widened.md)). `requirements.lock` pins the exact
+  environment the committed numbers were produced under.
+- **CI cost:** the regression gate runs on committed artifacts only, so it makes no LLM
   calls and stays free on GitHub Actions.
 - **Serving:** Gradio on a free HF Spaces CPU (SIGIR `FileIndex`, $0); Stage A
   FastAPI + Next.js for the live `ctgov_live` corpus (quote-in-source UI), with
