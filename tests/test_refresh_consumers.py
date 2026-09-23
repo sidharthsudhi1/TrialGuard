@@ -1,10 +1,28 @@
-"""WS-6: the serving matrix follows the corpus the refresh publishes."""
+"""WS-6: what reads the corpus follows the refresh that writes it."""
 
 from __future__ import annotations
 
 import numpy as np
 
+from trialguard.agent import analyst as A
 from trialguard.retrieval import vector_cache as V
+
+CRITERIA = [{"text": "Adults", "kind": "inclusion"}]
+
+
+def test_the_analyst_key_ignores_criteria_by_default(monkeypatch):
+    """Eval cohorts: committed keys must stay byte-identical."""
+    monkeypatch.delenv("TG_CACHE_KEY_CRITERIA", raising=False)
+    assert A._cache_key("note", "NCT1", CRITERIA) == A._cache_key("note", "NCT1")
+
+
+def test_the_served_key_moves_when_the_criteria_do(monkeypatch):
+    """F10: a revised trial keeps its nct_id; its cached answers must not survive."""
+    monkeypatch.setenv("TG_CACHE_KEY_CRITERIA", "1")
+    revised = [{"text": "Adults aged 21 or over", "kind": "inclusion"}]
+
+    assert A._cache_key("note", "NCT1", CRITERIA) != A._cache_key("note", "NCT1", revised)
+    assert A._cache_key("note", "NCT1", CRITERIA) == A._cache_key("note", "NCT1", CRITERIA)
 
 
 def _resident(version: str) -> V.VectorCache:
