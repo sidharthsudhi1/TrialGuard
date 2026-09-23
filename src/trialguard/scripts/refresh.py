@@ -46,6 +46,7 @@ from trialguard.ingestion.ctgov import pull_trials
 from trialguard.ingestion.embed import eligibility_text_for_embedding, embed_batch
 from trialguard.ingestion.loader import upsert_trials
 from trialguard.ingestion.normalise import normalise_trial
+from trialguard.ingestion.provenance import content_hash
 
 console = Console()
 SOURCE = "ctgov_live"
@@ -138,10 +139,18 @@ def refresh(max_trials: int | None = None) -> dict | None:
         with get_conn() as c, c.cursor() as cur:
             psycopg2.extras.execute_batch(
                 cur,
-                "UPDATE trials SET status=%s, last_updated=%s "
+                "UPDATE trials SET status=%s, last_updated=%s, content_hash=%s, "
+                "metadata = jsonb_set(coalesce(metadata, '{}'::jsonb), '{status}', to_jsonb(%s::text)) "
                 "WHERE nct_id=%s AND source=%s",
                 [
-                    (fresh[n]["status"], fresh[n].get("last_updated"), n, SOURCE)
+                    (
+                        fresh[n]["status"],
+                        fresh[n].get("last_updated"),
+                        content_hash(fresh[n]),
+                        fresh[n]["status"],
+                        n,
+                        SOURCE,
+                    )
                     for n in restatused
                 ],
             )

@@ -10,41 +10,57 @@ import psycopg2.extras
 
 from trialguard.db.schema import get_conn
 
-UPSERT_SQL = """
-INSERT INTO trials (
-    nct_id, title, status, phase, conditions, interventions,
-    eligibility_raw, inclusion_criteria, exclusion_criteria,
-    min_age, max_age, sex, healthy_volunteers, last_updated,
-    embedding, metadata, source
-) VALUES (
-    %(nct_id)s, %(title)s, %(status)s, %(phase)s, %(conditions)s, %(interventions)s,
-    %(eligibility_raw)s, %(inclusion_criteria)s, %(exclusion_criteria)s,
-    %(min_age)s, %(max_age)s, %(sex)s, %(healthy_volunteers)s, %(last_updated)s,
-    %(embedding)s::vector, %(metadata)s::jsonb, %(source)s
+COLUMNS = (
+    "nct_id", "title", "status", "phase", "conditions", "interventions",
+    "eligibility_raw", "inclusion_criteria", "exclusion_criteria",
+    "min_age", "max_age", "sex", "healthy_volunteers", "last_updated",
+    "embedding", "metadata", "source",
+    "doc_hash", "content_hash", "embed_tag", "parser_version",
 )
+
+_CASTS = {"embedding": "::vector", "metadata": "::jsonb"}
+
+# Named placeholders for execute_values, one per column plus the seen stamps.
+TEMPLATE = (
+    "("
+    + ", ".join(f"%({c})s{_CASTS.get(c, '')}" for c in COLUMNS)
+    + ", NOW(), NOW())"
+)
+
+_UPDATED = [c for c in COLUMNS if c != "nct_id"]
+
+# The WHERE on the conflict branch is the source guard. The primary key is
+# nct_id alone, so without it an eval-corpus load (sigir, trec_*) that shares an
+# NCT id with ctgov_live silently re-labels the production row, and the next
+# refresh reads it as missing. A guarded row is not updated and so not
+# RETURNed, which is how upsert_trials detects the collision.
+UPSERT_SQL = f"""
+INSERT INTO trials ({", ".join(COLUMNS)}, first_seen_at, last_seen_at)
+VALUES %s
 ON CONFLICT (nct_id) DO UPDATE SET
-    title               = EXCLUDED.title,
-    status              = EXCLUDED.status,
-    phase               = EXCLUDED.phase,
-    conditions          = EXCLUDED.conditions,
-    interventions       = EXCLUDED.interventions,
-    eligibility_raw     = EXCLUDED.eligibility_raw,
-    inclusion_criteria  = EXCLUDED.inclusion_criteria,
-    exclusion_criteria  = EXCLUDED.exclusion_criteria,
-    min_age             = EXCLUDED.min_age,
-    max_age             = EXCLUDED.max_age,
-    sex                 = EXCLUDED.sex,
-    healthy_volunteers  = EXCLUDED.healthy_volunteers,
-    last_updated        = EXCLUDED.last_updated,
-    embedding           = EXCLUDED.embedding,
-    metadata            = EXCLUDED.metadata,
-    source              = EXCLUDED.source,
-    ingested_at         = NOW();
-"""
+    {", ".join(f"{c} = EXCLUDED.{c}" for c in _UPDATED)},
+    last_seen_at   = NOW(),
+    expired_at     = NULL,
+    expired_reason = NULL,
+    missing_runs   = 0,
+    ingested_at    = NOW()
+WHERE trials.source = EXCLUDED.source
+RETURNING nct_id
+"""  # noqa: S608 -- column names are module constants
+
+
+class SourceCollision(RuntimeError):
+    """An upsert would have overwritten a row that belongs to another source."""
 
 
 def upsert_trials(trials: list[dict], source: str = "ctgov_live") -> int:
     """Upsert a batch of enriched trial dicts. Returns count inserted/updated."""
+    from trialguard.ingestion.provenance import stamp
+
+    # One statement per page now, and Postgres refuses to update a row twice in
+    # one statement. A pagination-drift duplicate in a streaming ingest would
+    # otherwise fail the batch; the later copy wins, as it did row by row.
+    trials = list({t["nct_id"]: t for t in trials}.values())
     rows = []
     for t in trials:
         rows.append({
@@ -68,6 +84,7 @@ def upsert_trials(trials: list[dict], source: str = "ctgov_live") -> int:
                 if k not in ("embedding",)
             }),
             "source": t.get("source", source),
+            **stamp(t),
         })
 
     # Retry transient Neon drops (OperationalError/InterfaceError) with a fresh
@@ -75,7 +92,15 @@ def upsert_trials(trials: list[dict], source: str = "ctgov_live") -> int:
     for attempt in range(3):
         try:
             with get_conn() as conn, conn.cursor() as cur:
-                psycopg2.extras.execute_batch(cur, UPSERT_SQL, rows, page_size=100)
+                written = psycopg2.extras.execute_values(
+                    cur, UPSERT_SQL, rows, template=TEMPLATE, page_size=100, fetch=True
+                )
+                refused = {r["nct_id"] for r in rows} - {w[0] for w in written}
+                if refused:
+                    # Raising inside get_conn rolls the whole batch back.
+                    raise SourceCollision(
+                        f"{len(refused)} ids belong to another source: {sorted(refused)[:10]}"
+                    )
                 conn.commit()
             return len(rows)
         except (psycopg2.OperationalError, psycopg2.InterfaceError):
