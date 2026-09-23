@@ -899,7 +899,7 @@ def test_an_ungrounded_verdict_moves_the_per_request_rate(client):
 def test_a_timed_out_trial_contributes_no_criteria_to_the_rate(client):
     """A trial that claimed nothing must not read as a trial that verified
     nothing -- it would deflate the rate exactly when the system is degraded."""
-    from trialguard.api.routes import _Faithfulness
+    from trialguard.api.runner import _Faithfulness
 
     tally = _Faithfulness()
     tally.add([])
