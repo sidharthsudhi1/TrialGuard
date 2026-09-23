@@ -210,6 +210,29 @@ together, sharpen this document, and re-rate — not to average the two raters.
 
 ---
 
+## 7b. There is a model pre-screen, and it is not gold
+
+`data/reports/e7_model_adjudication.jsonl` holds all 300 items labelled by
+`claude-opus-5` against this protocol. It is **not** the gold set and is not
+written to `e7_merged_gold.jsonl`: AD-3 rules out an LLM verifier for enforcement
+and AD-15 rejected using one to size this problem.
+
+Measured against the human labels on 40 held-out WS-5b items: **kappa 0.7626,
+raw agreement 0.90**. Three of its four disagreements run the same direction --
+it accepts an indirect inference where the human demanded the quote establish the
+claim -- so it reads **lenient**, scoring 27.5% non-entailing where the human
+scored 32.5% on the same items.
+
+Use it two ways, neither of which lets it stand in for a human:
+
+- **Triage.** The 86 rows it marks non-entailing are where attention pays most.
+- **A rater baseline.** After labelling, compute kappa against it; a large
+  departure from ~0.76 suggests the protocol drifted.
+
+**Look hardest at the rows it marked `true`.** That is the direction it errs.
+Do not read its labels before forming your own on an item, or the agreement
+figure you compute afterwards measures nothing.
+
 ## 8. What happens next
 
 Once `e7_merged_gold.jsonl` exists, re-run the three checkpoints against it:
