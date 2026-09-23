@@ -1,0 +1,28 @@
+{
+  "cohort": "trec_2021",
+  "top_k": 100,
+  "retrieval_only": true,
+  "cached_only": false,
+  "classifier": "regex over patient note, disease stems only",
+  "timing": {
+    "retrieval_s": 121.9,
+    "total_s": 129.4
+  },
+  "groups": {
+    "all": {
+      "patients": 75,
+      "gold_eligible_total": 5569,
+      "retrieval_ceiling": 0.4393
+    },
+    "oncology": {
+      "patients": 14,
+      "gold_eligible_total": 1069,
+      "retrieval_ceiling": 0.3052
+    },
+    "non_oncology": {
+      "patients": 61,
+      "gold_eligible_total": 4500,
+      "retrieval_ceiling": 0.4701
+    }
+  }
+}

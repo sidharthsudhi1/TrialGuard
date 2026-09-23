@@ -1,0 +1,58 @@
+{
+  "base_url": "https://trialguard-api.fly.dev",
+  "top_k": 5,
+  "spacing_s": 6.5,
+  "rate_limit_note": "api_search_rate_per_min=10 per IP; this is a single-client latency distribution, not a throughput test",
+  "resume_health_ms": 87.6,
+  "vector_cache": {
+    "enabled": true,
+    "source": "ctgov_live",
+    "ready": true,
+    "rows": 26037,
+    "load_seconds": 29.9,
+    "error": null
+  },
+  "statuses": {},
+  "warm": {
+    "label": "warm (cached keywords)",
+    "requests": 40,
+    "ok": 0
+  },
+  "cold_keyword": {
+    "label": "novel note (LLM keyword extraction)",
+    "requests": 0,
+    "ok": 0
+  },
+  "burst": [
+    {
+      "concurrency": 2,
+      "wall_span_ms": 1504.1,
+      "ok": 2,
+      "statuses": {
+        "200": 2
+      },
+      "p50_ms": 1447.1,
+      "max_ms": 1499.6
+    },
+    {
+      "concurrency": 4,
+      "wall_span_ms": 2799.9,
+      "ok": 4,
+      "statuses": {
+        "200": 4
+      },
+      "p50_ms": 2798.3,
+      "max_ms": 2799.2
+    },
+    {
+      "concurrency": 8,
+      "wall_span_ms": 5503.6,
+      "ok": 8,
+      "statuses": {
+        "200": 8
+      },
+      "p50_ms": 5349.9,
+      "max_ms": 5497.9
+    }
+  ]
+}

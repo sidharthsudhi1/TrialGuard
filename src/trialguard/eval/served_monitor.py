@@ -42,7 +42,7 @@ def fetch_served_states(days: int) -> list[dict]:
     if client is None:
         raise RuntimeError("Langfuse credentials absent — cannot read served traces")
 
-    since = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=days)
+    since = dt.datetime.now(dt.UTC) - dt.timedelta(days=days)
     states, page = [], 1
     while True:
         batch = client.api.trace.list(

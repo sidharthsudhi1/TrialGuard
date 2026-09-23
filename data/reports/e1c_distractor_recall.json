@@ -1,0 +1,49 @@
+{
+  "cohort": "trec_2021",
+  "n_queries": 75,
+  "base_corpus": 26149,
+  "distractors_available": 99098,
+  "note": "dense-only MedCPT; lexical and RRF held out to isolate the embedder",
+  "rows": [
+    {
+      "distractors": 0,
+      "corpus_size": 26149,
+      "recall@10": 0.0266,
+      "recall@50": 0.1039,
+      "recall@100": 0.1759,
+      "recall@200": 0.2641
+    },
+    {
+      "distractors": 10000,
+      "corpus_size": 36149,
+      "recall@10": 0.0251,
+      "recall@50": 0.0968,
+      "recall@100": 0.162,
+      "recall@200": 0.2484
+    },
+    {
+      "distractors": 25000,
+      "corpus_size": 51149,
+      "recall@10": 0.0239,
+      "recall@50": 0.0898,
+      "recall@100": 0.1504,
+      "recall@200": 0.2287
+    },
+    {
+      "distractors": 50000,
+      "corpus_size": 76149,
+      "recall@10": 0.0215,
+      "recall@50": 0.078,
+      "recall@100": 0.1323,
+      "recall@200": 0.2024
+    },
+    {
+      "distractors": 99098,
+      "corpus_size": 125247,
+      "recall@10": 0.0187,
+      "recall@50": 0.0651,
+      "recall@100": 0.1102,
+      "recall@200": 0.1713
+    }
+  ]
+}

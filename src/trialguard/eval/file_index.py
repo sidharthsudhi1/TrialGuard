@@ -76,7 +76,7 @@ class FileIndex:
         normalised = [normalise_trial(t) for t in trials]
         texts = [eligibility_text_for_embedding(t) for t in normalised]
         nct_ids_from_trials = [t["nct_id"] for t in normalised]
-        self._trial_texts = dict(zip(nct_ids_from_trials, texts))
+        self._trial_texts = dict(zip(nct_ids_from_trials, texts, strict=True))
 
         self._nct_ids = nct_ids_from_trials
 
@@ -129,11 +129,13 @@ class FileIndex:
         self._loaded = True
 
     def trial_texts(self) -> dict[str, str]:
-        assert self._loaded, "Call build() first."
+        if not self._loaded:
+            raise RuntimeError("FileIndex.build() must run before this call")
         return self._trial_texts
 
     def corpus_ids(self) -> set[str]:
-        assert self._loaded, "Call build() first."
+        if not self._loaded:
+            raise RuntimeError("FileIndex.build() must run before this call")
         return set(self._nct_ids)
 
     def _dense(self, query_vec: np.ndarray, pool: int) -> list[tuple[str, float]]:
@@ -147,6 +149,8 @@ class FileIndex:
         over = pool * 4 if len(self._chunk_owners) > len(self._nct_ids) else pool
         # Never ask for more rows than exist: argpartition raises rather than
         # clamping, so a small corpus would take down the search.
+        if self._matrix is None:
+            raise RuntimeError("FileIndex.build() must run before searching")
         over = min(over, self._matrix.shape[0])
         hits = _cosine_search(query_vec, self._matrix, self._chunk_owners, over)
         best: dict[str, float] = {}
@@ -165,7 +169,8 @@ class FileIndex:
     ) -> list[tuple[str, float]]:
         from trialguard.ingestion.embed import embed_text
 
-        assert self._loaded, "Call build() first."
+        if not self._loaded:
+            raise RuntimeError("FileIndex.build() must run before this call")
 
         if use_keywords:
             from trialguard.retrieval.query_transform import generate_keywords
@@ -179,9 +184,11 @@ class FileIndex:
             all_rankings.append(self._dense(query_vec, dense_pool))
 
             tokens = _tokenize(q)
+            if self._bm25 is None:
+                raise RuntimeError("FileIndex.build() must run before searching")
             bm25_scores = self._bm25.get_scores(tokens)
             bm25_ranked = sorted(
-                zip(self._nct_ids, bm25_scores.tolist()),
+                zip(self._nct_ids, bm25_scores.tolist(), strict=True),
                 key=lambda x: x[1],
                 reverse=True,
             )[:bm25_pool]

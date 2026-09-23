@@ -239,7 +239,7 @@ def run(note: str, top_k: int = TOP_K) -> str:
             "⚠️ The free Groq daily token budget is spent. Try a preset (its result "
             "is cached) or come back tomorrow — the $0 constraint is real."
         )
-    except Exception as e:  # noqa: BLE001 — surface any backend error to the demo user
+    except Exception as e:
         if "rate_limit" in str(e) or "429" in str(e):
             return "⚠️ Groq rate limit hit — wait a moment and retry, or use a preset."
         raise

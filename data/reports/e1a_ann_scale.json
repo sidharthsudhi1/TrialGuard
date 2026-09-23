@@ -1,0 +1,261 @@
+{
+  "base_source": "trec_2021",
+  "base_n": 26149,
+  "n_queries": 200,
+  "dim": 768,
+  "k": 100,
+  "sigma": 0.15,
+  "ram_budget_gb": 10.0,
+  "peak_rss_gb": 6.195,
+  "runs": [
+    {
+      "n_vectors": 100000,
+      "vectors_gb": 0.307,
+      "synthesise_s": 1.57,
+      "exact_scan_s": 0.248,
+      "arms": [
+        {
+          "backend": "in-process matrix (exact)",
+          "build_s": 0.069,
+          "p50_ms": 5.84,
+          "p95_ms": 5.93,
+          "recall_vs_exact": 1.0,
+          "recall_tie_tolerant": 1.0,
+          "resident_gb": 0.307
+        },
+        {
+          "backend": "pgvector ivfflat lists=316 probes=10",
+          "load_s": 37.77,
+          "build_s": 15.86,
+          "p50_ms": 4.34,
+          "p95_ms": 6.37,
+          "recall_vs_exact": 0.8677,
+          "recall_tie_tolerant": 0.8682,
+          "heap_gb": 0.419,
+          "index_gb": 0.412
+        },
+        {
+          "backend": "pgvector ivfflat lists=316 probes=40",
+          "load_s": 37.77,
+          "build_s": 15.86,
+          "p50_ms": 13.94,
+          "p95_ms": 17.99,
+          "recall_vs_exact": 0.9688,
+          "recall_tie_tolerant": 0.9693,
+          "heap_gb": 0.419,
+          "index_gb": 0.412
+        },
+        {
+          "backend": "pgvector ivfflat lists=316 probes=100",
+          "load_s": 37.77,
+          "build_s": 15.86,
+          "p50_ms": 32.25,
+          "p95_ms": 34.63,
+          "recall_vs_exact": 0.9969,
+          "recall_tie_tolerant": 0.9971,
+          "heap_gb": 0.419,
+          "index_gb": 0.412
+        },
+        {
+          "backend": "pgvector hnsw m=16 ef_construction=64 ef_search=100",
+          "load_s": 37.77,
+          "build_s": 53.29,
+          "p50_ms": 2.06,
+          "p95_ms": 2.48,
+          "recall_vs_exact": 0.9589,
+          "recall_tie_tolerant": 0.9597,
+          "heap_gb": 0.419,
+          "index_gb": 0.41
+        },
+        {
+          "backend": "pgvector hnsw m=16 ef_construction=64 ef_search=200",
+          "load_s": 37.77,
+          "build_s": 53.29,
+          "p50_ms": 3.09,
+          "p95_ms": 3.8,
+          "recall_vs_exact": 0.9847,
+          "recall_tie_tolerant": 0.9851,
+          "heap_gb": 0.419,
+          "index_gb": 0.41
+        },
+        {
+          "backend": "pgvector hnsw m=16 ef_construction=64 ef_search=400",
+          "load_s": 37.77,
+          "build_s": 53.29,
+          "p50_ms": 5.14,
+          "p95_ms": 6.22,
+          "recall_vs_exact": 0.9947,
+          "recall_tie_tolerant": 0.9949,
+          "heap_gb": 0.419,
+          "index_gb": 0.41
+        }
+      ]
+    },
+    {
+      "n_vectors": 500000,
+      "vectors_gb": 1.536,
+      "synthesise_s": 7.82,
+      "exact_scan_s": 1.236,
+      "arms": [
+        {
+          "backend": "in-process matrix (exact)",
+          "build_s": 0.338,
+          "p50_ms": 29.32,
+          "p95_ms": 29.61,
+          "recall_vs_exact": 1.0,
+          "recall_tie_tolerant": 1.0,
+          "resident_gb": 1.536
+        },
+        {
+          "backend": "pgvector ivfflat lists=707 probes=10",
+          "load_s": 188.28,
+          "build_s": 87.23,
+          "p50_ms": 10.59,
+          "p95_ms": 15.18,
+          "recall_vs_exact": 0.9128,
+          "recall_tie_tolerant": 0.9131,
+          "heap_gb": 2.097,
+          "index_gb": 2.052
+        },
+        {
+          "backend": "pgvector ivfflat lists=707 probes=40",
+          "load_s": 188.28,
+          "build_s": 87.23,
+          "p50_ms": 36.85,
+          "p95_ms": 48.79,
+          "recall_vs_exact": 0.9825,
+          "recall_tie_tolerant": 0.9825,
+          "heap_gb": 2.097,
+          "index_gb": 2.052
+        },
+        {
+          "backend": "pgvector ivfflat lists=707 probes=100",
+          "load_s": 188.28,
+          "build_s": 87.23,
+          "p50_ms": 87.03,
+          "p95_ms": 103.85,
+          "recall_vs_exact": 0.9981,
+          "recall_tie_tolerant": 0.9981,
+          "heap_gb": 2.097,
+          "index_gb": 2.052
+        },
+        {
+          "backend": "pgvector hnsw m=16 ef_construction=64 ef_search=100",
+          "load_s": 188.28,
+          "build_s": 136.02,
+          "p50_ms": 1.91,
+          "p95_ms": 2.58,
+          "recall_vs_exact": 0.9721,
+          "recall_tie_tolerant": 0.9726,
+          "heap_gb": 2.097,
+          "index_gb": 2.048
+        },
+        {
+          "backend": "pgvector hnsw m=16 ef_construction=64 ef_search=200",
+          "load_s": 188.28,
+          "build_s": 136.02,
+          "p50_ms": 2.49,
+          "p95_ms": 3.25,
+          "recall_vs_exact": 0.9906,
+          "recall_tie_tolerant": 0.9909,
+          "heap_gb": 2.097,
+          "index_gb": 2.048
+        },
+        {
+          "backend": "pgvector hnsw m=16 ef_construction=64 ef_search=400",
+          "load_s": 188.28,
+          "build_s": 136.02,
+          "p50_ms": 3.8,
+          "p95_ms": 4.96,
+          "recall_vs_exact": 0.9922,
+          "recall_tie_tolerant": 0.9925,
+          "heap_gb": 2.097,
+          "index_gb": 2.048
+        }
+      ]
+    },
+    {
+      "n_vectors": 1000000,
+      "vectors_gb": 3.072,
+      "synthesise_s": 15.76,
+      "exact_scan_s": 2.497,
+      "arms": [
+        {
+          "backend": "in-process matrix (exact)",
+          "build_s": 0.689,
+          "p50_ms": 58.07,
+          "p95_ms": 58.55,
+          "recall_vs_exact": 1.0,
+          "recall_tie_tolerant": 1.0,
+          "resident_gb": 3.072
+        },
+        {
+          "backend": "pgvector ivfflat lists=1000 probes=10",
+          "load_s": 376.95,
+          "build_s": 216.18,
+          "p50_ms": 40.97,
+          "p95_ms": 306.28,
+          "recall_vs_exact": 0.9381,
+          "recall_tie_tolerant": 0.9386,
+          "heap_gb": 4.193,
+          "index_gb": 4.102
+        },
+        {
+          "backend": "pgvector ivfflat lists=1000 probes=40",
+          "load_s": 376.95,
+          "build_s": 216.18,
+          "p50_ms": 70.15,
+          "p95_ms": 97.44,
+          "recall_vs_exact": 0.9802,
+          "recall_tie_tolerant": 0.9804,
+          "heap_gb": 4.193,
+          "index_gb": 4.102
+        },
+        {
+          "backend": "pgvector ivfflat lists=1000 probes=100",
+          "load_s": 376.95,
+          "build_s": 216.18,
+          "p50_ms": 170.73,
+          "p95_ms": 207.09,
+          "recall_vs_exact": 0.996,
+          "recall_tie_tolerant": 0.9962,
+          "heap_gb": 4.193,
+          "index_gb": 4.102
+        },
+        {
+          "backend": "pgvector hnsw m=16 ef_construction=64 ef_search=100",
+          "load_s": 376.95,
+          "build_s": 447.37,
+          "p50_ms": 76.16,
+          "p95_ms": 254.45,
+          "recall_vs_exact": 0.9677,
+          "recall_tie_tolerant": 0.9682,
+          "heap_gb": 4.193,
+          "index_gb": 4.096
+        },
+        {
+          "backend": "pgvector hnsw m=16 ef_construction=64 ef_search=200",
+          "load_s": 376.95,
+          "build_s": 447.37,
+          "p50_ms": 2.51,
+          "p95_ms": 3.46,
+          "recall_vs_exact": 0.9891,
+          "recall_tie_tolerant": 0.9895,
+          "heap_gb": 4.193,
+          "index_gb": 4.096
+        },
+        {
+          "backend": "pgvector hnsw m=16 ef_construction=64 ef_search=400",
+          "load_s": 376.95,
+          "build_s": 447.37,
+          "p50_ms": 3.87,
+          "p95_ms": 5.24,
+          "recall_vs_exact": 0.9904,
+          "recall_tie_tolerant": 0.9907,
+          "heap_gb": 4.193,
+          "index_gb": 4.096
+        }
+      ]
+    }
+  ]
+}

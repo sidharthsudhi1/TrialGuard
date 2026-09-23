@@ -125,7 +125,7 @@ def run_rerank_experiment(cohorts: list[str], pool_size: int) -> dict[str, list[
 
 
 def _print_rerank_table(baseline: list[dict], reranked: list[dict], pool_size: int) -> None:
-    all_rows = [r for pair in zip(baseline, reranked) for r in pair]
+    all_rows = [r for pair in zip(baseline, reranked, strict=True) for r in pair]
     k_list = [10, 20, pool_size]
 
     table = Table(title=f"Rerank Pool-Compression Experiment (pool N={pool_size})", show_lines=True)
@@ -148,7 +148,7 @@ def _print_rerank_table(baseline: list[dict], reranked: list[dict], pool_size: i
     console.print(table)
 
     console.print()
-    for base, rr in zip(baseline, reranked):
+    for base, rr in zip(baseline, reranked, strict=True):
         base_pool = base.get(f"recall@{pool_size}", 0.0)
         rr_pool = rr.get(f"recall@{pool_size}", 0.0)
         delta = rr_pool - base_pool
@@ -169,7 +169,7 @@ def _write_rerank_report(
     baseline: list[dict], reranked: list[dict], pool_size: int, path: Path
 ) -> None:
     k_list = [10, 20, pool_size]
-    all_rows = [r for pair in zip(baseline, reranked) for r in pair]
+    all_rows = [r for pair in zip(baseline, reranked, strict=True) for r in pair]
     lines = [
         "# Phase 2 Rerank Pool-Compression Experiment",
         f"\nGenerated: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
@@ -188,7 +188,7 @@ def _write_rerank_report(
         )
 
     lines.append("\n## Decision\n")
-    for base, rr in zip(baseline, reranked):
+    for base, rr in zip(baseline, reranked, strict=True):
         base_pool = base.get(f"recall@{pool_size}", 0.0)
         rr_pool = rr.get(f"recall@{pool_size}", 0.0)
         delta = rr_pool - base_pool
@@ -365,7 +365,7 @@ def _write_report(all_results: list[dict], pool_size: int, path: Path, ablate: b
     for r in all_results:
         cov = r["coverage_info"]["coverage"]
         def _adj(k):
-            v = r.get(f"recall@{k}_adj")
+            v = r.get(f"recall@{k}_adj")  # noqa: B023 -- used in this iteration only
             return f"{v:.4f}" if v is not None else "n/a"
         lines.append(
             f"| {r['cohort']} | {r['config']} | {cov * 100:.1f}% "
@@ -431,7 +431,7 @@ def main() -> None:
     elif args.ablate:
         raw_results = run(cohorts, args.pool_size, use_keywords=False)
         kw_results = run(cohorts, args.pool_size, use_keywords=True)
-        all_results = [r for pair in zip(raw_results, kw_results) for r in pair]
+        all_results = [r for pair in zip(raw_results, kw_results, strict=True) for r in pair]
         _print_table(all_results, args.pool_size)
         _write_report(all_results, args.pool_size, REPORT_DIR / "phase2_retrieval.md", ablate=True)
     else:

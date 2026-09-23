@@ -44,7 +44,7 @@ def get_client():
     if not settings.tracing_enabled or not _credentials_present():
         return None
     try:
-        from langfuse import get_client as _get_client  # type: ignore
+        from langfuse import get_client as _get_client
 
         return _get_client()
     except ImportError:
@@ -69,7 +69,7 @@ def get_langchain_handler(
     if not settings.tracing_enabled or not _credentials_present():
         return None
     try:
-        from langfuse.langchain import CallbackHandler  # type: ignore
+        from langfuse.langchain import CallbackHandler
 
         metadata: dict[str, Any] = {}
         if session_id:

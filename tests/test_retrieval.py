@@ -1,3 +1,4 @@
+import itertools
 import json
 from unittest.mock import MagicMock, patch
 
@@ -91,7 +92,7 @@ def test_recall_multi_k_monotone():
     gold = {"3", "7", "15"}
     ks = [1, 5, 10, 15, 20]
     vals = [recall_at_k(preds, gold, k) for k in ks]
-    for a, b in zip(vals, vals[1:]):
+    for a, b in itertools.pairwise(vals):
         assert b >= a
 
 

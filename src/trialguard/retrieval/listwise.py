@@ -120,7 +120,7 @@ def _rank_batch(note: str, batch: list[tuple[str, str]], handler=None) -> list[s
     )
     try:
         ledger.record(extract_usage(response), provider, model)
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         log.error(
             "listwise call completed but was not billed (%s); the daily ledger "
             "is now under-reporting", type(e).__name__
@@ -170,7 +170,7 @@ def listwise_rerank(
         per_batch = [_rank_batch(note, b, handler) for b in batches]
 
         # Interleave by within-batch rank so no batch is starved by its position.
-        ranked: list[str] = []
+        ranked = []
         for rank in range(max((len(b) for b in per_batch), default=0)):
             for b in per_batch:
                 if rank < len(b):
@@ -178,7 +178,7 @@ def listwise_rerank(
 
         cache_path.write_text(json.dumps(ranked))
         return [(n, 1.0 / (r + 1)) for r, n in enumerate(ranked)][:top_k]
-    except Exception as e:  # noqa: BLE001 — degrade to retrieval order, never worse
+    except Exception as e:
         log.warning(
             "listwise rerank failed (%s); falling back to the retrieval ordering",
             type(e).__name__,

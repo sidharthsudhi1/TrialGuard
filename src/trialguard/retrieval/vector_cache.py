@@ -110,7 +110,7 @@ class VectorCache:
                 matrix.shape[0], matrix.shape[1], matrix.nbytes / 1e6, self.load_seconds,
             )
             return True
-        except Exception as e:  # noqa: BLE001 — degrade to SQL, but say why
+        except Exception as e:
             self.error = f"{type(e).__name__}: {e}"
             log.warning("vector cache load failed (%s); dense search stays on SQL", self.error)
             return False

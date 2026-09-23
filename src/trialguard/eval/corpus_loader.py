@@ -123,7 +123,7 @@ def _ingest_trials(trials: list[dict], source: str) -> None:
         batch = [normalise_trial(t) for t in trials[i: i + BATCH]]
         texts = [eligibility_text_for_embedding(t) for t in batch]
         embeddings = embed_batch(texts)
-        for t, emb in zip(batch, embeddings):
+        for t, emb in zip(batch, embeddings, strict=True):
             t["embedding"] = emb
         upserted = upsert_trials(batch, source=source)
         total += upserted

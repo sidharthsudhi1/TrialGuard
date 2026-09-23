@@ -1,0 +1,24 @@
+{
+  "adjudicator": "claude-opus-5",
+  "status": "MODEL OUTPUT, NOT HUMAN GOLD",
+  "question": "Does the verbatim quote establish this verdict? Not: is the verdict correct.",
+  "protocol": "docs/e7_adjudication_protocol.md",
+  "n": 300,
+  "non_entailing": 86,
+  "non_entailing_rate": 0.2867,
+  "human_baseline_ws5b": 0.36,
+  "by_kind": {
+    "exclusion/non_entailing": 41,
+    "exclusion/entails": 67,
+    "inclusion/non_entailing": 31,
+    "inclusion/entails": 77,
+    "unknown/non_entailing": 14,
+    "unknown/entails": 70
+  },
+  "by_grounded_by": {
+    "absence/non_entailing": 6,
+    "absence/entails": 14,
+    "quote/non_entailing": 80,
+    "quote/entails": 200
+  }
+}

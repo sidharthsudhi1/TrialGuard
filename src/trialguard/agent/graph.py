@@ -100,7 +100,7 @@ def _missing_criteria(assessments: list[dict], typed: list[dict]) -> list[dict]:
     from trialguard.agent.schema import align_assessments
 
     slots, _ = align_assessments(assessments, typed)
-    return [c for c, answer in zip(typed, slots) if answer is None]
+    return [c for c, answer in zip(typed, slots, strict=True) if answer is None]
 
 
 def _merge_retry(

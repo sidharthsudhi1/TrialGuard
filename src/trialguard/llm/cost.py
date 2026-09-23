@@ -199,24 +199,26 @@ class CostLedger:
         catch this and degrade to cached-only rather than continuing to spend.
         """
         if self.token_cap is not None:
-            spent = self.spent_tokens()
-            if spent + estimated_tokens >= self.token_cap:
+            # Named for its unit: this function also tracks dollars below, and one
+            # `spent` holding tokens then USD is how the two get confused.
+            tokens_spent = self.spent_tokens()
+            if tokens_spent + estimated_tokens >= self.token_cap:
                 raise BudgetExhausted(
-                    f"Daily token cap reached: spent {spent} + est {estimated_tokens} "
+                    f"Daily token cap reached: spent {tokens_spent} + est {estimated_tokens} "
                     f">= {self.token_cap}. Falling back to cached-only."
                 )
 
         # Estimate the incoming call at the output rate: the pessimistic side,
         # since output tokens cost more and the split is unknown before the call.
-        est_usd = 0.0
+        est_usd: float = 0.0
         if provider and model:
-            est_usd = table_usd(provider, model, 0, estimated_tokens) or 0.0
-        spent = self.spent_usd()
-        if spent + est_usd >= self.usd_cap:
+            est_usd = float(table_usd(provider, model, 0, estimated_tokens) or 0.0)
+        usd_spent = self.spent_usd()
+        if usd_spent + est_usd >= self.usd_cap:
             # %g, not %.2f: a cap or spend below a cent must not render as $0.00,
             # which would make the message say a limit was crossed at zero.
             raise BudgetExhausted(
-                f"Daily spend cap reached: ${spent:.4g} + est ${est_usd:.4g} "
+                f"Daily spend cap reached: ${usd_spent:.4g} + est ${est_usd:.4g} "
                 f">= ${self.usd_cap:.4g}. Falling back to cached-only."
             )
 

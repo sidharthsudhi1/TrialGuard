@@ -101,7 +101,7 @@ def test_load_labels_rejects_unknown_cohort():
 
 
 def test_synthetic_allowlist_is_the_published_cohorts():
-    assert SYNTHETIC_COHORTS == {"sigir", "trec_2021", "trec_2022"}
+    assert {"sigir", "trec_2021", "trec_2022"} == SYNTHETIC_COHORTS
 
 
 # --- No hardcoded credentials in tracked source (the "never hardcode keys" rule).

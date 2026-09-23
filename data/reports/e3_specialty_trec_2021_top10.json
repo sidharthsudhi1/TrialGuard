@@ -1,0 +1,162 @@
+{
+  "cohort": "trec_2021",
+  "top_k": 10,
+  "retrieval_only": false,
+  "cached_only": false,
+  "classifier": "regex over patient note, disease stems only",
+  "timing": {
+    "retrieval_s": 40.1,
+    "total_s": 1959.3
+  },
+  "groups": {
+    "all": {
+      "patients": 75,
+      "gold_eligible_total": 5569,
+      "retrieval_ceiling": 0.0868,
+      "metrics": {
+        "tier_surfaced": {
+          "shown": 351,
+          "recall": 0.0345,
+          "precision": 0.6598
+        },
+        "patients": 75,
+        "gold_eligible_total": 5569,
+        "retrieval_recall": 0.0537,
+        "end_to_end_recall": 0.0095,
+        "agent_loss": 0.0442,
+        "eligible_precision": 0.6235,
+        "trial_verdicts": {
+          "cannot_determine": 266,
+          "excluded": 398,
+          "eligible": 85
+        },
+        "criterion_unverifiable_rate": 0.031,
+        "criterion_verdicts": {
+          "met": 1225,
+          "not_met": 1818,
+          "cannot_determine": 1708,
+          "unverifiable": 152
+        },
+        "criterion_grounded": 3079,
+        "criterion_total": 4903,
+        "criterion_asked": 4830,
+        "criterion_unanswered": 3,
+        "criterion_unmatched": 76,
+        "criterion_grounded_rate": 0.6375,
+        "criterion_grounded_in": {
+          "trial": 117,
+          "note": 2737,
+          "absence": 225
+        },
+        "note_only_grounded_rate": 0.8889,
+        "self_referential": 11,
+        "self_referential_rate": 0.0036,
+        "weak_absence": 530,
+        "weak_absence_rate": 0.1721,
+        "incomplete_patients": 0
+      }
+    },
+    "oncology": {
+      "patients": 14,
+      "gold_eligible_total": 1069,
+      "retrieval_ceiling": 0.0437,
+      "metrics": {
+        "tier_surfaced": {
+          "shown": 54,
+          "recall": 0.0262,
+          "precision": 0.5833
+        },
+        "patients": 14,
+        "gold_eligible_total": 1069,
+        "retrieval_recall": 0.0402,
+        "end_to_end_recall": 0.0047,
+        "agent_loss": 0.0355,
+        "eligible_precision": 0.7143,
+        "trial_verdicts": {
+          "cannot_determine": 47,
+          "excluded": 86,
+          "eligible": 7
+        },
+        "criterion_unverifiable_rate": 0.0138,
+        "criterion_verdicts": {
+          "met": 254,
+          "not_met": 359,
+          "cannot_determine": 384,
+          "unverifiable": 14
+        },
+        "criterion_grounded": 621,
+        "criterion_total": 1011,
+        "criterion_asked": 1012,
+        "criterion_unanswered": 1,
+        "criterion_unmatched": 0,
+        "criterion_grounded_rate": 0.6136,
+        "criterion_grounded_in": {
+          "trial": 68,
+          "note": 520,
+          "absence": 33
+        },
+        "note_only_grounded_rate": 0.8374,
+        "self_referential": 0,
+        "self_referential_rate": 0.0,
+        "weak_absence": 82,
+        "weak_absence_rate": 0.132,
+        "incomplete_patients": 0
+      }
+    },
+    "non_oncology": {
+      "patients": 61,
+      "gold_eligible_total": 4500,
+      "retrieval_ceiling": 0.0967,
+      "metrics": {
+        "tier_surfaced": {
+          "shown": 297,
+          "recall": 0.0364,
+          "precision": 0.6749
+        },
+        "patients": 61,
+        "gold_eligible_total": 4500,
+        "retrieval_recall": 0.0569,
+        "end_to_end_recall": 0.0107,
+        "agent_loss": 0.0462,
+        "eligible_precision": 0.6154,
+        "trial_verdicts": {
+          "excluded": 312,
+          "cannot_determine": 219,
+          "eligible": 78
+        },
+        "criterion_unverifiable_rate": 0.0355,
+        "criterion_verdicts": {
+          "met": 971,
+          "not_met": 1459,
+          "cannot_determine": 1324,
+          "unverifiable": 138
+        },
+        "criterion_grounded": 2458,
+        "criterion_total": 3892,
+        "criterion_asked": 3818,
+        "criterion_unanswered": 2,
+        "criterion_unmatched": 76,
+        "criterion_grounded_rate": 0.6438,
+        "criterion_grounded_in": {
+          "trial": 49,
+          "note": 2217,
+          "absence": 192
+        },
+        "note_only_grounded_rate": 0.902,
+        "self_referential": 11,
+        "self_referential_rate": 0.0045,
+        "weak_absence": 448,
+        "weak_absence_rate": 0.1823,
+        "incomplete_patients": 0
+      }
+    }
+  },
+  "counts": {
+    "assessed": 749,
+    "skipped": 1,
+    "uncached_skipped": 0,
+    "cache_coverage": 1.0,
+    "budget_stops": 0,
+    "assess_s": 1910.8
+  }
+}

@@ -69,7 +69,7 @@ def rerank(
             model = _get_model(model_name)
             pairs = [(query_note, trial_texts.get(nct, "")) for nct in missing]
             new_scores = model.predict(pairs)
-            new_pairs = list(zip(missing, new_scores.tolist()))
+            new_pairs = list(zip(missing, new_scores.tolist(), strict=True))
             scored += new_pairs
             cached.update(dict(new_pairs))
             cache_path.write_text(json.dumps(cached))
@@ -77,7 +77,7 @@ def rerank(
         model = _get_model(model_name)
         pairs = [(query_note, trial_texts.get(nct, "")) for nct in nct_ids]
         scores = model.predict(pairs)  # single batch call — NOT a loop
-        scored = list(zip(nct_ids, scores.tolist()))
+        scored = list(zip(nct_ids, scores.tolist(), strict=True))
         cache_path.write_text(json.dumps(dict(scored)))
 
     scored.sort(key=lambda x: x[1], reverse=True)

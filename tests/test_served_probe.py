@@ -20,7 +20,7 @@ class _FakeClient:
     """Answers the four probe calls; raise_on lets a test kill one endpoint."""
 
     def __init__(self, health=None, budget=None, search=None, raise_on=()):
-        now = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+        now = dt.datetime.now(dt.UTC).isoformat(timespec="seconds")
         self.health = health if health is not None else {
             "ok": True,
             "pool_ok": True,
@@ -158,7 +158,7 @@ def test_a_response_without_server_timing_alerts():
 
 def test_a_stalled_corpus_refresh_alerts():
     """WS-3's schedule fails silently; this is what notices."""
-    stale = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=5)).isoformat()
+    stale = (dt.datetime.now(dt.UTC) - dt.timedelta(days=5)).isoformat()
     result = _probe(
         health={"ok": True, "pool_ok": True, "store_ok": True,
                "corpus_refresh": {"at": stale}}

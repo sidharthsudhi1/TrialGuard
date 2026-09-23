@@ -25,10 +25,14 @@ def mrr(predictions: list[str], gold_positives: set[str]) -> float:
 
 def ndcg_at_k(
     predictions: list[str],
-    gold_labels: dict[str, int],
+    gold_labels: dict[str, str],
     k: int,
 ) -> float:
-    """nDCG with graded relevance: eligible=2, excluded=1, irrelevant=0."""
+    """nDCG with graded relevance: eligible=2, excluded=1, irrelevant=0.
+
+    gold_labels maps nct_id to a label name, not to a score; the scores come
+    from label_map below.
+    """
     label_map = {"eligible": 2, "excluded": 1, "irrelevant": 0}
 
     def dcg(ranking: list[str]) -> float:

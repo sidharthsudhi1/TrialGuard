@@ -129,7 +129,7 @@ def test_demo_entrypoint_pins_the_free_tier():
         if k not in ("LLM_PROVIDER", "DEEPINFRA_API_KEY", "TG_ANALYST_DELAY", "TG_PROMPT_VERSION")
     }
     code = (
-        "import app;"  # noqa: F401 — import triggers the env pin
+        "import app;"
         "from trialguard.config import Settings;"
         "import trialguard.config as c;"
         "c.settings = Settings(_env_file=None);"

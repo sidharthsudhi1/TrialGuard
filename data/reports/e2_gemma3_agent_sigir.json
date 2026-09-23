@@ -1,0 +1,129 @@
+{
+  "cohort": "sigir",
+  "n_patients": 30,
+  "baseline": {
+    "max_retries": 0,
+    "by_kind": {
+      "inclusion": {
+        "n_criteria": 845,
+        "decisive_attempts": 307,
+        "grounded": 253,
+        "citation_precision": 0.8241,
+        "unsupported_verdict_rate": 0.1759,
+        "coverage": 0.2994,
+        "abstention_rate": 0.7006
+      },
+      "exclusion": {
+        "n_criteria": 664,
+        "decisive_attempts": 344,
+        "grounded": 309,
+        "citation_precision": 0.8983,
+        "unsupported_verdict_rate": 0.1017,
+        "coverage": 0.4654,
+        "abstention_rate": 0.5346
+      }
+    },
+    "n_criteria": 1509,
+    "decisive_attempts": 651,
+    "grounded": 562,
+    "citation_precision": 0.8633,
+    "unsupported_verdict_rate": 0.1367,
+    "coverage": 0.3724,
+    "abstention_rate": 0.6276,
+    "trial_accuracy": 0.1629,
+    "n_trials": 178,
+    "mean_retries": 0.0,
+    "trials_with_retry": 0,
+    "rate_limited": false
+  },
+  "verified": {
+    "max_retries": 2,
+    "by_kind": {
+      "inclusion": {
+        "n_criteria": 858,
+        "decisive_attempts": 304,
+        "grounded": 272,
+        "citation_precision": 0.8947,
+        "unsupported_verdict_rate": 0.1053,
+        "coverage": 0.317,
+        "abstention_rate": 0.683
+      },
+      "exclusion": {
+        "n_criteria": 683,
+        "decisive_attempts": 350,
+        "grounded": 324,
+        "citation_precision": 0.9257,
+        "unsupported_verdict_rate": 0.0743,
+        "coverage": 0.4744,
+        "abstention_rate": 0.5256
+      }
+    },
+    "n_criteria": 1541,
+    "decisive_attempts": 654,
+    "grounded": 596,
+    "citation_precision": 0.9113,
+    "unsupported_verdict_rate": 0.0887,
+    "coverage": 0.3868,
+    "abstention_rate": 0.6132,
+    "trial_accuracy": 0.1798,
+    "n_trials": 178,
+    "mean_retries": 0.5787,
+    "trials_with_retry": 61,
+    "rate_limited": false
+  },
+  "significance": {
+    "matched_trials": 175,
+    "table": {
+      "baseline": {
+        "unsupported": 88,
+        "grounded": 556,
+        "decisive": 644
+      },
+      "verified": {
+        "unsupported": 58,
+        "grounded": 591,
+        "decisive": 649
+      }
+    },
+    "baseline_unsupported_rate": 0.1366,
+    "verified_unsupported_rate": 0.0894,
+    "relative_change": -0.346,
+    "odds_ratio": 1.6128,
+    "fisher_p": 0.0083,
+    "significant_05": true
+  },
+  "coverage_curve": [
+    {
+      "min_tokens": 1,
+      "coverage": 0.3797,
+      "citation_precision": 0.8802,
+      "n_criteria": 1509
+    },
+    {
+      "min_tokens": 2,
+      "coverage": 0.3724,
+      "citation_precision": 0.8633,
+      "n_criteria": 1509
+    },
+    {
+      "min_tokens": 3,
+      "coverage": 0.3512,
+      "citation_precision": 0.8141,
+      "n_criteria": 1509
+    },
+    {
+      "min_tokens": 4,
+      "coverage": 0.3287,
+      "citation_precision": 0.7619,
+      "n_criteria": 1509
+    }
+  ],
+  "observability": {
+    "faithfulness": 0.9113,
+    "unsupported_verdict_rate": 0.0887,
+    "abstention_rate": 0.6132,
+    "coverage": 0.3868,
+    "mean_retries": 0.5787,
+    "run_usd": 0.055776
+  }
+}
