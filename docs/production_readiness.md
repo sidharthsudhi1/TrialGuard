@@ -299,6 +299,23 @@ assess went 31 s cold to 0 s warm, where before it would have been 31 s every
 time. Free text still skips the write, which is what stops an
 attacker-controlled note being persisted or growing the store without bound.
 
+### 2.9 Job execution lived in the HTTP layer  `[FIXED 2026-09-23]`
+
+`routes.py` was 809 lines holding seven route handlers and the assess job engine
+together: lifecycle, the AD-13 heartbeat, per-trial execution and the
+faithfulness tally. `agent/` and `retrieval/` were clean; the API was where the
+discipline stopped, and it is the module a reviewer opens first.
+
+Split three ways so the import graph runs one direction -- `context.py` (values
+both halves need) <- `runner.py` (job execution) <- `routes.py` (transport).
+routes.py is now 474 lines and holds no orchestration.
+
+Verified as a pure move rather than asserted: all 23 functions are present
+afterwards and every body is byte-identical to the original, checked by
+comparing ASTs against the pre-refactor file. 494 tests green including the 20
+SSE and 15 failure-injection cases, the 7 endpoints unchanged in the OpenAPI
+spec, mypy and the regression gate clean.
+
 ### 2.8 Single region, single instance  `[open, accepted]`
 
 API in `syd` beside Neon in `ap-southeast-2`. No redundancy. Correct for a
