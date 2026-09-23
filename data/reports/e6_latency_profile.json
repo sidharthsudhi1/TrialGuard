@@ -1,0 +1,69 @@
+{
+  "base_url": "https://trialguard-api.fly.dev",
+  "top_k": 5,
+  "spacing_s": 6.5,
+  "rate_limit_note": "api_search_rate_per_min=10 per IP; this is a single-client latency distribution, not a throughput test",
+  "resume_health_ms": 87.0,
+  "vector_cache": {
+    "enabled": true,
+    "source": "ctgov_live",
+    "ready": true,
+    "rows": 26037,
+    "load_seconds": 29.9,
+    "error": null
+  },
+  "statuses": {
+    "200": 45
+  },
+  "warm": {
+    "label": "warm (cached keywords)",
+    "requests": 40,
+    "ok": 40,
+    "wall_ms": {
+      "min": 724.1,
+      "p50": 787.3,
+      "p90": 936.0,
+      "p95": 981.9,
+      "p99": 1106.3,
+      "max": 1106.3,
+      "mean": 817.7,
+      "stdev": 84.7
+    },
+    "server_ms": {
+      "min": 636.9,
+      "p50": 703.8,
+      "p90": 756.2,
+      "p95": 859.3,
+      "p99": 1023.1,
+      "max": 1023.1,
+      "mean": 723.1,
+      "stdev": 74.5
+    }
+  },
+  "cold_keyword": {
+    "label": "novel note (LLM keyword extraction)",
+    "requests": 5,
+    "ok": 5,
+    "wall_ms": {
+      "min": 755.1,
+      "p50": 801.4,
+      "p90": 910.3,
+      "p95": 910.3,
+      "p99": 910.3,
+      "max": 910.3,
+      "mean": 820.3,
+      "stdev": 65.7
+    },
+    "server_ms": {
+      "min": 673.6,
+      "p50": 770.6,
+      "p90": 823.1,
+      "p95": 823.1,
+      "p99": 823.1,
+      "max": 823.1,
+      "mean": 748.2,
+      "stdev": 64.4
+    }
+  },
+  "cold_keyword_penalty_ms": 13.7
+}
