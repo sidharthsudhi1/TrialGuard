@@ -49,7 +49,7 @@ def _pct(latencies: list[float], p: float) -> float:
 
 
 def _recall_vs_exact(got: list[list[int]], exact: list[list[int]], k: int) -> float:
-    overlaps = [len(set(g) & set(e)) / k for g, e in zip(got, exact)]
+    overlaps = [len(set(g) & set(e)) / k for g, e in zip(got, exact, strict=True)]
     return round(float(np.mean(overlaps)), 4)
 
 
@@ -189,7 +189,9 @@ def _query_pg(
     for q in queries[:warmup]:
         lit = "[" + ",".join(f"{x:.6f}" for x in q) + "]"
         cur.execute(
-            f"SELECT id FROM {table} ORDER BY embedding <=> %s::vector LIMIT %s", (lit, k)
+            # table is the local constant "bench_ann", never input; values are bound.
+            f"SELECT id FROM {table} ORDER BY embedding <=> %s::vector LIMIT %s",  # noqa: S608 -- table is a local constant, values bound
+            (lit, k),
         )
         cur.fetchall()
 
@@ -198,7 +200,9 @@ def _query_pg(
         lit = "[" + ",".join(f"{x:.6f}" for x in q) + "]"
         t0 = time.perf_counter()
         cur.execute(
-            f"SELECT id FROM {table} ORDER BY embedding <=> %s::vector LIMIT %s", (lit, k)
+            # table is the local constant "bench_ann", never input; values are bound.
+            f"SELECT id FROM {table} ORDER BY embedding <=> %s::vector LIMIT %s",  # noqa: S608 -- table is a local constant, values bound
+            (lit, k),
         )
         results.append([r[0] for r in cur.fetchall()])
         lat.append(time.perf_counter() - t0)

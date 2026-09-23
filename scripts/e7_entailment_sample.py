@@ -171,7 +171,7 @@ def from_csv(src: Path, dest: Path) -> dict:
 
 def _kappa(a: list[bool], b: list[bool]) -> float:
     n = len(a)
-    po = sum(x == y for x, y in zip(a, b)) / n
+    po = sum(x == y for x, y in zip(a, b, strict=True)) / n
     pa, pb = sum(a) / n, sum(b) / n
     pe = pa * pb + (1 - pa) * (1 - pb)
     return (po - pe) / (1 - pe) if pe != 1 else 1.0
@@ -190,7 +190,7 @@ def merge(path_a: Path, path_b: Path, out: Path) -> dict:
 
     va = [bool(ra[k]["entails"]) for k in rated]
     vb = [bool(rb[k]["entails"]) for k in rated]
-    disagreements = [k for k, x, y in zip(rated, va, vb) if x != y]
+    disagreements = [k for k, x, y in zip(rated, va, vb, strict=True) if x != y]
 
     agreed = [
         {**ra[k], "entails": va[i], "adjudication_b": rb[k].get("adjudication", "")}
@@ -204,7 +204,7 @@ def merge(path_a: Path, path_b: Path, out: Path) -> dict:
         "agreed": len(agreed),
         "disagreed": len(disagreements),
         "cohen_kappa": round(_kappa(va, vb), 4),
-        "raw_agreement": round(sum(x == y for x, y in zip(va, vb)) / len(rated), 4),
+        "raw_agreement": round(sum(x == y for x, y in zip(va, vb, strict=True)) / len(rated), 4),
         "non_entailing_rate_on_agreed": round(non_ent / len(agreed), 4) if agreed else None,
         "disagreements": [list(k) for k in disagreements],
         "note": "Disagreements are excluded from the merged set, not resolved. "

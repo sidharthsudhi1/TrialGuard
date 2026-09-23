@@ -40,7 +40,7 @@ def _pct(latencies: list[float], p: float) -> float:
 
 
 def _recall_vs_exact(got: list[list[int]], exact: list[list[int]], k: int) -> float:
-    overlaps = [len(set(g) & set(e)) / k for g, e in zip(got, exact)]
+    overlaps = [len(set(g) & set(e)) / k for g, e in zip(got, exact, strict=True)]
     return round(float(np.mean(overlaps)), 4)
 
 
@@ -150,7 +150,7 @@ def main() -> None:
     ap.add_argument("--pgvector", action="store_true", help="add the live pgvector arm")
     args = ap.parse_args()
 
-    emb, ids = load_embeddings(args.source, args.tag)
+    emb, _ids = load_embeddings(args.source, args.tag)
     rng = np.random.default_rng(0)
     qidx = rng.choice(len(emb), size=min(args.n_queries, len(emb)), replace=False)
     queries = emb[qidx]
