@@ -54,6 +54,9 @@ class Settings(BaseSettings):
     # the matrix is not resident, so turning it off only costs speed.
     retrieval_vector_cache: bool = True
     retrieval_vector_cache_source: str = "ctgov_live"
+    # How often a serving process asks whether the refresh published a new corpus
+    # version. One indexed key read, off the request path.
+    vector_cache_check_s: float = 300.0
 
     # ivfflat probes for the ctgov_live corpus (lists=161). Bench (data/reports/phase7_retrieval.md,
     # recall vs exact top-100 on 26k trials): probes=20 recovered only ~62%, the

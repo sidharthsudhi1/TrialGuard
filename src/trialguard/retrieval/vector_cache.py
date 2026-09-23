@@ -21,6 +21,12 @@ Two properties keep this from being a downgrade:
 - **Falls back.** Any failure to load, or a request for a source this cache does
   not hold, returns None and the caller uses SQL. The worst case is the speed
   this system already had.
+- **Follows the corpus.** The refresh bumps ('corpus', 'version') when it
+  publishes. Every vector_cache_check_s a search kicks off a background check,
+  and a new version is loaded beside the old matrix and swapped in. Loaded once
+  and never again, the matrix kept serving trials the refresh had expired and
+  never saw the ones it added, for as long as the process lived -- and Fly's
+  suspend keeps a process alive for days.
 
 It stops being the right answer somewhere past a million rows, where the matrix
 no longer fits comfortably and a real ANN index earns its keep. That is far from
@@ -49,20 +55,31 @@ class VectorCache:
         self._loading = False
         self.load_seconds: float | None = None
         self.error: str | None = None
+        self.version: str | None = None
+        self.loaded_at: str | None = None
+        self._last_check = 0.0
 
     @property
     def ready(self) -> bool:
         return self._matrix is not None
 
-    def load(self) -> bool:
-        """Fetch every embedding for this source and build the matrix."""
+    def load(self, reload: bool = False) -> bool:
+        """Fetch every embedding for this source and build the matrix.
+
+        `reload` builds a new matrix beside the resident one; searches keep using
+        the old one until the swap.
+        """
         with self._lock:
-            if self._matrix is not None or self._loading:
+            if self._loading or (self._matrix is not None and not reload):
                 return self._matrix is not None
             self._loading = True
         try:
             t0 = time.perf_counter()
             from trialguard.db.schema import get_conn
+
+            # Read before the rows, so a publish landing mid-load leaves this
+            # version stale and the next check loads again, never the reverse.
+            version = corpus_version()
 
             # embedding::text, parsed in bulk here, rather than pgvector's
             # register_vector adapter. The adapter converts row by row through
@@ -104,6 +121,9 @@ class VectorCache:
             with self._lock:
                 self._ids = ids
                 self._matrix = matrix
+                self.version = version
+                self.loaded_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                self.error = None
             self.load_seconds = time.perf_counter() - t0
             log.info(
                 "vector cache ready: %d x %d (%.0f MB) in %.1fs",
@@ -117,6 +137,25 @@ class VectorCache:
         finally:
             with self._lock:
                 self._loading = False
+
+    def maybe_reload(self) -> threading.Thread | None:
+        """Throttled, non-blocking: check the corpus version and reload if it moved."""
+        from trialguard.config import settings
+
+        now = time.monotonic()
+        if self._matrix is None or now - self._last_check < settings.vector_cache_check_s:
+            return None
+        self._last_check = now
+
+        def check() -> None:
+            current = corpus_version()
+            if current is not None and current != self.version:
+                log.info("corpus version %s -> %s; reloading vector cache", self.version, current)
+                self.load(reload=True)
+
+        thread = threading.Thread(target=check, name="tg-vector-cache-check", daemon=True)
+        thread.start()
+        return thread
 
     def search(self, query_vec, top_k: int) -> list[tuple[str, float]] | None:
         """Top-k by cosine similarity, or None when the matrix is not resident."""
@@ -155,7 +194,17 @@ def cached_search(query_vec, top_k: int, source: str | None) -> list[tuple[str, 
         return None
     if source != settings.retrieval_vector_cache_source:
         return None
-    return get_cache(source).search(query_vec, top_k)
+    cache = get_cache(source)
+    cache.maybe_reload()
+    return cache.search(query_vec, top_k)
+
+
+def corpus_version() -> str | None:
+    """The run_id of the refresh that last changed the corpus, or None."""
+    from trialguard.db.cache import cache_get
+
+    value = cache_get("corpus", "version")
+    return value.get("run_id") if isinstance(value, dict) else None
 
 
 def warm_in_background(source: str) -> threading.Thread | None:
@@ -185,4 +234,6 @@ def status() -> dict:
         "rows": len(cache._ids),
         "load_seconds": round(cache.load_seconds, 1) if cache.load_seconds else None,
         "error": cache.error,
+        "version": cache.version,
+        "loaded_at": cache.loaded_at,
     }
