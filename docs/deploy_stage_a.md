@@ -91,11 +91,33 @@ reports `load_seconds: 32.9` for its 25,965 rows.
 ## Scheduled corpus refresh
 
 `python -m trialguard.scripts.refresh` reconciles `ctgov_live` against
-ClinicalTrials.gov: expired trials are deleted, new ones embedded and inserted,
-and records whose `lastUpdatePostDate` moved are re-embedded because their
-eligibility text may have moved with it. An already-current corpus writes nothing
-and makes zero embedding calls, so running it more often than necessary costs a
-CT.gov crawl and nothing else.
+ClinicalTrials.gov as write-audit-publish ([AD-33](adr/0033-refresh-write-audit-publish.md)).
+It proves the crawl complete, re-embeds only trials whose embedded text moved,
+expires a trial only once CT.gov confirms it left, audits the result, and
+publishes it in one transaction. A run where CT.gov has not published since the
+last success is one `/version` request, so it is scheduled **hourly**.
+
+```bash
+python -m trialguard.scripts.refresh --dry-run              # plan + gates, writes nothing
+python -m trialguard.scripts.refresh --allow reembed_churn  # one intended large change
+python -m trialguard.scripts.refresh --force                # ignore the /version check
+TG_REFRESH_V2=0 python -m trialguard.scripts.refresh        # rollback: the v1 date diff
+```
+
+Exit codes: 0 published, noop or skipped; 1 failed; 2 aborted by a gate; 75
+another run holds the lease. Calibrated gates log until `TG_REFRESH_GATES=enforce`
+is set on the refresh machine. Switch it on once `refresh_runs` holds about two
+weeks of baselines. Hard gates always block.
+
+**Schema prerequisite.** The upsert names the provenance columns, so
+`python -m trialguard.scripts.migrate_provenance` must have run against the
+database first. It ran on production Neon on 2026-09-23. It is idempotent: a
+rerun finds nothing to fill in.
+
+**First v2 run.** The first dry run against production planned 4,578 re-embeds.
+4,537 of them are rows stored with criteria from older parser versions, not
+CT.gov revisions (AD-33). That is ~16 min of MedCPT CPU. The churn gate reports
+it but does not block in log mode.
 
 It runs as a **Fly scheduled machine in the same app**, not as a GitHub Actions
 job. Three reasons: the image already has MedCPT baked in, so embedding needs no
@@ -137,16 +159,22 @@ refresh that finds nothing to embed never loads it, but the machine has to be
 sized for the run that does. `--restart no` so a failed crawl waits for the next
 schedule instead of retrying straight back into the rate limit that failed it.
 
-The crawl is paced at `ctgov_request_delay` (1.5 s) over `ctgov_page_size` (100),
-so ~26k trials is ~260 requests and roughly six to seven minutes before any
-embedding. **Measure the first run rather than trusting that estimate** — it is
-arithmetic, not an observation.
+The crawl is paced at `ctgov_request_delay` (1.5 s) over `ctgov_page_size`
+(1000, the API cap). Measured 2026-09-23: 26,107 trials in 27 requests and 75 s.
 
 ### Seeing the result
 
-`/api/health` reports `corpus_refresh` — the counts from the last run and the
-timestamp it finished — so a refresh that silently stopped running is visible
-rather than inferred. That field, not the deploy script exiting 0, is the
+`/api/health` reports two things:
+
+- `corpus_refresh`: the counts from the last publish, and when the corpus was
+  last reconciled. A skipped run advances this, since CT.gov had nothing newer.
+- `refresh_state`: the last attempt with its outcome and reason, the
+  consecutive-failure streak, and the published `corpus_version`.
+
+The probe alerts on the second consecutive failed or gate-aborted run. It also
+alerts when the serving process's `vector_cache.version` trails
+`corpus_version` by more than 15 minutes. A refresh that silently stopped
+running is therefore visible rather than inferred. That field, not the deploy script exiting 0, is the
 evidence the schedule actually fires: the script proves the machine was created,
 not that Fly ran it. Per-trial `last_updated` is served on `/api/search` and
 `/api/trials/{id}` and rendered in the UI, with records CT.gov has not touched in

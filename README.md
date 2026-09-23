@@ -595,6 +595,7 @@ what it corrects.
 | [AD-30](docs/adr/0030-served-latency-p95-and-capacity.md) | The served API has a p95 and a capacity number |  |
 | [AD-31](docs/adr/0031-ci-gates-widened.md) | The CI gate is widened until it can fail |  |
 | [AD-32](docs/adr/0032-nli-route-at-350-items.md) | The NLI route re-tested at 350 items |  |
+| [AD-33](docs/adr/0033-refresh-write-audit-publish.md) | The corpus refresh is write-audit-publish over content hashes |  |
 
 *When a decision is reversed during the build, the reversal and reason are recorded — not deleted.*
 
