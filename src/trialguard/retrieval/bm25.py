@@ -17,7 +17,7 @@ from trialguard.db.schema import get_conn
 SQL = """
 SELECT nct_id, ts_rank_cd(doc_tsv, query) AS score
 FROM trials, websearch_to_tsquery('english', %(q)s) AS query
-WHERE doc_tsv @@ query
+WHERE doc_tsv @@ query AND expired_at IS NULL
 {source_clause}
 ORDER BY score DESC
 LIMIT %(top_k)s;

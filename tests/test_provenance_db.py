@@ -10,49 +10,17 @@ from __future__ import annotations
 
 import os
 import random
-import uuid
-from urllib.parse import quote
 
-import psycopg2
 import pytest
 
 from trialguard.db import schema
 from trialguard.ingestion import loader
 from trialguard.ingestion.provenance import content_hash, doc_hash, parser_version
 
-TEST_DB = os.environ.get("TG_TEST_DATABASE_URL", "")
-
 pytestmark = pytest.mark.skipif(
-    not TEST_DB and not os.environ.get("CI"),
+    not os.environ.get("TG_TEST_DATABASE_URL") and not os.environ.get("CI"),
     reason="TG_TEST_DATABASE_URL not set",
 )
-
-
-@pytest.fixture
-def db(monkeypatch):
-    """A throwaway schema holding the full production DDL."""
-    name = f"t_{uuid.uuid4().hex[:10]}"
-    admin = psycopg2.connect(TEST_DB)
-    admin.autocommit = True
-    with admin.cursor() as cur:
-        try:
-            cur.execute("CREATE EXTENSION IF NOT EXISTS vector")
-        except psycopg2.Error:
-            if os.environ.get("CI"):
-                raise
-            pytest.skip("pgvector not installed on the test server")
-        cur.execute(f"CREATE SCHEMA {name}")
-
-    sep = "&" if "?" in TEST_DB else "?"
-    dsn = f"{TEST_DB}{sep}options={quote(f'-csearch_path={name},public')}"
-    schema.close_pool()
-    monkeypatch.setattr("trialguard.config.settings.database_url", dsn)
-    schema.init_schema()
-    yield dsn
-    schema.close_pool()
-    with admin.cursor() as cur:
-        cur.execute(f"DROP SCHEMA {name} CASCADE")
-    admin.close()
 
 
 def _trial(nct: str, source: str = "ctgov_live", **kw) -> dict:
@@ -85,7 +53,7 @@ def _row(nct: str) -> dict:
     return dict(zip(keys, r, strict=True)) if r else {}
 
 
-def test_the_ddl_is_idempotent(db):
+def test_the_ddl_is_idempotent(pg_db):
     schema.init_schema()
     with schema.get_conn() as conn, conn.cursor() as cur:
         cur.execute(schema.PROVENANCE_DDL)
@@ -93,7 +61,7 @@ def test_the_ddl_is_idempotent(db):
         assert cur.fetchone()[0] == 0
 
 
-def test_an_upsert_stamps_provenance(db):
+def test_an_upsert_stamps_provenance(pg_db):
     t = _trial("NCT00000001")
     loader.upsert_trials([t])
 
@@ -105,7 +73,7 @@ def test_an_upsert_stamps_provenance(db):
     assert row["first_seen_at"] is not None
 
 
-def test_a_re_upsert_keeps_first_seen_and_moves_last_seen(db):
+def test_a_re_upsert_keeps_first_seen_and_moves_last_seen(pg_db):
     loader.upsert_trials([_trial("NCT00000001")])
     first = _row("NCT00000001")
 
@@ -118,7 +86,7 @@ def test_a_re_upsert_keeps_first_seen_and_moves_last_seen(db):
     assert second["doc_hash"] != first["doc_hash"]
 
 
-def test_an_upsert_cannot_steal_another_sources_row(db):
+def test_an_upsert_cannot_steal_another_sources_row(pg_db):
     """The PK is nct_id alone; without the guard an eval load relabels production."""
     loader.upsert_trials([_trial("NCT00000001", source="sigir")])
 
@@ -133,12 +101,12 @@ def test_an_upsert_cannot_steal_another_sources_row(db):
     assert _row("NCT00000002") == {}
 
 
-def test_a_duplicate_inside_one_batch_does_not_fail_it(db):
+def test_a_duplicate_inside_one_batch_does_not_fail_it(pg_db):
     loader.upsert_trials([_trial("NCT00000001"), _trial("NCT00000001", title="later")])
     assert _row("NCT00000001")["title"] == "later"
 
 
-def test_the_backfill_stamps_legacy_rows_once(db, monkeypatch):
+def test_the_backfill_stamps_legacy_rows_once(pg_db, monkeypatch):
     from trialguard.scripts import migrate_provenance as mp
 
     t = _trial("NCT00000001")
@@ -164,7 +132,7 @@ def test_the_backfill_stamps_legacy_rows_once(db, monkeypatch):
     assert mp.migrate(dry_run=False, sample=10, threshold=0.999)["rows"] == 0
 
 
-def test_a_failed_embedding_check_stamps_unknown(db, monkeypatch):
+def test_a_failed_embedding_check_stamps_unknown(pg_db, monkeypatch):
     from trialguard.scripts import migrate_provenance as mp
 
     loader.upsert_trials([_trial("NCT00000001")])
@@ -179,7 +147,7 @@ def test_a_failed_embedding_check_stamps_unknown(db, monkeypatch):
     assert _row("NCT00000001")["embed_tag"] == "unknown"
 
 
-def test_a_dry_run_writes_nothing(db, monkeypatch):
+def test_a_dry_run_writes_nothing(pg_db, monkeypatch):
     from trialguard.scripts import migrate_provenance as mp
 
     loader.upsert_trials([_trial("NCT00000001")])

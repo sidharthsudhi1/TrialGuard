@@ -71,7 +71,7 @@ class VectorCache:
             with get_conn() as conn, conn.cursor() as cur:
                 cur.execute(
                     "SELECT nct_id, embedding::text FROM trials "
-                    "WHERE embedding IS NOT NULL AND source = %s",
+                    "WHERE embedding IS NOT NULL AND expired_at IS NULL AND source = %s",
                     (self.source,),
                 )
                 rows = cur.fetchall()

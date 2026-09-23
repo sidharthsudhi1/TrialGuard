@@ -22,6 +22,11 @@ _TRIAL_COLS = (
     # is rather than infer it from a corpus described as current somewhere else.
     "last_updated",
     "source",
+    # Soft expiry: a trial that left the enrolling set keeps its row. Returned so
+    # a caller holding an id from an older search can say "no longer recruiting
+    # (COMPLETED)" instead of "not found"; retrieval never surfaces these.
+    "expired_at",
+    "expired_reason",
 )
 
 _SELECT = ", ".join(_TRIAL_COLS)

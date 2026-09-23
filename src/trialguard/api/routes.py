@@ -283,7 +283,9 @@ def search(body: SearchRequest, request: Request) -> dict[str, Any]:
     trials = []
     for nct, score in hits:
         t = rows.get(nct)
-        if not t:
+        # Expired rows are filtered at retrieval, but the in-process vector matrix
+        # can trail a refresh by a few minutes; never surface one as enrolling.
+        if not t or t.get("expired_at"):
             continue
         trials.append(
             {

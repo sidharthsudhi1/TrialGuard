@@ -135,10 +135,6 @@ CREATE TABLE IF NOT EXISTS trials (
 
 CREATE INDEX IF NOT EXISTS trials_source_idx ON trials(source);
 
-CREATE INDEX IF NOT EXISTS trials_embedding_idx
-    ON trials USING ivfflat (embedding vector_cosine_ops)
-    WITH (lists = 161);
-
 CREATE INDEX IF NOT EXISTS trials_doc_tsv_idx
     ON trials USING gin (doc_tsv);
 
@@ -261,7 +257,33 @@ def close_pool() -> None:
         _pool = None
 
 
+# ivfflat centroids are trained from the rows present when the index is built
+# and never move afterwards. Created by the DDL, it was trained on an empty table
+# on every fresh database. lists = 161 is the Phase 7 tuning for ~26k rows
+# (data/reports/phase7_retrieval.md); scripts/migrate_fts.py rebuilds it.
+VECTOR_INDEX_MIN_ROWS = 1000
+VECTOR_INDEX_SQL = """
+CREATE INDEX IF NOT EXISTS trials_embedding_idx
+    ON trials USING ivfflat (embedding vector_cosine_ops)
+    WITH (lists = 161)
+"""
+
+
+def ensure_vector_index() -> bool:
+    """Build the ivfflat index once there is data to train it on. Returns built."""
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("SELECT to_regclass('trials_embedding_idx')")
+        if cur.fetchone()[0] is not None:
+            return False
+        cur.execute("SELECT count(*) FROM trials WHERE embedding IS NOT NULL")
+        if cur.fetchone()[0] < VECTOR_INDEX_MIN_ROWS:
+            return False
+        cur.execute(VECTOR_INDEX_SQL)
+    return True
+
+
 def init_schema() -> None:
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute(DDL)
+    ensure_vector_index()
     print("Schema initialised.")

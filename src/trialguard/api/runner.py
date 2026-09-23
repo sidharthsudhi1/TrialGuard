@@ -282,6 +282,18 @@ def _assess_one(
             "trial_verdict": "cannot_determine",
             "assessments": [],
         }
+    if trial.get("expired_at"):
+        # Left the enrolling set after the search that produced this id. Assessing
+        # it would spend on a trial nobody can join.
+        return {
+            "type": "trial",
+            "nct_id": nct_id,
+            "error": "no_longer_recruiting",
+            "expired_reason": trial.get("expired_reason"),
+            "trial_verdict": "cannot_determine",
+            "assessments": [],
+            "title": trial.get("title"),
+        }
     criteria, truncated = build_typed_criteria(trial, max_total=MAX_CRITERIA)
     if not criteria:
         return {

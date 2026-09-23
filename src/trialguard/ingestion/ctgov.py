@@ -328,3 +328,38 @@ def fetch_oncology_trials(
             _sleep(settings.ctgov_request_delay)
 
     log.info("Fetched %d trials.", fetched)
+
+
+LOOKUP_CHUNK = 100
+
+
+def lookup_ids(ids: list[str], client: httpx.Client | None = None) -> dict[str, str | None]:
+    """Current overallStatus per NCT id, or None where CT.gov returned nothing.
+
+    Used to confirm that a trial missing from a complete crawl really left scope
+    before it is expired. filter.ids ignores the status filter, so a trial that
+    moved to COMPLETED still comes back and says so.
+    """
+    own = client is None
+    client = client or _client()
+    url = f"{settings.ctgov_api_base}/studies"
+    found: dict[str, str | None] = dict.fromkeys(ids)
+    try:
+        for i in range(0, len(ids), LOOKUP_CHUNK):
+            chunk = ids[i : i + LOOKUP_CHUNK]
+            params = {
+                "filter.ids": ",".join(chunk),
+                "fields": "NCTId,OverallStatus",
+                "pageSize": LOOKUP_CHUNK,
+                "format": "json",
+            }
+            resp, _ = _get(client, url, params)
+            for study in resp.json().get("studies") or []:
+                t = _extract_trial(study)
+                if t["nct_id"] in found:
+                    found[t["nct_id"]] = t["status"] or None
+            _sleep(settings.ctgov_request_delay)
+    finally:
+        if own:
+            client.close()
+    return found

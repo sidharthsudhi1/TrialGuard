@@ -147,6 +147,22 @@ def test_a_trial_deleted_by_a_refresh_mid_session_is_reported_not_guessed(client
     assert events[-1][1]["status"] == "done"
 
 
+def test_a_trial_expired_mid_session_says_why_and_is_not_assessed(client):
+    """Soft expiry keeps the row, so the answer is "no longer recruiting
+    (COMPLETED)" rather than an unexplained not_found, and nothing is spent."""
+    expired = {**STUB_ROWS["NCT0001"], "expired_at": "2026-09-24T09:00:00+00:00",
+               "expired_reason": "status:COMPLETED"}
+    called = []
+    _, events = _assess(client, get_trial=lambda nct, source=None: expired,
+                        assess_impl=lambda *a, **k: called.append(1))
+
+    trial = next(payload for _, payload in events if payload.get("type") == "trial")
+    assert trial["error"] == "no_longer_recruiting"
+    assert trial["expired_reason"] == "status:COMPLETED"
+    assert called == []
+    assert events[-1][1]["status"] == "done"
+
+
 def test_a_trial_whose_criteria_vanished_still_closes_the_stream(client):
     """A revised record can lose its parsed criteria while keeping its row."""
     empty = {**STUB_ROWS["NCT0001"], "inclusion_criteria": [], "exclusion_criteria": []}
