@@ -23,13 +23,18 @@ and, in particular, zero embedding calls.
 
   python -m trialguard.scripts.refresh
 
-Safety: if the fresh pull is a small fraction of the existing corpus (a partial or
-failed CT.gov pull), the whole refresh is aborted rather than deleting most of the
-corpus.
+Safety: the pull is proven complete before anything is diffed (pull_trials
+raises IncompletePull otherwise), and if it is still a small fraction of the
+existing corpus the whole refresh is aborted rather than deleting most of it.
+
+Exit codes: 0 done, 1 failed (including an incomplete pull), 2 aborted by a
+guard. A scheduled machine that exits 0 on an abort reports success while the
+corpus goes stale.
 """
 
 from __future__ import annotations
 
+import sys
 from datetime import UTC, datetime
 
 import psycopg2.extras
@@ -37,13 +42,17 @@ from rich.console import Console
 
 from trialguard.db.cache import cache_put
 from trialguard.db.schema import get_conn
-from trialguard.ingestion.ctgov import fetch_oncology_trials
+from trialguard.ingestion.ctgov import pull_trials
 from trialguard.ingestion.embed import eligibility_text_for_embedding, embed_batch
 from trialguard.ingestion.loader import upsert_trials
 from trialguard.ingestion.normalise import normalise_trial
 
 console = Console()
 SOURCE = "ctgov_live"
+
+EXIT_OK = 0
+EXIT_FAILED = 1
+EXIT_ABORTED = 2
 
 
 def _utcnow() -> str:
@@ -77,11 +86,15 @@ def plan_refresh(
     return expired, new_ids, revised, restatused
 
 
-def refresh(max_trials: int = 40000) -> dict | None:
+def refresh(max_trials: int | None = None) -> dict | None:
     console.print("Pulling current recruiting oncology set from CT.gov...")
-    fresh = {t["nct_id"]: normalise_trial(t) for t in fetch_oncology_trials(max_trials=max_trials)}
+    pull = pull_trials(max_trials=max_trials)
+    fresh = {n: normalise_trial(t) for n, t in pull.trials.items()}
     fresh_ids = set(fresh)
-    console.print(f"  {len(fresh_ids)} recruiting trials live.")
+    console.print(
+        f"  {len(fresh_ids)} recruiting trials live "
+        f"({pull.pages} pages, {pull.retries} retries, data {pull.data_timestamp})."
+    )
 
     with get_conn() as c, c.cursor() as cur:
         cur.execute(
@@ -141,6 +154,7 @@ def refresh(max_trials: int = 40000) -> dict | None:
         "restatused": len(restatused),
         "corpus": len(fresh_ids),
         "embedded": len(to_embed),
+        "ctgov_data_timestamp": pull.data_timestamp,
     }
     # Recorded so /api/health can report when the corpus was last reconciled.
     # Staleness that nothing can see is the state this work stream exists to end.
@@ -153,5 +167,14 @@ def refresh(max_trials: int = 40000) -> dict | None:
     return summary
 
 
+def main() -> int:
+    try:
+        summary = refresh()
+    except Exception as e:
+        console.print(f"[red]Refresh failed: {type(e).__name__}: {e}[/red]")
+        return EXIT_FAILED
+    return EXIT_OK if summary is not None else EXIT_ABORTED
+
+
 if __name__ == "__main__":
-    refresh()
+    sys.exit(main())

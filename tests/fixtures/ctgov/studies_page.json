@@ -1,0 +1,110 @@
+{
+ "totalCount": 3,
+ "studies": [
+  {
+   "protocolSection": {
+    "identificationModule": {
+     "nctId": "NCT01601171",
+     "briefTitle": "Genetics of Reproductive Disorders (Including Kallmann Syndrome) and Cleft Lip and/or Palate"
+    },
+    "statusModule": {
+     "overallStatus": "RECRUITING",
+     "lastUpdatePostDateStruct": {
+      "date": "2022-06-21"
+     }
+    },
+    "conditionsModule": {
+     "conditions": [
+      "Kallmann Syndrome",
+      "Hypogonadotropic Hypogonadism",
+      "Hypothalamic Amenorrhea",
+      "Polycystic Ovarian Syndrome",
+      "Precocious Puberty",
+      "Cleft Lip and Palate",
+      "Cleft Palate",
+      "Cleft Lip"
+     ]
+    },
+    "designModule": {},
+    "armsInterventionsModule": {},
+    "eligibilityModule": {
+     "eligibilityCriteria": "Inclusion Criteria:(any of the following conditions)\n\n* hypogonadotropic hypogonadism\n* Kallmann syndrome\n* adult-onset hypogonadotropic hypogonadism\n* hypothalamic amenorrhea\n* polycystic ovarian syndrome\n* primary gonadal failure\n* precocious puberty\n* cleft lip/palate\n* family members of the above groups\n\nExclusion Criteria:\n\n* acute illness/hospitalization\n* pituitary tumors\n* iron overload (hemochromatosis)\n* infiltrative diseases (sarcoidosis)\n* chronic alcohol abuse\n* illicit drug use\n* anabolic steroid abuse",
+     "healthyVolunteers": true,
+     "sex": "ALL"
+    }
+   }
+  },
+  {
+   "protocolSection": {
+    "identificationModule": {
+     "nctId": "NCT04150744",
+     "briefTitle": "RFA Plus Carrizumab vs Carrizumab Alone for HCC"
+    },
+    "statusModule": {
+     "overallStatus": "RECRUITING",
+     "lastUpdatePostDateStruct": {
+      "date": "2020-07-08"
+     }
+    },
+    "conditionsModule": {
+     "conditions": [
+      "Tumor Immunity",
+      "Immunosuppression",
+      "Radiofrequency Ablation"
+     ]
+    },
+    "designModule": {
+     "phases": [
+      "PHASE2"
+     ]
+    },
+    "armsInterventionsModule": {
+     "interventions": [
+      {
+       "name": "radiofrequency ablation"
+      }
+     ]
+    },
+    "eligibilityModule": {
+     "eligibilityCriteria": "Inclusion Criteria:\n\n1. Age from 18-75 years\n2. Diagnosis as hepatocellular carcinoma from histology and cytology\n3. BCLC B-C degree\n4. Score of ECOG PS: 0-2\n5. Child-Pugh Score: A or B\n6. Not suitable for resection or liver transplantation\n7. Have not received systemic therapy\n8. Have at least one evaluable target mass from CT or MRI according to mRECIST\n9. The estimated survival time \u2265 12 weeks\n10. Patients with HBV infection having HBV-DNA \\<500IU/mL and standard anti-virus treatment. Patients with HCV infection must receive standard anti-virus treatment.\n11. The function of main organs normal\n12. Sign informed consent\n\nExclusion Criteria:\n\n1. Have cholangiocarcinoma, mixed type of hepatocarcinoma and fibrolamellar hepatocellular carcinoma. Have incurable malignant tumor in five years.\n2. Have local ablation, TACE or radiotherapy in 3 months before enrolled.\n3. Prepared to or have received organic or bone marrow transplantation.\n4. Uncontrollable ascites, hepatic encephalopathy or esophageal and gastric varices.\n5. Have hypertension and can't lower down to the normal level using blood pressure medication.\n6. Have type II myocardial ischemia or myocardial infarction, uncontrollable arrhythmia.\n7. Have diseases to influent the effect of oral drugs, for example, unable to swallow, chronic diarrhea and intestinal obstruction.\n8. Have gastrointestinal bleeding in 6 months\n9. Have abdominal fistula, gastrointestinal perforation or abdominal abscess\n10. Patients with lung fibrosis, interstitial pneumonia, pneumoconiosis, radiation pneumonitis, drug related pneumonia or severe dysfunction of lung.\n11. Routine urine test showed urinary protein \u2265++ or the 24 hours amount of urinary protein \u22651.0 g\n12. Patients have autoimmune disease\n13. Patients need corticosteroid or other immunosuppressant therapy\n14. Patients have anti-tumor vaccine and other immunostimulate anti-tumor drugs in 3 months\n15. Allergy to monocloning antibody\n16. Pregnant or breastfeeding female Other patients not suitable to be enrolled in the study.",
+     "healthyVolunteers": true,
+     "sex": "ALL",
+     "minimumAge": "18 Years",
+     "maximumAge": "75 Years"
+    }
+   }
+  },
+  {
+   "protocolSection": {
+    "identificationModule": {
+     "nctId": "NCT07224750",
+     "briefTitle": "A Noninvasive and Screening miRNA Signature for Gastrointestinal Cancer"
+    },
+    "statusModule": {
+     "overallStatus": "RECRUITING",
+     "lastUpdatePostDateStruct": {
+      "date": "2026-07-07"
+     }
+    },
+    "conditionsModule": {
+     "conditions": [
+      "Hepatocellular Carcinoma (HCC)",
+      "Cholangiocarcinoma",
+      "Pancreatic Ductal Adenocarcinoma (PDAC)",
+      "Esophageal Squamous Cell Carcinoma (ESCC)",
+      "Gastric Cancer (GC)",
+      "Colorectal Cancer Screening"
+     ]
+    },
+    "designModule": {},
+    "armsInterventionsModule": {},
+    "eligibilityModule": {
+     "eligibilityCriteria": "Inclusion Criteria:\n\n1. Adults aged 18 years or older at the time of blood sample collection.\n2. Patients with a confirmed diagnosis of one of the following gastrointestinal cancers: Hepatocellular carcinoma (HCC), Cholangiocarcinoma (CCA), Pancreatic ductal adenocarcinoma (PDAC), Esophageal squamous cell carcinoma (ESCC), Gastric cancer (GC), Colorectal cancer (CRC), Non-cancer control participants, including healthy volunteers or patients with benign gastrointestinal conditions.\n3. Availability of retrospective blood samples collected according to institutional protocols.\n4. Willingness to allow use of de-identified clinical and demographic data for research purposes.\n\nExclusion Criteria:\n\n* other active malignancies; insufficient sample quality/volume; recent chemotherapy/radiotherapy/surgery; any condition preventing reliable participation.",
+     "healthyVolunteers": true,
+     "sex": "ALL",
+     "minimumAge": "18 Years"
+    }
+   }
+  }
+ ]
+}

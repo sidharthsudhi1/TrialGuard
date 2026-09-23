@@ -63,7 +63,10 @@ class Settings(BaseSettings):
 
     # ClinicalTrials.gov
     ctgov_api_base: str = "https://clinicaltrials.gov/api/v2"
-    ctgov_page_size: int = 100
+    # 1000 is the API's cap (larger values are clamped silently). ~26 requests per
+    # corpus crawl instead of ~260 shrinks both the window for pagination drift
+    # and the exposure to transient errors tenfold.
+    ctgov_page_size: int = 1000
     ctgov_request_delay: float = 1.5  # seconds — stay under 50 req/min
 
     # Scope

@@ -5,6 +5,8 @@ from __future__ import annotations
 from contextlib import contextmanager
 from unittest.mock import MagicMock, patch
 
+from trialguard.ingestion.ctgov import IncompletePull, PullResult
+from trialguard.scripts import refresh as refresh_mod
 from trialguard.scripts.refresh import plan_refresh, refresh
 
 
@@ -90,10 +92,19 @@ def _stub_db(rows: list[tuple]):
         yield cur
 
 
+def _pull(fresh: list[dict]) -> PullResult:
+    return PullResult(
+        trials={t["nct_id"]: t for t in fresh},
+        total_count=len(fresh),
+        pages=1,
+        data_timestamp="2026-09-23T09:00:05",
+    )
+
+
 def _run(fresh: list[dict], rows: list[tuple]):
     with (
         _stub_db(rows),
-        patch("trialguard.scripts.refresh.fetch_oncology_trials", return_value=fresh),
+        patch("trialguard.scripts.refresh.pull_trials", return_value=_pull(fresh)),
         patch("trialguard.scripts.refresh.normalise_trial", side_effect=lambda t: t),
         # One vector per input is embed_batch's contract. A bare MagicMock
         # returns a single mock instead, which let refresh() zip mismatched
@@ -124,6 +135,7 @@ def test_a_noop_refresh_makes_zero_embedding_calls():
         "restatused": 0,
         "corpus": 2,
         "embedded": 0,
+        "ctgov_data_timestamp": "2026-09-23T09:00:05",
     }
 
 
@@ -162,3 +174,32 @@ def test_the_refresh_records_when_it_ran():
     assert (namespace, key) == ("corpus", "last_refresh")
     assert value["corpus"] == 1
     assert "at" in value
+
+
+# --------------------------------------------------------------------------
+# Exit codes: a scheduled machine only sees the process status
+# --------------------------------------------------------------------------
+
+
+def test_a_completed_refresh_exits_zero():
+    with patch.object(refresh_mod, "refresh", return_value={"corpus": 1}):
+        assert refresh_mod.main() == refresh_mod.EXIT_OK
+
+
+def test_a_guard_abort_exits_non_zero():
+    """It used to return None and exit 0, so Fly recorded an abort as success."""
+    with patch.object(refresh_mod, "refresh", return_value=None):
+        assert refresh_mod.main() == refresh_mod.EXIT_ABORTED
+
+
+def test_an_incomplete_pull_fails_the_run_before_any_write():
+    with (
+        _stub_db([]) as cur,
+        patch.object(refresh_mod, "pull_trials", side_effect=IncompletePull("12 of 20")),
+        patch.object(refresh_mod, "upsert_trials") as upsert,
+        patch.object(refresh_mod, "cache_put") as cache_put,
+    ):
+        assert refresh_mod.main() == refresh_mod.EXIT_FAILED
+    cur.execute.assert_not_called()
+    upsert.assert_not_called()
+    cache_put.assert_not_called()
