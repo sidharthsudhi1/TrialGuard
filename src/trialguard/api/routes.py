@@ -171,6 +171,26 @@ def _corpus_freshness() -> dict[str, Any] | None:
     return cache_get("corpus", "last_refresh")
 
 
+def _refresh_health() -> dict[str, Any] | None:
+    """Last refresh attempt, failure streak and published corpus version.
+
+    The success stamp alone cannot tell "aborted twice on a schema change" from
+    "the scheduler stopped firing". Never raises: health must answer even if the
+    ledger table is missing.
+    """
+    if not settings.database_url:
+        return None
+    try:
+        from trialguard.db.cache import cache_get
+        from trialguard.ingestion import ledger
+
+        state = ledger.health(SOURCE) or {}
+        state["corpus_version"] = cache_get("corpus", "version")
+        return state
+    except Exception as e:
+        return {"error": type(e).__name__}
+
+
 @router.get("/health")
 def health(request: Request) -> dict[str, Any]:
     """Process up + pool leasable + MedCPT warm flag."""
@@ -210,6 +230,7 @@ def health(request: Request) -> dict[str, Any]:
         "medcpt_warm": bool(request.app.state.medcpt_warm),
         "vector_cache": _vector_cache_status(),
         "corpus_refresh": _corpus_freshness(),
+        "refresh_state": _refresh_health(),
         "prompt_version": os.environ.get("TG_PROMPT_VERSION", "v1"),
         "synthetic_only": True,
         "notice": SYNTHETIC_NOTICE,

@@ -64,6 +64,37 @@ def _corpus_age_hours(health: dict) -> float | None:
     return round(delta.total_seconds() / 3600, 2)
 
 
+def _refresh_failures(health: dict) -> int | None:
+    state = health.get("refresh_state")
+    if not isinstance(state, dict) or "consecutive_failures" not in state:
+        return None
+    return int(state["consecutive_failures"])
+
+
+def _vector_cache_lag_minutes(health: dict) -> float | None:
+    """Minutes the serving matrix has trailed a published corpus, or None if current.
+
+    Measured from the publish, so a reload still inside its check interval is
+    not reported as lag.
+    """
+    state = health.get("refresh_state")
+    cache = health.get("vector_cache")
+    if not isinstance(state, dict) or not isinstance(cache, dict) or not cache.get("ready"):
+        return None
+    version = state.get("corpus_version")
+    if not isinstance(version, dict) or not version.get("run_id"):
+        return None
+    if version["run_id"] == cache.get("version"):
+        return None
+    try:
+        at = dt.datetime.fromisoformat(version["published_at"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    if at.tzinfo is None:
+        at = at.replace(tzinfo=dt.UTC)
+    return round((dt.datetime.now(dt.UTC) - at).total_seconds() / 60, 1)
+
+
 def probe(base_url: str, *, client=None, timeout: float = 60.0) -> dict:
     """Hit the live endpoints once each and report what happened."""
     import httpx
@@ -108,6 +139,8 @@ def probe(base_url: str, *, client=None, timeout: float = 60.0) -> dict:
         "pool_ok": bool(health.get("pool_ok")),
         "store_ok": bool(health.get("store_ok")),
         "corpus_age_hours": _corpus_age_hours(health),
+        "refresh_consecutive_failures": _refresh_failures(health),
+        "vector_cache_lag_minutes": _vector_cache_lag_minutes(health),
         "budget_ms": budget_ms,
         "budget_status": _status(r_budget, budget_err),
         "budget_exhausted": bool(budget.get("exhausted")),
@@ -243,6 +276,27 @@ def check(result: dict, thresholds_path: Path = THRESHOLDS) -> dict:
             age,
             f"<= {t['max_corpus_age_hours']} h",
         )
+
+    # The freshness stamp only moves on success, so a refresh aborting on a gate
+    # every run looks identical to one that has not fired -- until it is 48 h old.
+    # The ledger names it at the second failure.
+    failures = result.get("refresh_consecutive_failures")
+    if failures is None:
+        _row("refresh_not_failing", True, "no ledger", "reported, not gated")
+    else:
+        _row(
+            "refresh_not_failing",
+            failures <= t["max_refresh_consecutive_failures"],
+            failures,
+            f"<= {t['max_refresh_consecutive_failures']} in a row",
+        )
+    lag = result.get("vector_cache_lag_minutes")
+    _row(
+        "vector_cache_current",
+        lag is None or lag <= t["max_vector_cache_lag_minutes"],
+        "current" if lag is None else lag,
+        f"<= {t['max_vector_cache_lag_minutes']} min behind the corpus",
+    )
 
     return {"passed": all(r["passed"] for r in rows), "results": rows}
 
