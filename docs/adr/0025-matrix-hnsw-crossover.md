@@ -1,0 +1,11 @@
+# AD-25 — The in-process matrix expires at a measured corpus size
+
+> Part of the TrialGuard architectural decision log ([index](../../README.md#architectural-decision-log)). Amendments are appended here rather than replacing what they correct.
+
+## Decision
+
+The in-process dense matrix is correct today and expires at a measured corpus size, not a guessed one. AD-6 (Phase 9) moved dense search into an 80 MB matrix because the planner declined ivfflat at 26k rows and seq-scanned anyway; that argument is a function of corpus size, so it was re-measured across 100k/500k/1M on synthesised-but-calibrated MedCPT vectors ([`e1a_findings.md`](../../data/reports/e1a_findings.md)). Matrix latency is exactly linear -- 0.058 ms per thousand rows, 5.84 -> 29.32 -> 58.07 ms -- while HNSW at `ef_search=200` is flat at 2.5-3.1 ms for 0.985-0.991 recall, so the two cross near **50k rows** and production's 26,037 sits just under it with about 2x of headroom. **HNSW also dominates ivfflat at every size on both axes**: at 1M, ivfflat needs `probes=100` and 170 ms to reach 0.996 where HNSW reaches 0.989 in 2.51 ms, so Phase 7's probes tuning was right for the index that was there and the index itself is wrong above ~100k. Nothing changes now, because the matrix is exact and 26k is under the crossing; what changes is that the trigger to revisit is a number the corpus can be watched approaching rather than a judgement call. Storage is the hidden term: pgvector's index is about the size of its heap, so at 1M the indexed table costs 8.30 GB on disk against 3.07 GB of RAM for the matrix
+
+## Alternatives considered
+
+Leaving AD-6 unexamined because it was measured once (it was measured at one corpus size, which is the part that expires); benchmarking on uniform random vectors (measured and rejected -- random high-dimensional vectors have no cluster structure and are the pathological worst case for ANN, so recall would have transferred nowhere; sigma is instead calibrated until synthetic mean top-1 neighbour cosine matches the real corpus, 0.8573 vs 0.8548); adopting HNSW now on the strength of the 1M numbers, which would pay a 2x build cost and lose exactness to fix a problem the corpus does not yet have
