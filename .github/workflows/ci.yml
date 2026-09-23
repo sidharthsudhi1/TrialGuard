@@ -11,13 +11,14 @@ jobs:
     runs-on: ubuntu-latest
 
     # A scratch Postgres so the WS-1 durability tests actually run instead of
-    # skipping. Stock image, no pgvector: tests/test_jobs.py applies JOBS_DDL
-    # rather than the full schema for exactly that reason. This is not the
-    # deployed environment WS-6 defers latency to -- it is an empty database that
-    # the suite creates and drops its own tables in.
+    # skipping. The pgvector build, so the full trials DDL (VECTOR, generated
+    # tsvector) can be applied and the refresh's publish path tested against a
+    # real database rather than a mock. This is not the deployed environment WS-6
+    # defers latency to -- it is an empty database that the suite creates and
+    # drops its own tables in.
     services:
       postgres:
-        image: postgres:16
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_PASSWORD: postgres
         options: >-
