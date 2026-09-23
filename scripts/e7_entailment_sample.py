@@ -22,6 +22,7 @@ with `entails` null and a human fills it in.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import os
 import random
@@ -108,6 +109,66 @@ def draw(cohorts: list[str], n: int, top_k: int, seed: int) -> list[dict]:
     return out
 
 
+
+CSV_FIELDS = ["row", "cohort", "patient_id", "nct_id", "kind", "verdict",
+              "criterion", "quote", "grounded_by", "entails", "adjudication"]
+
+
+def to_csv(src: Path, dest: Path) -> int:
+    """JSONL -> CSV, because nobody should hand-edit 300 lines of JSON.
+
+    `row` is carried so a spreadsheet that reorders or sorts can still be mapped
+    back; the merge keys on (patient_id, nct_id, criterion) regardless.
+    """
+    items = [json.loads(line) for line in src.read_text().splitlines() if line.strip()]
+    with dest.open("w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=CSV_FIELDS, quoting=csv.QUOTE_ALL)
+        w.writeheader()
+        for i, item in enumerate(items):
+            row = {k: item.get(k, "") for k in CSV_FIELDS if k != "row"}
+            row["row"] = i
+            row["entails"] = "" if item.get("entails") is None else str(item["entails"]).lower()
+            w.writerow(row)
+    return len(items)
+
+
+def from_csv(src: Path, dest: Path) -> dict:
+    """CSV -> JSONL, refusing anything it cannot read as a judgment.
+
+    A blank `entails` is an unrated row and stays null. Anything that is neither
+    blank nor a recognised boolean is an error rather than a silent false: a
+    typo'd label that reads as "not entailing" would bias the rate in exactly the
+    direction the whole exercise is trying to measure.
+    """
+    true_, false_ = {"true", "t", "yes", "y", "1"}, {"false", "f", "no", "n", "0"}
+    out, bad, rated = [], [], 0
+    with src.open(newline="") as fh:
+        for i, row in enumerate(csv.DictReader(fh), start=2):
+            raw = (row.get("entails") or "").strip().lower()
+            if raw == "":
+                entails = None
+            elif raw in true_:
+                entails = True
+                rated += 1
+            elif raw in false_:
+                entails = False
+                rated += 1
+            else:
+                bad.append({"line": i, "value": row.get("entails")})
+                continue
+            out.append({
+                "cohort": row["cohort"], "patient_id": row["patient_id"],
+                "nct_id": row["nct_id"], "kind": row["kind"], "verdict": row["verdict"],
+                "criterion": row["criterion"], "quote": row["quote"],
+                "grounded_by": row.get("grounded_by", ""),
+                "entails": entails, "adjudication": row.get("adjudication", ""),
+            })
+    if bad:
+        raise SystemExit(f"unreadable `entails` values, nothing written: {bad}")
+    dest.write_text("\n".join(json.dumps(i) for i in out) + "\n")
+    return {"rows": len(out), "rated": rated, "unrated": len(out) - rated}
+
+
 def _kappa(a: list[bool], b: list[bool]) -> float:
     n = len(a)
     po = sum(x == y for x, y in zip(a, b)) / n
@@ -159,8 +220,22 @@ def main() -> None:
     ap.add_argument("--top-k", type=int, default=10)
     ap.add_argument("--seed", type=int, default=20260923)
     ap.add_argument("--merge", nargs=2, metavar=("RATER_A", "RATER_B"))
+    ap.add_argument("--to-csv", metavar="JSONL", help="worksheet -> CSV for rating")
+    ap.add_argument("--from-csv", metavar="CSV", help="rated CSV -> JSONL")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
+
+    if args.to_csv:
+        dest = Path(args.out or Path(args.to_csv).with_suffix(".csv"))
+        n = to_csv(Path(args.to_csv), dest)
+        print(json.dumps({"rows": n, "csv": str(dest)}, indent=2))
+        return
+
+    if args.from_csv:
+        dest = Path(args.out or Path(args.from_csv).with_suffix(".jsonl"))
+        print(json.dumps({**from_csv(Path(args.from_csv), dest),
+                          "jsonl": str(dest)}, indent=2))
+        return
 
     if args.merge:
         dest = Path(args.out or "data/reports/e7_merged_gold.jsonl")
