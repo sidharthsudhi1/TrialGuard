@@ -95,7 +95,11 @@ def _run(fresh: list[dict], rows: list[tuple]):
         _stub_db(rows),
         patch("trialguard.scripts.refresh.fetch_oncology_trials", return_value=fresh),
         patch("trialguard.scripts.refresh.normalise_trial", side_effect=lambda t: t),
-        patch("trialguard.scripts.refresh.embed_batch") as embed,
+        # One vector per input is embed_batch's contract. A bare MagicMock
+        # returns a single mock instead, which let refresh() zip mismatched
+        # lengths without the test noticing.
+        patch("trialguard.scripts.refresh.embed_batch",
+              side_effect=lambda texts: [[0.0] * 768 for _ in texts]) as embed,
         patch("trialguard.scripts.refresh.upsert_trials") as upsert,
         patch("trialguard.scripts.refresh.cache_put") as cache_put,
     ):

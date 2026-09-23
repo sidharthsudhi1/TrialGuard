@@ -15,14 +15,14 @@ os.environ.setdefault("TG_ANALYST_DELAY", "0")
 # v4 assesses inclusion AND exclusion. Additive cache namespace.
 os.environ.setdefault("TG_PROMPT_VERSION", "v4")
 
-from fastapi import FastAPI  # noqa: E402
-from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from trialguard.api.jobs import make_job_store  # noqa: E402
-from trialguard.api.rate_limit import RateLimiter  # noqa: E402
-from trialguard.api.routes import router  # noqa: E402
-from trialguard.api.schemas import SYNTHETIC_NOTICE  # noqa: E402
-from trialguard.config import settings  # noqa: E402
+from trialguard.api.jobs import make_job_store
+from trialguard.api.rate_limit import RateLimiter
+from trialguard.api.routes import router
+from trialguard.api.schemas import SYNTHETIC_NOTICE
+from trialguard.config import settings
 
 
 @asynccontextmanager

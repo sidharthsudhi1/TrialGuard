@@ -42,7 +42,7 @@ def _timed(fn) -> tuple[Any, float, str | None]:
     start = time.perf_counter()
     try:
         return fn(), round((time.perf_counter() - start) * 1000, 1), None
-    except Exception as e:  # noqa: BLE001 — an unreachable API is a result, not a crash
+    except Exception as e:
         return None, round((time.perf_counter() - start) * 1000, 1), type(e).__name__
 
 
@@ -59,8 +59,8 @@ def _corpus_age_hours(health: dict) -> float | None:
     except (TypeError, ValueError):
         return None
     if at.tzinfo is None:
-        at = at.replace(tzinfo=dt.timezone.utc)
-    delta = dt.datetime.now(dt.timezone.utc) - at
+        at = at.replace(tzinfo=dt.UTC)
+    delta = dt.datetime.now(dt.UTC) - at
     return round(delta.total_seconds() / 3600, 2)
 
 
@@ -147,7 +147,7 @@ def _json_or_empty(response) -> dict:
         return {}
     try:
         body = response.json()
-    except Exception:  # noqa: BLE001
+    except Exception:
         return {}
     return body if isinstance(body, dict) else {}
 
@@ -275,9 +275,9 @@ def main() -> None:
     print(f"Served probe — {result['base_url']}  [{thresholds.name}]")
     for r in outcome["results"]:
         mark = "OK" if r["passed"] else "FAIL"
-        print(f"{mark:>6} {r['check']:<22} {str(r['value']):<18} expected {r['expected']}")
+        print(f"{mark:>6} {r['check']:<22} {r['value']!s:<18} expected {r['expected']}")
     print(
-        f"{'':>6} {'search_keyword_ms':<22} {str(result.get('search_keyword_ms')):<18} "
+        f"{'':>6} {'search_keyword_ms':<22} {result.get('search_keyword_ms')!s:<18} "
         "(reported: large means the keyword cache was cold)"
     )
     if result["errors"]:

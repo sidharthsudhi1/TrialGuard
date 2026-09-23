@@ -85,7 +85,7 @@ def test_handler_stashes_metadata_on_both_sdk_majors():
     for accepts_kwarg in (True, False):
         class _CB:
             def __init__(self, **kw):
-                if kw and not accepts_kwarg:
+                if kw and not accepts_kwarg:  # noqa: B023 -- used in this iteration only
                     raise TypeError("unexpected keyword argument 'metadata'")
 
         mod = types.ModuleType("langfuse.langchain")

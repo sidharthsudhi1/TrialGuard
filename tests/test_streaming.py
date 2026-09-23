@@ -60,7 +60,7 @@ def test_stream_survives_a_split_inside_a_string():
 def test_stream_ignores_empty_chunks():
     seen = []
     pieces = _split(_payload(1), 5)
-    _stream_assessments(_FakeLLM([""] + pieces + [""]), [], None, seen.append)
+    _stream_assessments(_FakeLLM(["", *pieces, ""]), [], None, seen.append)
     assert len(seen) == 1
 
 

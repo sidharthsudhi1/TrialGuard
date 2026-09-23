@@ -196,7 +196,7 @@ def health(request: Request) -> dict[str, Any]:
                 cur.execute("SELECT 1 FROM jobs LIMIT 1")
                 cur.fetchall()
                 store_ok = True
-        except Exception as e:  # noqa: BLE001 — surface honestly in health JSON
+        except Exception as e:
             if pool_ok:
                 store_error = type(e).__name__
             else:
@@ -355,7 +355,7 @@ async def assess_start(body: AssessRequest, request: Request) -> AssessCreated:
     store = request.app.state.jobs
     try:
         job = store.create(note, nct_ids, skip_cache_write=skip_cache)
-    except Exception as e:  # noqa: BLE001 — the store is the only durable record
+    except Exception as e:
         # Without this the client gets a bare 500 and cannot tell a rejected
         # request from a broken one. Worse, returning a job id anyway would
         # promise work that nothing is doing and no stream can ever report on.

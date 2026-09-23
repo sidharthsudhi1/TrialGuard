@@ -30,7 +30,7 @@ corpus.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import psycopg2.extras
 from rich.console import Console
@@ -47,7 +47,7 @@ SOURCE = "ctgov_live"
 
 
 def _utcnow() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def plan_refresh(
@@ -99,7 +99,7 @@ def refresh(max_trials: int = 40000) -> dict | None:
             f"[red]Aborting: fresh pull ({len(fresh_ids)}) is under half the corpus "
             f"({len(existing_ids)}) — likely a partial pull.[/red]"
         )
-        return
+        return None
 
     if expired:
         with get_conn() as c, c.cursor() as cur:
@@ -117,7 +117,7 @@ def refresh(max_trials: int = 40000) -> dict | None:
     for i in range(0, len(to_embed), 200):
         batch = to_embed[i : i + 200]
         embs = embed_batch([eligibility_text_for_embedding(t) for t in batch])
-        for t, e in zip(batch, embs):
+        for t, e in zip(batch, embs, strict=True):
             t["embedding"] = e
         upsert_trials(batch, source=SOURCE)
 

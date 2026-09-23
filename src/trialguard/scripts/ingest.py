@@ -51,7 +51,7 @@ def run(max_trials: int, skip_trials: bool, skip_eval: bool) -> None:
             if len(batch) == 200:
                 texts = [eligibility_text_for_embedding(t) for t in batch]
                 embeddings = embed_batch(texts)
-                for t, emb in zip(batch, embeddings):
+                for t, emb in zip(batch, embeddings, strict=True):
                     t["embedding"] = emb
                 upserted = upsert_trials(batch)
                 total += upserted
@@ -61,7 +61,7 @@ def run(max_trials: int, skip_trials: bool, skip_eval: bool) -> None:
         if batch:
             texts = [eligibility_text_for_embedding(t) for t in batch]
             embeddings = embed_batch(texts)
-            for t, emb in zip(batch, embeddings):
+            for t, emb in zip(batch, embeddings, strict=True):
                 t["embedding"] = emb
             total += upsert_trials(batch)
 

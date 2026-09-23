@@ -47,6 +47,14 @@ dependencies = [
 
     # CLI / display
     "rich>=13.0",
+
+    # Security floors on transitive dependencies (E5). These arrive via
+    # langchain, fastapi and sentence-transformers; they are named here so a
+    # fresh install cannot resolve back to a version pip-audit flags.
+    # aiohttp <3.14.3 and anyio <4.14.2 sit in the served request path.
+    "aiohttp>=3.14.3",
+    "anyio>=4.14.2",
+    "torch>=2.13.0",
 ]
 
 [project.optional-dependencies]
@@ -67,18 +75,65 @@ web = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.mypy]
+# E5 widened this from three hand-picked targets to all of src/. It is not
+# --strict: the goal is to catch real defects (it found a bare `return` on a
+# safety-abort path, an annotation that disagreed with its own function body,
+# and one `spent` variable holding tokens on one line and dollars on another),
+# not to chase annotations through research code.
+ignore_missing_imports = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+no_implicit_optional = true
+
+[[tool.mypy.overrides]]
+# langchain's constructors are typed to SecretStr and a narrower kwarg set than
+# they accept at runtime; ChatOpenAI takes max_tokens and both take a plain str
+# api_key. Silencing the call sites rather than casting keeps the runtime
+# behaviour that every committed result was produced under.
+module = "trialguard.llm.provider"
+disable_error_code = ["arg-type", "call-arg"]
+
+[[tool.mypy.overrides]]
+# langfuse v3's handler accepts metadata and carries attributes its stubs omit.
+module = "trialguard.tracing"
+disable_error_code = ["call-arg", "attr-defined"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E", "F", "I"]
+# E/F/I were the original set. The rest were added in E5, after measuring what
+# they actually catch here: B for real bug shapes (loop-variable closures,
+# zip length mismatch), S for security, UP/SIM/RUF/PTH for drift. ASYNC is
+# selected although it currently finds nothing, so a future async defect fails
+# the build rather than arriving unnoticed.
+select = ["E", "F", "I", "B", "ASYNC", "S", "UP", "SIM", "RUF", "PTH"]
+ignore = [
+    # Prose in docstrings and reports legitimately contains en/em dashes and
+    # arrows. Flagging them as ambiguous unicode is noise, not a finding.
+    "RUF001", "RUF002", "RUF003",
+    # Stylistic, and each would churn working code without closing a defect
+    # class: SIM905 collapses a deliberately formatted multi-line word list into
+    # a 1098-character literal, SIM117 flattens nested `with` blocks that read
+    # better apart, and the PTH rules rewrite `open()` calls that are correct.
+    "SIM905", "SIM117", "PTH123", "PTH105",
+    # RUF100 reads per-file-ignored rules as "not enabled" and strips the
+    # noqa directives that suppress them, so running it removes working
+    # suppressions. Stale-noqa hygiene is not worth that trade here.
+    "RUF100",
+]
 
 [tool.ruff.lint.per-file-ignores]
 # Test fixtures carry long inline medical-string/JSON literals; report-building
 # scripts emit long markdown table rows. Long lines there are intrinsic, not debt.
-"tests/*" = ["E501"]
-"scripts/*" = ["E501"]
+# S101 (assert) is what a test is; flagging it would silence the rule everywhere.
+# S603/S607 in scripts is deliberate local tooling, not untrusted input.
+# RUF012 and S603 in tests are test doubles and a deliberate subprocess call
+# that asserts the demo entrypoint still starts; neither is production risk.
+"tests/*" = ["E501", "S101", "S105", "S106", "S108", "S311", "RUF012", "S603"]
+"scripts/*" = ["E501", "S108", "S311", "S603", "S607"]
 "src/trialguard/scripts/*" = ["E501"]
 
 [tool.pytest.ini_options]

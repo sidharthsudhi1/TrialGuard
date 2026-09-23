@@ -565,7 +565,7 @@ def analyze_trial(
         # and dropping one would shift that count. Duplicate indices can therefore
         # reach the UI here; that is acceptable for a provisional progress event,
         # and the authoritative list from _parse dedups over the whole response.
-        def stream_cb(obj, _cb=on_criterion):  # noqa: E306
+        def stream_cb(obj, _cb=on_criterion):
             resolved = resolve_indices([obj], typed)
             if resolved:
                 _cb(resolved[0])

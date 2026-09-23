@@ -43,7 +43,8 @@ _CLAIM = {
 
 
 def _hypothesis(item: dict) -> str:
-    kind = item.get("kind") if item.get("kind") in ("inclusion", "exclusion") else "inclusion"
+    raw_kind = item.get("kind")
+    kind: str = raw_kind if raw_kind in ("inclusion", "exclusion") else "inclusion"
     template = _CLAIM[(kind, item["verdict"])]
     return template.format(criterion=item["criterion"].rstrip(". "))
 
@@ -81,7 +82,7 @@ def score(items: list[dict], model_name: str, batch_size: int = 8) -> list[dict]
         )
         with torch.no_grad():
             probs = model(**enc).logits.softmax(-1)
-        for b, p in zip(batch, probs):
+        for b, p in zip(batch, probs, strict=True):
             out.append({**b, "p_entail": round(float(p[entail_idx]), 4)})
     return out
 

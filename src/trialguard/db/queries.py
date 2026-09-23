@@ -31,7 +31,9 @@ def get_trials(nct_ids: list[str], source: str | None = None) -> dict[str, dict]
     """Batch-fetch trial rows by NCT ID in one query. Returns nct_id → row dict."""
     if not nct_ids:
         return {}
-    sql = f"SELECT {_SELECT} FROM trials WHERE nct_id = ANY(%s)"
+    # _SELECT is a module constant column list, never user input; the value is
+    # parameterised. S608 cannot see the difference.
+    sql = f"SELECT {_SELECT} FROM trials WHERE nct_id = ANY(%s)"  # noqa: S608 -- _SELECT is a module constant, value is bound
     params: list = [list(nct_ids)]
     if source:
         sql += " AND source = %s"

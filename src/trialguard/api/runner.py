@@ -39,7 +39,7 @@ def _ensure_terminal(store: Any, job_id: str) -> None:
         current = store.get(job_id, with_events=False)
         if current is not None and current.status in ("queued", "running"):
             store.fail(job_id, "worker_died: the job task exited without finishing")
-    except Exception:  # noqa: BLE001 — must not mask whatever ended the job
+    except Exception:  # noqa: S110 -- must not mask whatever ended the job
         pass
 
 
@@ -64,7 +64,7 @@ async def _heartbeat(
         await asyncio.sleep(interval)
         try:
             alive = store.heartbeat(job_id)
-        except Exception:  # noqa: BLE001 — a missed beat must not kill the job
+        except Exception:  # noqa: S112 -- a failed beat must not kill the loop
             continue
         if not alive:
             for t in tasks:
@@ -124,7 +124,7 @@ class _Faithfulness:
         from trialguard.tracing import emit_scores
 
         s = self.summary()
-        try:
+        try:  # noqa: SIM105 -- the reason lives in the block below
             emit_scores(
                 {
                     "unverifiable_rate": s["unverifiable_rate"],
@@ -133,7 +133,7 @@ class _Faithfulness:
                 },
                 session_id=job_id,
             )
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: S110
             # Observability must not be able to fail a completed assessment.
             pass
 
@@ -172,7 +172,7 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
                 ),
                 timeout=deadline,
             )
-        except (asyncio.TimeoutError, TimeoutError):
+        except TimeoutError:
             # The executor thread cannot be interrupted, so it runs to completion
             # and its result is discarded. That costs nothing extra -- the
             # provider call was already made and already billed -- and it buys the
@@ -193,7 +193,7 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
             }
         except BudgetExhausted:
             raise
-        except Exception as e:  # noqa: BLE001 — per-trial failure must not kill the job
+        except Exception as e:
             return {
                 "type": "trial",
                 "nct_id": nct_id,
@@ -250,7 +250,7 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
         # already done and its events are already durable, so nothing waits on
         # this and nothing breaks if the process dies mid-flush.
         loop.run_in_executor(None, tally.emit, job_id)
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         if isinstance(e, BudgetExhausted):
             store.fail(job_id, json.dumps(_budget_exhausted_detail(e)))
         else:
@@ -301,7 +301,7 @@ def _assess_one(
     def _emit(assessment: dict) -> None:
         if store is None or (abandoned is not None and abandoned.is_set()):
             return
-        try:
+        try:  # noqa: SIM105 -- the reason lives in the block below
             store.append(
                 job_id,
                 {
@@ -312,7 +312,7 @@ def _assess_one(
                     "verdict": assessment.get("verdict", "cannot_determine"),
                 },
             )
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: S110
             # These events are explicitly provisional and the terminal trial
             # event is the authority, so a store that drops one costs a UI
             # update. Raising here would turn a transient write failure into a

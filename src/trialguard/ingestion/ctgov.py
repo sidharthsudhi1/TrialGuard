@@ -8,7 +8,7 @@ Rate-limited to stay under 50 req/min (1.5s spacing in config).
 from __future__ import annotations
 
 import time
-from typing import Generator
+from collections.abc import Generator
 
 import httpx
 
@@ -31,8 +31,11 @@ FIELDS = ",".join([
 
 # Fixed enums — case-sensitive
 RECRUITING_STATUSES = ["RECRUITING", "NOT_YET_RECRUITING", "ENROLLING_BY_INVITATION"]
-ALL_STATUSES = RECRUITING_STATUSES + ["ACTIVE_NOT_RECRUITING", "COMPLETED", "TERMINATED",
-                                      "SUSPENDED", "WITHDRAWN", "UNKNOWN"]
+ALL_STATUSES = [
+    *RECRUITING_STATUSES,
+    "ACTIVE_NOT_RECRUITING", "COMPLETED", "TERMINATED",
+    "SUSPENDED", "WITHDRAWN", "UNKNOWN",
+]
 ONCOLOGY_CONDITION = "cancer OR oncology OR tumor OR neoplasm"
 ALL_CONDITIONS = "*"
 

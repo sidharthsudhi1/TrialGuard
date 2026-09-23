@@ -31,7 +31,7 @@ MEDCPT_QUERY_MAXLEN = 64
 MEDCPT_ARTICLE_MAXLEN = 512
 
 _bge_model = None
-_medcpt = {}
+_medcpt: dict[str, tuple] = {}
 # retrieve() fans its per-keyword searches out across threads, so first use can be
 # concurrent. Without this, every thread that misses the cache loads its own copy
 # of a 440 MB encoder — an out-of-memory kill on a 2 GB machine, and duplicated

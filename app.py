@@ -21,7 +21,7 @@ os.environ.setdefault("LLM_PROVIDER", "groq")
 # cache namespace — Phase 3/4/8 results stay untouched.
 os.environ.setdefault("TG_PROMPT_VERSION", "v4")
 
-from trialguard.demo import launch  # noqa: E402 — must follow the env default above
+from trialguard.demo import launch
 
 if __name__ == "__main__":
-    launch(server_name="0.0.0.0", server_port=7860)
+    launch(server_name="0.0.0.0", server_port=7860)  # noqa: S104 -- container binds all; proxy fronts it

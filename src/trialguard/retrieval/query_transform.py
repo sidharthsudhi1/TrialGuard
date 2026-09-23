@@ -159,7 +159,7 @@ def generate_keywords(patient_note: str, n_max: int = 12, handler=None) -> list[
         # because unbilled spend is exactly what this path was added to stop.
         try:
             ledger.record(extract_usage(response), provider, model)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             log.error(
                 "keyword call completed but was not billed (%s); the daily ledger "
                 "is now under-reporting", type(e).__name__
@@ -170,7 +170,7 @@ def generate_keywords(patient_note: str, n_max: int = 12, handler=None) -> list[
         cache_path.write_text(json.dumps(keywords))
         cache_put("keywords", note_key, keywords)
         return keywords
-    except Exception as e:  # noqa: BLE001 — degrade, but never silently
+    except Exception as e:
         # Falling back to the raw note is a real quality cliff: AD-11 measured
         # keyword queries at +50% recall@10 over the narrative. Logged so the
         # cliff is visible instead of looking like ordinary retrieval.

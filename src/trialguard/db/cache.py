@@ -42,7 +42,7 @@ def cache_get(namespace: str, key: str) -> Any | None:
             )
             row = cur.fetchone()
         return row[0] if row else None
-    except Exception as e:  # noqa: BLE001 — degrade to a miss, but say so
+    except Exception as e:
         log.warning("cache_get(%s) failed: %s", namespace, type(e).__name__)
         return None
 
@@ -68,6 +68,6 @@ def cache_put(namespace: str, key: str, value: Any) -> bool:
                 (namespace, key, json.dumps(value)),
             )
         return True
-    except Exception as e:  # noqa: BLE001 — a failed cache write is not a failed request
+    except Exception as e:
         log.warning("cache_put(%s) failed: %s", namespace, type(e).__name__)
         return False

@@ -174,7 +174,7 @@ def assess_retrieved(
     try:
         for _ in work:
             try:
-                item, state = next(results)  # type: ignore[call-overload]
+                item, state = next(results)
             except StopIteration:
                 break
             except BudgetExhausted:
@@ -189,7 +189,7 @@ def assess_retrieved(
                     if set(row["retrieved"]) - assessed_ids:
                         row["incomplete"] = True
                 break
-            except Exception:  # noqa: BLE001 — one bad trial must not void the run
+            except Exception:
                 skipped += 1
                 continue
             r, nct, _trial, criteria, _truncated = item
@@ -252,7 +252,7 @@ def _unanswered(assessments: list[dict], criteria: list[dict]) -> list[dict]:
     from trialguard.agent.schema import align_assessments
 
     slots, _ = align_assessments(assessments, criteria)
-    return [c for c, answer in zip(criteria, slots) if answer is None]
+    return [c for c, answer in zip(criteria, slots, strict=True) if answer is None]
 
 
 def _unmatched(assessments: list[dict], criteria: list[dict]) -> list[dict]:

@@ -163,11 +163,11 @@ def _run_arm(subset: list[dict], max_retries: int, handler=None) -> dict:
         results_iter = map(_assess_one, work)
 
     try:
-        for item in work:
+        for _item in work:
             if rate_limited:
                 break
             try:
-                tr, state = next(results_iter)  # type: ignore[call-overload]
+                tr, state = next(results_iter)
             except StopIteration:
                 break
             except Exception as e:

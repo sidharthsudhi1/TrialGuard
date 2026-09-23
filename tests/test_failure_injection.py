@@ -164,7 +164,7 @@ def test_a_stale_corpus_row_is_visible_rather_than_silent():
 
     from trialguard.eval.served_probe import _corpus_age_hours
 
-    old = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=3)).isoformat()
+    old = (dt.datetime.now(dt.UTC) - dt.timedelta(days=3)).isoformat()
     assert _corpus_age_hours({"corpus_refresh": {"at": old}}) > 48
     assert _corpus_age_hours({}) is None
 

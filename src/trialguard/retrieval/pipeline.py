@@ -35,7 +35,7 @@ def _apply_demographics(query, rankings, fused, top_k, source):
         meta = get_trials([n for n, _ in wide], source=source)
         kept, dropped = filter_candidates(wide, meta, patient)
         return kept[:top_k], len(dropped)
-    except Exception:  # noqa: BLE001 — never fail a search over a filter
+    except Exception:
         return fused, 0
 
 
