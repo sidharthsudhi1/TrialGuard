@@ -22,7 +22,11 @@ REGION="${FLY_REGION:-syd}"
 # a machine that runs a batch script and exits. Without this it lands in `app`
 # and is health-checked as a web server.
 GROUP="refresh"
-SCHEDULE="${REFRESH_SCHEDULE:-daily}"
+# Hourly because a run where CT.gov has not published since the last success is
+# one /version request and exits (scripts/refresh.py step 2). Fly schedules have
+# no time of day, so hourly is how CT.gov's ~09:00 ET weekday publish reaches
+# the corpus within the hour rather than up to a day later.
+SCHEDULE="${REFRESH_SCHEDULE:-hourly}"
 
 for cmd in fly jq curl; do
   command -v "$cmd" >/dev/null || { echo "error: $cmd not found on PATH" >&2; exit 1; }
