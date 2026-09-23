@@ -49,9 +49,24 @@ def _hypothesis(item: dict) -> str:
     return template.format(criterion=item["criterion"].rstrip(". "))
 
 
-def load_gold() -> list[dict]:
-    data = json.loads(GOLD.read_text())
-    return [item for c in data["cohorts"].values() for item in c["items"]]
+def load_gold(path: Path | None = None) -> list[dict]:
+    """Read either the WS-5b JSON or a JSONL of the same item shape.
+
+    A JSONL set may mix human and model labels, so every item carries
+    `label_source` and the report breaks results down by it. Mixing them without
+    saying so would let a threshold fitted on model labels read as if humans had
+    produced it.
+    """
+    src = path or GOLD
+    if src.suffix == ".jsonl":
+        items = [json.loads(ln) for ln in src.read_text().splitlines() if ln.strip()]
+        return [{**i, "label_source": i.get("label_source", "unknown")} for i in items]
+    data = json.loads(src.read_text())
+    return [
+        {**item, "label_source": "human"}
+        for c in data["cohorts"].values()
+        for item in c["items"]
+    ]
 
 
 def score(items: list[dict], model_name: str, batch_size: int = 8) -> list[dict]:
@@ -142,11 +157,17 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="NLI feasibility against the WS-5b gold set")
     ap.add_argument("--model", default="microsoft/deberta-large-mnli")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--gold", default=None,
+                    help="gold set: WS-5b JSON, or JSONL carrying label_source")
     args = ap.parse_args()
 
     console = Console()
-    items = load_gold()
-    console.print(f"[bold]NLI probe[/bold] {args.model} · {len(items)} adjudicated items")
+    items = load_gold(Path(args.gold) if args.gold else None)
+    by_src: dict[str, int] = {}
+    for i in items:
+        by_src[i["label_source"]] = by_src.get(i["label_source"], 0) + 1
+    src_note = ", ".join(f"{v} {k}" for k, v in sorted(by_src.items()))
+    console.print(f"[bold]NLI probe[/bold] {args.model} · {len(items)} items ({src_note})")
     scored = score(items, args.model)
     # Not 0.5. The model is badly miscalibrated on this task: the median
     # p(entail) is 0.027 for citations a human judged sound, so any threshold
