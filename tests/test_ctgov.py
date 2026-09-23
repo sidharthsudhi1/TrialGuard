@@ -220,3 +220,28 @@ def test_a_real_captured_page_parses_to_the_shape_the_corpus_needs():
     assert all(n.startswith("NCT") and len(n) == 11 for n in result.trials)
     assert all(v == 0 for v in result.field_missing.values())
     assert all(t["healthy_volunteers"] is True for t in result.trials.values())
+
+
+def test_lookup_reports_current_status_and_absence():
+    """Expiry is confirmed by this: a trial CT.gov no longer returns maps to None."""
+    from trialguard.ingestion.ctgov import lookup_ids
+
+    seen: list[str] = []
+
+    def handler(request):
+        ids = request.url.params["filter.ids"].split(",")
+        seen.append(request.url.params["filter.ids"])
+        studies = [
+            {"protocolSection": {"identificationModule": {"nctId": n},
+                                 "statusModule": {"overallStatus": "COMPLETED"}}}
+            for n in ids if n != "NCT00000002"
+        ]
+        return httpx.Response(200, json={"studies": studies})
+
+    ids = [f"NCT{i:08d}" for i in range(1, 151)]
+    result = lookup_ids(ids, client=httpx.Client(transport=httpx.MockTransport(handler)))
+
+    assert len(seen) == 2  # chunks of 100
+    assert result["NCT00000001"] == "COMPLETED"
+    assert result["NCT00000002"] is None
+    assert set(result) == set(ids)
