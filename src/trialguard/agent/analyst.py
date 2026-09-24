@@ -267,7 +267,8 @@ PROMPT_REGISTRY = {
         "frozen": False,
         "sha16": "db53f07dd00be4b5",
         "backs": (),
-        "note": "v4 with retry instructions sent outside the patient-note fence.",
+        "note": "v4, retry outside the note fence. Measured, not adopted: retries "
+        "recovered less (unsupported SIGIR 28->38, TREC21 111->136 vs v4).",
     },
 }
 
