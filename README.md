@@ -96,8 +96,8 @@ a free HF Spaces CPU.
 - **TREC Clinical Trials 2021/2022** — 75k+ eligibility annotations (gold eval standard)
 
 Production scope is **oncology** by default — what `ctgov_live` holds — but it is no
-longer locked: `fetch_oncology_trials` takes explicit `condition` and `statuses`
-overrides, so widening is a call-site decision
+longer locked: `pull_trials` (the refresh) and `fetch_oncology_trials` (sampling)
+take explicit `condition` and `statuses` overrides, so widening is a call-site decision
 ([AD-26](docs/adr/0026-oncology-scope-unlocked.md)). Widening is not free: the
 all-conditions corpus is ~125k trials, which crosses the ~50k in-process-matrix
 crossover in [AD-25](docs/adr/0025-matrix-hnsw-crossover.md), so scope and vector
@@ -366,9 +366,13 @@ Dense retrieval no longer touches Postgres, which keeps the lexical half where a
 GIN index answers in 7 ms. The matrix loads on a background thread in ~33 s and
 search falls back to pgvector until it is resident, so the fast path is an
 optimisation rather than a dependency; `/api/health` reports which one is
-serving. It is a snapshot, so trials ingested after startup appear on the next
-restart — right for a corpus refreshed on a schedule, wrong for live-updating
-data. Past roughly a million rows the matrix stops fitting and a real ANN index
+serving. It follows the corpus rather than snapshotting it: every refresh that
+changes the corpus publishes a new version, and a search more than 5 minutes after
+the last check triggers a background reload that is swapped in atomically.
+Measured on the first production publish, 26,107 rows reloaded in 6.9 s with no
+restart ([AD-33](docs/adr/0033-refresh-write-audit-publish.md)). An idle process
+stays on the old matrix until its next search, which serves nobody stale results.
+Past roughly a million rows the matrix stops fitting and a real ANN index
 earns its keep.
 
 ---
@@ -403,6 +407,7 @@ earns its keep.
 | 9 — Close the production loop | ✅ Done (Stage A) | Typed inclusion+exclusion (prompt v4) and inverted trial roll-up; Gradio hits `ctgov_live` behind `TG_DEMO_SOURCE` (SIGIR `FileIndex` remains the $0 default); FastAPI Stage A (`src/trialguard/api/`) + Next.js (`web/`) wrap `retrieve()` / `assess()` unchanged with search/assess split, SSE, and quote-in-source highlighting. TREC 2021 v4 exclusion caveat (unsupported 31.2% vs 9.2% inclusion, retry ns at p=0.2514) resolved by absence grounding: exclusion 8.9%, retry significant at p=0.0048 ([`phase9v5_exclusion_grounding.md`](data/reports/phase9v5_exclusion_grounding.md)). Deploy: [`docs/deploy_stage_a.md`](docs/deploy_stage_a.md); retrieval latency 24.4 s → 780 ms end to end (region, concurrency, in-memory dense index) with rankings unchanged; spend ledger and keyword cache moved to Postgres; served path traced to Langfuse |
 | 10 — Reliability | ✅ Done | Jobs and their events in Postgres with `Last-Event-ID` SSE resume, so a killed machine loses no completed work and a disowned worker stops spending ([AD-13](docs/adr/0013-orphaned-jobs-fail-visibly.md) and its two amendments); corpus refresh on a Fly scheduled machine recreated by `scripts/deploy_api.sh` on every deploy, diffing on `lastUpdatePostDate` so revised eligibility text is re-embedded rather than served stale; a live-endpoint probe (`eval/served_probe.py`) because a trace-reading monitor is blind exactly when the API is down, plus the monitor armed to fail rather than skip on a missing secret; a 240 s per-trial deadline — the real bound was ~27 min, since `TG_LLM_TIMEOUT` is per HTTP attempt and both the provider client and the graph retry; latency SLO enforced post-deploy, which is how the **20,576 ms first search after a resume from suspend** was found ("780 ms warm" is the steady state, not what a user meets); per-request faithfulness on the `done` event and the trace; a 13-case failure-injection suite. Two guardrail experiments returned negatives and are recorded as such: trial-only grounding ([AD-14](docs/adr/0014-patient-note-stays-a-grounding-source.md)) and prompt v5 ([AD-16](docs/adr/0016-prompt-v5-not-adopted.md)). Reports: [`ws5_guardrails_findings.md`](data/reports/ws5_guardrails_findings.md), [`l1_findings.md`](data/reports/l1_findings.md) |
 | 11 — Limits, measured | ✅ Done | Seven experiments turning standing assumptions into measurements, two of which inverted the assumption. The in-process matrix expires at ~50k rows and production sits at 26k ([AD-25](docs/adr/0025-matrix-hnsw-crossover.md)); retrieval survives 4.79x dilution at 3.0x better than chance ([`e1c_findings.md`](data/reports/e1c_findings.md)); the retry holds on 6 model families from 5 vendors for $0.52 ([AD-27](docs/adr/0027-verifier-independent-of-model.md)); the published cohort numbers were 81% non-oncology all along and retrieval is *better* outside oncology ([AD-28](docs/adr/0028-specialty-split-of-published-numbers.md)); the served API gets a p95 and a capacity number, and the cold path a real user meets is 14x the advertised one ([AD-30](docs/adr/0030-served-latency-p95-and-capacity.md)); the job engine moves out of the HTTP layer as a verified-identical refactor; the CI gate is widened until it can fail, which caught production asserts, 21 silently truncating zips and live CVEs in the request path ([AD-31](docs/adr/0031-ci-gates-widened.md)); and the NLI route is re-tested at 350 items ([AD-32](docs/adr/0032-nli-route-at-350-items.md)). Reports: [`e1a_findings.md`](data/reports/e1a_findings.md), [`e2_findings.md`](data/reports/e2_findings.md), [`e3_findings.md`](data/reports/e3_findings.md), [`e5_findings.md`](data/reports/e5_findings.md), [`e6_findings.md`](data/reports/e6_findings.md), [`e7_nli350_findings.md`](data/reports/e7_nli350_findings.md) |
+| 12 — Pipeline hardening | ✅ Done | The corpus refresh becomes write-audit-publish over content hashes ([AD-33](docs/adr/0033-refresh-write-audit-publish.md)). The old refresh trusted whatever the crawl returned: a crawl that stopped early read as mass expiry, and nothing checked content. A crawl is now accepted only when it is proven complete (`countTotal` plus an unchanged `/version`), and 26,107/26,107 trials arrive in 27 requests where ~260 were needed before. Every row records `doc_hash`, `embed_tag` and `parser_version`, and a trial is re-embedded only when its embedded text moves. Expiry is soft and confirmed by CT.gov id lookup. Hard audit gates always block, and the calibrated ones log until they are enforced. Publishing is one transaction, with a run ledger, a lease and an hourly `/version` short-circuit. **The first production run found 4,537 trials (17.4%) serving criteria from older parser versions**, with byte-identical raw text that the date diff could never have caught. It re-embedded them and published in 79 min, expired 15 trials with confirmed statuses, and corrected `healthy_volunteers` on 2,007 trials (API v2 sends a boolean; `== "Yes"` had read every one as False). The serving matrix reloads on publish, and the probe now alerts on the second consecutive failed refresh. |
 
 ---
 

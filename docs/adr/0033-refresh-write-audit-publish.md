@@ -22,3 +22,7 @@ The refresh proves a crawl complete, diffs on content rather than dates, confirm
 - **Enforcing every gate from day one.** Thresholds guessed without baselines would either block ordinary days or pass real failures. The hard gates cover the failures that are never legitimate.
 - **Keying the analyst cache on criteria everywhere.** This re-rolls every committed eval key; `LEGACY_PAIR` and `|s1` already set the additive precedent.
 - **Swapping ivfflat for HNSW.** The planner declines the ivfflat index at `probes=40` and the in-process matrix serves production dense search (AD-25), so the index only affects the SQL fallback. It is now built once data exists, instead of being trained on an empty table.
+
+## Amendment: first production run (2026-09-24)
+
+Run `0cbcccfb` published in 79 min with every count equal to the dry run: 27 new, 4,551 re-embedded, 21,529 metadata-only, and 15 expired, each confirmed. Embedding on the Fly performance-2x machine runs at about 1 trial/s (8.4 min per 500-trial chunk), roughly 5x slower than the Mac throughput the plan extrapolated from. The chunk heartbeat still sits well inside the 30-min lease, but a full-corpus re-embed would take about 7 h. The serving matrix reloaded to the new version (26,107 rows, 6.9 s) on its first search after the publish. The post-deploy SLO gate reads `served_slo.json`, which had not been given the two new gates; a test now requires both thresholds files to carry the same gates.
