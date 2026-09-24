@@ -479,6 +479,11 @@ def assess(
     global _GRAPH
     if _GRAPH is None:
         _GRAPH = build_graph()
+    if not source_text.strip():
+        # A trial with no raw eligibility text left the patient note as the only
+        # grounding source, so every decisive verdict rested on user-supplied
+        # text. The criteria are the trial's own words.
+        source_text = "\n".join(c["text"] for c in normalize_criteria(criteria))
     from trialguard.tracing import trace_config
 
     config = trace_config(handler, nct_id=nct_id, max_retries=max_retries)

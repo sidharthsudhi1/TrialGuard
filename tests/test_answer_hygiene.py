@@ -154,3 +154,19 @@ def test_cached_only_still_honours_an_empty_entry(tmp_path, monkeypatch):
         assert analyst.analyze_trial(NOTE, "NCT1", CRIT) == []
     llm.assert_not_called()
 
+
+# --- R10: no eligibility text ---
+
+
+def test_a_trial_without_eligibility_text_grounds_against_its_criteria():
+    """Otherwise the patient note is the only source and a trial-text quote
+    reads as note-sourced or fails."""
+
+    def quotes_criterion(note, nct_id, criteria, **kw):
+        return [{"criterion": "Stage IV disease", "verdict": "met",
+                 "quote": "Stage IV disease"}]
+
+    with patch.object(G, "analyze_trial", side_effect=quotes_criterion):
+        state = G.assess("62-year-old man.", "NCT1", CRIT, "", max_retries=0)
+
+    assert state["assessments"][0]["grounded_in"] == "trial"
