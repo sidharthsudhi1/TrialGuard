@@ -583,7 +583,12 @@ def analyze_trial(
     # on every deploy — without it every preset costs a fresh 29s call after each
     # release, which is both the slow answer and the paid one.
     if cache_path.exists():
-        return _replay(json.loads(cache_path.read_text()), on_criterion)
+        cached = json.loads(cache_path.read_text())
+        # An empty entry is a response that parsed to nothing, not an answer.
+        # Replaying it would pin the trial to zero assessments for good; it is
+        # only honoured in cached-only runs, which must not make a fresh call.
+        if cached or os.environ.get("TG_CACHED_ONLY") == "1":
+            return _replay(cached, on_criterion)
 
     from trialguard.db.cache import cache_get
 
@@ -664,7 +669,7 @@ def analyze_trial(
     # out from under the other and write its free-text note to disk anyway. The
     # env var still works as a process-wide policy for CLI and eval runs.
     env_skip = os.environ.get("TG_SKIP_ANALYST_CACHE_WRITE") == "1"
-    if not (skip_cache_write or env_skip):
+    if assessments and not (skip_cache_write or env_skip):
         from trialguard.llm.cost import _atomic_write
 
         # Atomic: a killed run must not leave a half-written entry that a later
