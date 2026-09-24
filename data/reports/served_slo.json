@@ -6,5 +6,7 @@
   "max_search_server_ms": 1500,
   "max_search_wall_ms": 30000,
   "min_search_results": 1,
-  "max_corpus_age_hours": 48
+  "max_corpus_age_hours": 48,
+  "max_refresh_consecutive_failures": 1,
+  "max_vector_cache_lag_minutes": 15
 }

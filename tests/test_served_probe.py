@@ -257,3 +257,18 @@ def test_a_matrix_on_the_published_version_is_current():
         vector_cache={"ready": True, "version": "v1"},
     )
     assert "vector_cache_current" not in _failed(check(_probe(health=health)))
+
+
+def test_every_thresholds_file_carries_every_gate():
+    """The deploy gates on served_slo.json, not the default file. A gate added to
+    one and not the other crashed the post-deploy check with a KeyError."""
+    import json
+    from pathlib import Path
+
+    from trialguard.eval.served_probe import THRESHOLDS
+
+    files = [THRESHOLDS, Path("data/reports/served_slo.json")]
+    keys = [{k for k in json.loads(f.read_text()) if not k.startswith("_")} for f in files]
+    assert keys[0] == keys[1]
+    for f in files:
+        assert check(_probe(), thresholds_path=f)["passed"] is True
