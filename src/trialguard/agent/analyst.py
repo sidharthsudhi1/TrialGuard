@@ -376,11 +376,16 @@ def _parse(raw: str, typed: list[dict] | None = None) -> list[dict]:
     from trialguard.agent.schema import validate_assessments
     raw = re.sub(r"```[a-z]*\n?", "", raw).strip("`").strip()
     try:
-        data = json.loads(raw).get("assessments", [])
+        parsed = json.loads(raw)
     except json.JSONDecodeError:
         # LLM output truncated at the token cap mid-array. Salvage every complete
         # assessment object rather than dropping the whole trial.
-        data = _salvage(raw)
+        parsed = _salvage(raw)
+    # Models sometimes return the bare array without the wrapper object; that
+    # used to raise AttributeError and fail the whole trial.
+    data = parsed.get("assessments", []) if isinstance(parsed, dict) else parsed
+    if not isinstance(data, list):
+        data = []
     if typed:
         data = resolve_indices(data, typed)
     # Validate untrusted model output at the boundary (OWASP LLM05): coerce the
