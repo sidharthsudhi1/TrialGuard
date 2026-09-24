@@ -45,6 +45,40 @@ def normalize(text: str) -> str:
     return _WS.sub(" ", text).strip()
 
 
+# Symbols that carry the meaning of a clinical fact. normalize() deletes them,
+# so "PR-/HER2+" grounded against "ER+/PR-/HER2-" and "platelets > 100" against
+# "platelets < 100". Two-character forms first so ">=" is not read as ">".
+_MEANING_SYMBOLS = [
+    (re.compile(r"≥|>="), " ge "),
+    (re.compile(r"≤|<="), " le "),
+    (re.compile(r">"), " gt "),
+    (re.compile(r"<"), " lt "),
+    (re.compile(r"\+"), " pos "),
+    (re.compile(r"%"), " pct "),
+    # Only a trailing sign: "HER2-" or "PR-/". A hyphen between word characters
+    # ("58-year-old", "T-L spine") is spelling, not negation.
+    (re.compile(r"(?<=[A-Za-z0-9])-(?![A-Za-z0-9])"), " neg "),
+]
+
+
+def symbols_strict() -> bool:
+    """G1: keep meaning-bearing symbols and match quotes on token boundaries.
+
+    Off by default: it changes which quotes ground, so every committed
+    faithfulness number moves. Measured before it is adopted.
+    """
+    import os
+
+    return os.environ.get("TG_GROUND_SYMBOLS") == "1"
+
+
+def normalize_strict(text: str) -> str:
+    """normalize(), but signs and comparators survive as words."""
+    for pattern, word in _MEANING_SYMBOLS:
+        text = pattern.sub(word, text)
+    return normalize(text)
+
+
 def is_grounded(quote: str, source_text: str, min_tokens: int = 2) -> bool:
     """True iff the normalized quote is a verbatim substring of the source AND
     carries at least min_tokens words.
@@ -55,7 +89,15 @@ def is_grounded(quote: str, source_text: str, min_tokens: int = 2) -> bool:
     rejected those real atomic facts — the high-value evidence in eligibility
     matching — which inflated the apparent hallucination rate on corpora with
     terse patient text (TREC).
+
+    Under TG_GROUND_SYMBOLS the match is also token-bounded: a plain substring
+    grounds "stage I" in "stage IV" and "5 mg" in "25 mg".
     """
+    if symbols_strict():
+        q = normalize_strict(quote)
+        if len(q.split()) < min_tokens:
+            return False
+        return f" {q} " in f" {normalize_strict(source_text)} "
     q = normalize(quote)
     if len(q.split()) < min_tokens:
         return False
@@ -69,6 +111,64 @@ def absence_terms(criterion: str) -> list[str]:
         for t in normalize(criterion).split()
         if len(t) >= 4 and t not in _ABSENCE_STOPWORDS and not t.isdigit()
     ]
+
+
+# Disqualifiers a note commonly names by abbreviation while the criterion spells
+# them out, or the reverse. A group is triggered by any member in the criterion
+# and then every member counts as a mention in the note.
+_ABSENCE_SYNONYMS = [
+    ("hiv", "human immunodeficiency virus"),
+    ("hbv", "hepatitis b", "hbsag"),
+    ("hcv", "hepatitis c"),
+    ("cns", "central nervous system", "brain metastases", "brain metastasis"),
+    ("mi", "myocardial infarction"),
+    ("chf", "congestive heart failure", "heart failure"),
+    ("copd", "chronic obstructive pulmonary"),
+    ("dvt", "deep vein thrombosis", "deep venous thrombosis"),
+    ("pe", "pulmonary embolism"),
+    ("tb", "tuberculosis"),
+]
+
+# An acronym as written in the criterion: 2-5 capitals, digits allowed after the
+# first ("HIV", "CNS", "HER2"). Capitalised connectives and roman numerals are
+# not disqualifiers, and "IV" in a note is as often a route as a stage.
+_ACRONYM = re.compile(r"\b[A-Z][A-Z0-9]{1,4}\b")
+_NOT_ACRONYMS = frozenset("and or not no nor the of with for any all ii iii iv vi".split())
+
+
+def absence_acronyms() -> bool:
+    """G2: count short acronyms and synonym groups as absence terms.
+
+    absence_terms() drops every token under four characters, so "HIV infection"
+    is checked for "infection" alone and a note saying "HIV-positive" passes as
+    not mentioning it. Off by default for the same reason as TG_GROUND_SYMBOLS.
+    """
+    import os
+
+    return os.environ.get("TG_ABSENCE_ACRONYMS") == "1"
+
+
+def _bounded(term: str, haystack: str) -> bool:
+    return f" {term} " in f" {haystack} "
+
+
+def absence_extra_terms(criterion: str) -> list[str]:
+    """Acronyms and synonyms a note may use for this criterion's disqualifier.
+
+    Matched on token boundaries: "mi" as a substring is in "mild" and "pe" in
+    "performance", which would make almost every absence check fail.
+    """
+    norm = normalize(criterion)
+    # A criterion typed in capitals has no acronyms to tell apart.
+    terms = (
+        set()
+        if criterion.isupper()
+        else {m.group(0).lower() for m in _ACRONYM.finditer(criterion)} - _NOT_ACRONYMS
+    )
+    for group in _ABSENCE_SYNONYMS:
+        if any(_bounded(g, norm) for g in group):
+            terms.update(group)
+    return sorted(t for t in terms if t not in _ABSENCE_STOPWORDS)
 
 
 def is_absence_grounded(criterion: str, patient_text: str) -> bool:
@@ -86,9 +186,12 @@ def is_absence_grounded(criterion: str, patient_text: str) -> bool:
     False, falling back to the verbatim requirement.
     """
     terms = absence_terms(criterion)
-    if not terms:
+    extra = absence_extra_terms(criterion) if absence_acronyms() else []
+    if not terms and not extra:
         return False
     haystack = normalize(patient_text)
+    if any(_bounded(t, haystack) for t in extra):
+        return False
     return not any(t in haystack for t in terms)
 
 
