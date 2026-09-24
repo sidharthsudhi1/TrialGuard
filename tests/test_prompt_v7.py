@@ -50,7 +50,7 @@ def test_v7_first_attempt_reads_the_v4_cache_and_retries_do_not():
 
 def test_pre_v7_retry_keys_are_unchanged():
     """Committed retry entries were keyed on the note with the retry folded in."""
-    folded = A._cache_key("note\n\n" + RETRY, "NCT1", TYPED)
+    folded = A._cache_key("note\n\n" + RETRY, "NCT1", TYPED, version="v4")
     assert A.retry_cache_key("note", "NCT1", TYPED, RETRY, "v4") == folded
 
 
