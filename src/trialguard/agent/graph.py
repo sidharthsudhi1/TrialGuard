@@ -153,6 +153,71 @@ def _merge_retry(
     return out
 
 
+def _keep_grounded() -> bool:
+    """R7: a retry may not replace a grounded answer with an ungrounded one.
+
+    The full-list retry re-decides every criterion, including ones attempt one
+    already grounded, and the retry's answer used to win unconditionally. So a
+    retry that wandered could turn a verified verdict into an unverifiable one.
+    TG_RETRY_KEEP_GROUNDED=0 restores retry-always-wins.
+    """
+    return os.environ.get("TG_RETRY_KEEP_GROUNDED", "1") != "0"
+
+
+def _dedup_answers() -> bool:
+    """R8: one answer per criterion, on every attempt.
+
+    437 of 12,915 cached analyst responses answer some criterion twice, and 114
+    answer the same criterion both met and not_met. An inclusion answered twice
+    with one not_met excluded the trial however the other copy read.
+    TG_DEDUP_ANSWERS=0 restores the undeduplicated first attempt.
+    """
+    return os.environ.get("TG_DEDUP_ANSWERS", "1") != "0"
+
+
+def _decisive(a: dict | None) -> bool:
+    return bool(a and a.get("grounded") and a.get("verdict") in ("met", "not_met"))
+
+
+def _dedup(rows: list[dict]) -> list[dict]:
+    """Collapse repeated answers to one per criterion text.
+
+    A grounded decisive answer is preferred over the rest. Two grounded answers
+    that disagree are the model contradicting itself, and neither side can be
+    picked on evidence, so the criterion becomes cannot_determine and is marked
+    `conflict`. Entries with no criterion text pass through.
+    """
+    from trialguard.verify.grounding import normalize
+
+    groups: dict[str, list[dict]] = {}
+    order: list[str | dict] = []
+    for a in rows:
+        key = normalize(str(a.get("criterion", "")))
+        if not key:
+            order.append(a)
+            continue
+        if key not in groups:
+            groups[key] = []
+            order.append(key)
+        groups[key].append(a)
+
+    out = []
+    for item in order:
+        if isinstance(item, dict):
+            out.append(item)
+            continue
+        answers = groups[item]
+        decisive = [a for a in answers if _decisive(a)]
+        if len({a["verdict"] for a in decisive}) > 1:
+            out.append(
+                {**decisive[0], "verdict": "cannot_determine", "quote": "",
+                 "grounded": False, "conflict": True}
+            )
+        else:
+            out.append(decisive[0] if decisive else answers[0])
+    return out
+
+
 def _backfill(
     retried: list[dict], prior: list[dict], typed: list[dict]
 ) -> list[dict]:
@@ -166,9 +231,11 @@ def _backfill(
     with opposing verdicts can flip a trial to excluded on a disqualifier that
     does not exist.
 
-    So exactly one entry per criterion, the retry's where it answered. Retried
-    entries matching no criterion pass through unchanged, as they always have;
-    attach_kinds marks those "unknown" and the roll-up treats them as unresolved.
+    So exactly one entry per criterion, the retry's where it answered, unless
+    attempt one grounded it and the retry did not (TG_RETRY_KEEP_GROUNDED).
+    Retried entries matching no criterion pass through unchanged, as they always
+    have; attach_kinds marks those "unknown" and the roll-up treats them as
+    unresolved.
     """
     from trialguard.verify.grounding import normalize
 
@@ -182,11 +249,14 @@ def _backfill(
 
     ret_by, prior_by = _index(retried), _index(prior)
     known = {normalize(c["text"]) for c in typed}
+    keep = _keep_grounded()
 
     out = [a for a in retried if normalize(str(a.get("criterion", ""))) not in known]
     for c in typed:
         key = normalize(c["text"])
         answer = ret_by.get(key) or prior_by.get(key)
+        if keep and _decisive(prior_by.get(key)) and not _decisive(answer):
+            answer = prior_by[key]
         if answer is not None:
             out.append(answer)
     return out
@@ -294,6 +364,8 @@ def _analyst_node(state: State) -> State:
         patient_text=state["patient_note"],
         trial_text=state["source_text"],
     )
+    if _dedup_answers():
+        grounded = _dedup(grounded)
     # A retry must never lose a criterion attempt one answered. Without this the
     # full-list retry replaces attempt one wholesale, so a retry that happens to
     # return a shorter list makes coverage *worse*: measured at 71, 144 and 269
