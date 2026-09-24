@@ -18,7 +18,7 @@ from typing import TypedDict
 from langgraph.graph import END, StateGraph
 
 from trialguard.agent.analyst import CACHE_DIR as ANALYST_CACHE
-from trialguard.agent.analyst import _cache_key, analyze_trial
+from trialguard.agent.analyst import analyze_trial, prompt_version, retry_cache_key
 from trialguard.agent.schema import attach_kinds, normalize_criteria, rollup_trial
 from trialguard.verify.grounding import ground_assessments
 
@@ -204,6 +204,7 @@ def _analyst_node(state: State) -> State:
     prior: list[dict] = []
     missing: list[dict] = []
     asked_subset = False
+    retry_context = ""
     if attempt > 0:
         prior = state.get("assessments", [])
         failed = [a.get("criterion", "") for a in prior if a.get("grounding_failure")]
@@ -251,18 +252,24 @@ def _analyst_node(state: State) -> State:
             "Copy quotes character-for-character from this exact trial source "
             f'text:\n"""\n{span}\n"""'
         )
-        note = f"{note}\n\n[Retry {attempt}] " + "\n\n".join(blocks)
+        retry_context = f"[Retry {attempt}] " + "\n\n".join(blocks)
+        # v7 sends the retry outside the patient-note fence. Earlier versions
+        # fold it into the note, which keeps their retry cache keys unchanged.
+        if prompt_version() != "v7":
+            note, retry_context = f"{note}\n\n{retry_context}", ""
         # In cached-only mode a cold retry cache must not trigger a fresh Groq call.
         # Keep the first-attempt assessments; the bounded loop then exhausts to
         # "unverifiable" without spending quota. Lets all cohorts regenerate the
         # significance + curve from cache alone.
         if os.environ.get("TG_CACHED_ONLY") == "1":
-            key = _cache_key(note, state["nct_id"])
+            key = retry_cache_key(note, state["nct_id"], typed, retry_context, prompt_version())
             if not (ANALYST_CACHE / f"{key}.json").exists():
                 return {"assessments": prior}
     # on_criterion is passed only when a caller actually wants progress events,
     # so the default path's call shape is unchanged.
     extra = {}
+    if retry_context:
+        extra["retry_context"] = retry_context
     if state.get("on_criterion") is not None:
         extra["on_criterion"] = state["on_criterion"]
     raw = analyze_trial(
