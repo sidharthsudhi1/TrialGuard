@@ -339,8 +339,21 @@ def _retry_node(state: State) -> State:
 
 def _report_node(state: State) -> State:
     """Trial roll-up with inverted exclusion semantics (see rollup_trial)."""
+    # Retries are bounded, so a criterion can still be unanswered when the loop
+    # ends. Rolled up over only what came back, a trial reads `eligible` over a
+    # subset of its criteria. Counted as unresolved instead, and kept out of
+    # `assessments` so per-criterion metrics still count only what was answered.
+    # Tied to TG_RETRY_MISSING so =0 still reproduces pre-2026-09-10 verdicts.
+    unanswered = []
+    if _retry_missing():
+        typed = normalize_criteria(state["criteria"])
+        unanswered = [
+            {"criterion": c["text"], "kind": c["kind"], "verdict": "cannot_determine"}
+            for c in _missing_criteria(state["assessments"], typed)
+        ]
     roll = rollup_trial(
-        state["assessments"], truncated=state.get("criteria_truncated", False)
+        state["assessments"] + unanswered,
+        truncated=state.get("criteria_truncated", False),
     )
     return {
         "trial_verdict": roll["verdict"],

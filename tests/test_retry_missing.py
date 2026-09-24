@@ -313,3 +313,24 @@ def test_backfill_never_returns_more_entries_than_criteria_asked():
 
     assert len(out) <= len(CRITERIA)
     assert len(out) == 2
+
+
+def test_a_criterion_still_missing_after_retries_blocks_eligible(monkeypatch):
+    """Retries are bounded. Whatever is still unanswered when they run out must
+    not vanish from the roll-up, or the trial is eligible over a subset."""
+    monkeypatch.delenv("TG_RETRY_MISSING", raising=False)
+
+    def never_answers_exclusion(note, nct_id, criteria, **kw):
+        return [
+            {"criterion": "Age 18 or older", "verdict": "met", "quote": "62-year-old man"},
+            {"criterion": "Stage IV disease", "verdict": "met", "quote": "Stage IV disease"},
+        ]
+
+    with patch.object(G, "analyze_trial", side_effect=never_answers_exclusion):
+        state = G.assess(NOTE, "NCT1", CRITERIA, TRIAL, max_retries=2)
+
+    assert state["trial_verdict"] == "cannot_determine"
+    assert state["trial_tier"] == "needs_review"
+    assert state["unknown_criteria"] == ["Prior chemotherapy"]
+    # Surfaced through the roll-up, not injected as a fake assessment.
+    assert len(state["assessments"]) == 2
