@@ -1,3 +1,5 @@
+import pytest
+
 from trialguard.ingestion.normalise import _split_criteria, normalise_trial
 
 
@@ -145,3 +147,53 @@ def test_an_oversized_group_is_left_flat():
     inc, _ = _split_criteria(raw)
     assert len(inc) == 6
     assert all(len(c) <= 1500 for c in inc)
+
+
+@pytest.mark.parametrize(
+    "header",
+    [
+        "Patients must meet one of the following:",
+        "At least 1 of the following",
+        "Must have one of the following tumor types",
+        "Defined as either of the following:",
+        "At least two of the following criteria:",
+        "Diagnosis of one of the following conditions within 6 months:",
+    ],
+)
+def test_quantified_disjunctions_group(header):
+    """943 ctgov_live trials used these wordings and were split into ANDed siblings."""
+    raw = (
+        f"Inclusion Criteria:\n- {header}\n"
+        "   - first alternative here\n"
+        "   - second alternative here\n"
+        "- Separate unrelated criterion here\n"
+    )
+    inc, _ = _split_criteria(raw)
+    assert len(inc) == 2
+    assert "first alternative" in inc[0] and "second alternative" in inc[0]
+
+
+@pytest.mark.parametrize(
+    "header",
+    ["Must meet all of the following:", "Have none of the following:"],
+)
+def test_conjunctions_stay_flat(header):
+    """"all of" is already an AND and "none of" must not read as "one of"."""
+    raw = (
+        f"Inclusion Criteria:\n- {header}\n"
+        "   - first requirement here\n"
+        "   - second requirement here\n"
+    )
+    inc, _ = _split_criteria(raw)
+    assert "first requirement here" in inc
+    assert "second requirement here" in inc
+
+
+def test_a_carve_out_still_needs_its_colon():
+    """"unless" ends ordinary sentences; without a colon it announces nothing."""
+    raw = (
+        "Exclusion Criteria:\n- Prior surgery unless approved by the sponsor\n"
+        "   - indented follow-on line here\n"
+    )
+    _, exc = _split_criteria(raw)
+    assert len(exc) == 2
