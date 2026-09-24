@@ -395,9 +395,10 @@ def test_inclusion_verdicts_are_never_marked_weak_absence():
 )
 def test_strict_mode_rejects_a_quote_that_flips_the_fact(monkeypatch, quote, source):
     """Each pair grounds under plain normalization, which is the defect."""
-    assert is_grounded(quote, source)
-    monkeypatch.setenv("TG_GROUND_SYMBOLS", "1")
+    monkeypatch.delenv("TG_GROUND_SYMBOLS", raising=False)
     assert not is_grounded(quote, source)
+    monkeypatch.setenv("TG_GROUND_SYMBOLS", "0")
+    assert is_grounded(quote, source)
 
 
 @pytest.mark.parametrize(
@@ -411,7 +412,7 @@ def test_strict_mode_rejects_a_quote_that_flips_the_fact(monkeypatch, quote, sou
     ],
 )
 def test_strict_mode_keeps_real_verbatim_quotes(monkeypatch, quote, source):
-    monkeypatch.setenv("TG_GROUND_SYMBOLS", "1")
+    monkeypatch.delenv("TG_GROUND_SYMBOLS", raising=False)
     assert is_grounded(quote, source)
 
 
@@ -428,9 +429,10 @@ def test_strict_mode_keeps_real_verbatim_quotes(monkeypatch, quote, source):
     ],
 )
 def test_acronym_mode_sees_a_disqualifier_named_differently(monkeypatch, criterion, note):
-    assert is_absence_grounded(criterion, note)
-    monkeypatch.setenv("TG_ABSENCE_ACRONYMS", "1")
+    monkeypatch.delenv("TG_ABSENCE_ACRONYMS", raising=False)
     assert not is_absence_grounded(criterion, note)
+    monkeypatch.setenv("TG_ABSENCE_ACRONYMS", "0")
+    assert is_absence_grounded(criterion, note)
 
 
 @pytest.mark.parametrize(
@@ -444,7 +446,7 @@ def test_acronym_mode_sees_a_disqualifier_named_differently(monkeypatch, criteri
     ],
 )
 def test_acronym_mode_does_not_invent_mentions(monkeypatch, criterion, note):
-    monkeypatch.setenv("TG_ABSENCE_ACRONYMS", "1")
+    monkeypatch.delenv("TG_ABSENCE_ACRONYMS", raising=False)
     assert is_absence_grounded(criterion, note)
 
 
@@ -452,8 +454,8 @@ def test_an_all_caps_criterion_contributes_no_acronyms():
     assert absence_extra_terms("ACTIVE INFECTION REQUIRING ANTIBIOTICS") == []
 
 
-def test_both_flags_are_off_by_default(monkeypatch):
+def test_both_flags_are_on_by_default(monkeypatch):
     monkeypatch.delenv("TG_GROUND_SYMBOLS", raising=False)
     monkeypatch.delenv("TG_ABSENCE_ACRONYMS", raising=False)
-    assert is_grounded("stage I", "stage IV")
-    assert is_absence_grounded("HIV infection", "HIV-positive")
+    assert not is_grounded("stage I", "stage IV")
+    assert not is_absence_grounded("HIV infection", "HIV-positive")

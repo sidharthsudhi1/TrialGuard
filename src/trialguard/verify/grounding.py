@@ -64,12 +64,14 @@ _MEANING_SYMBOLS = [
 def symbols_strict() -> bool:
     """G1: keep meaning-bearing symbols and match quotes on token boundaries.
 
-    Off by default: it changes which quotes ground, so every committed
-    faithfulness number moves. Measured before it is adopted.
+    On by default since 2026-09-24. Measured cached-only over the v4 cohorts
+    (SIGIR 1,508 and TREC 2021 1,973 criteria): no verdict changed, so it
+    closes the failure without a measured cost. TG_GROUND_SYMBOLS=0 restores
+    plain normalization.
     """
     import os
 
-    return os.environ.get("TG_GROUND_SYMBOLS") == "1"
+    return os.environ.get("TG_GROUND_SYMBOLS", "1") != "0"
 
 
 def normalize_strict(text: str) -> str:
@@ -90,7 +92,7 @@ def is_grounded(quote: str, source_text: str, min_tokens: int = 2) -> bool:
     matching — which inflated the apparent hallucination rate on corpora with
     terse patient text (TREC).
 
-    Under TG_GROUND_SYMBOLS the match is also token-bounded: a plain substring
+    The match is also token-bounded (TG_GROUND_SYMBOLS): a plain substring
     grounds "stage I" in "stage IV" and "5 mg" in "25 mg".
     """
     if symbols_strict():
@@ -141,11 +143,13 @@ def absence_acronyms() -> bool:
 
     absence_terms() drops every token under four characters, so "HIV infection"
     is checked for "infection" alone and a note saying "HIV-positive" passes as
-    not mentioning it. Off by default for the same reason as TG_GROUND_SYMBOLS.
+    not mentioning it. On by default since 2026-09-24: over the same cohorts it
+    changed one verdict, a real catch (an HCV patient on interferon cleared of a
+    hepatitis C drug exclusion). TG_ABSENCE_ACRONYMS=0 restores the old check.
     """
     import os
 
-    return os.environ.get("TG_ABSENCE_ACRONYMS") == "1"
+    return os.environ.get("TG_ABSENCE_ACRONYMS", "1") != "0"
 
 
 def _bounded(term: str, haystack: str) -> bool:
