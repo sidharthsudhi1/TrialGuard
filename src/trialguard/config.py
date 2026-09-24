@@ -54,6 +54,9 @@ class Settings(BaseSettings):
     # the matrix is not resident, so turning it off only costs speed.
     retrieval_vector_cache: bool = True
     retrieval_vector_cache_source: str = "ctgov_live"
+    # How often a serving process asks whether the refresh published a new corpus
+    # version. One indexed key read, off the request path.
+    vector_cache_check_s: float = 300.0
 
     # ivfflat probes for the ctgov_live corpus (lists=161). Bench (data/reports/phase7_retrieval.md,
     # recall vs exact top-100 on 26k trials): probes=20 recovered only ~62%, the
@@ -63,7 +66,10 @@ class Settings(BaseSettings):
 
     # ClinicalTrials.gov
     ctgov_api_base: str = "https://clinicaltrials.gov/api/v2"
-    ctgov_page_size: int = 100
+    # 1000 is the API's cap (larger values are clamped silently). ~26 requests per
+    # corpus crawl instead of ~260 shrinks both the window for pagination drift
+    # and the exposure to transient errors tenfold.
+    ctgov_page_size: int = 1000
     ctgov_request_delay: float = 1.5  # seconds — stay under 50 req/min
 
     # Scope

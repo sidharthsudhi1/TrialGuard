@@ -97,7 +97,7 @@ def retrieve_trials(note: str, top_k: int = TOP_K) -> list[dict]:
         out = []
         for nct, score in hits:
             t = rows.get(nct)
-            if not t:
+            if not t or t.get("expired_at"):
                 continue
             criteria, truncated = build_typed_criteria(t, max_total=MAX_CRITERIA)
             if not criteria:

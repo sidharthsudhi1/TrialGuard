@@ -4,6 +4,14 @@ from __future__ import annotations
 
 import re
 
+# Bump on any change to what _split_criteria returns. Rows record the version
+# that parsed them, so a bump makes the next refresh re-parse the corpus (and
+# re-embed only the trials whose document text actually moved). Without it a
+# parser fix reaches only trials CT.gov happens to revise, and the corpus is a
+# mix of parses. tests/test_parser_version.py fails when the output changes
+# and this does not.
+PARSER_VERSION = "2026-09-23.1"
+
 
 def _strip_markdown(text: str) -> str:
     text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)

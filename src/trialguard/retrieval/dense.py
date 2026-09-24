@@ -8,7 +8,7 @@ from trialguard.ingestion.embed import embed_text
 SQL = """
 SELECT nct_id, 1 - (embedding <=> %(vec)s::vector) AS score
 FROM trials
-WHERE embedding IS NOT NULL
+WHERE embedding IS NOT NULL AND expired_at IS NULL
 {source_clause}
 ORDER BY embedding <=> %(vec)s::vector
 LIMIT %(top_k)s;

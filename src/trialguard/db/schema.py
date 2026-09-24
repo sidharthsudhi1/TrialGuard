@@ -49,6 +49,53 @@ CREATE TABLE IF NOT EXISTS job_events (
 );
 """
 
+# Row provenance and the refresh run ledger (pipeline 1 hardening, WS-1).
+# Additive and idempotent: applied by init_schema for a fresh database and by
+# scripts/migrate_provenance.py for the live one. Kept apart from the CREATE
+# TABLE so both paths share one definition.
+#
+# doc_hash is the hash of the exact string embedded, content_hash of every
+# CT.gov field stored; the refresh diffs on these rather than on the
+# day-granular lastUpdatePostDate. embed_tag and parser_version record what
+# built the row, so a config or parser change is detectable instead of mixing
+# vector spaces and parses silently. expired_at is soft expiry: a trial that
+# leaves the enrolling set keeps its row, history and embedding.
+PROVENANCE_DDL = """
+ALTER TABLE trials ADD COLUMN IF NOT EXISTS doc_hash        TEXT;
+ALTER TABLE trials ADD COLUMN IF NOT EXISTS content_hash    TEXT;
+ALTER TABLE trials ADD COLUMN IF NOT EXISTS embed_tag       TEXT;
+ALTER TABLE trials ADD COLUMN IF NOT EXISTS parser_version  TEXT;
+ALTER TABLE trials ADD COLUMN IF NOT EXISTS first_seen_at   TIMESTAMPTZ;
+ALTER TABLE trials ADD COLUMN IF NOT EXISTS last_seen_at    TIMESTAMPTZ;
+ALTER TABLE trials ADD COLUMN IF NOT EXISTS expired_at      TIMESTAMPTZ;
+ALTER TABLE trials ADD COLUMN IF NOT EXISTS expired_reason  TEXT;
+ALTER TABLE trials ADD COLUMN IF NOT EXISTS missing_runs    SMALLINT NOT NULL DEFAULT 0;
+
+CREATE INDEX IF NOT EXISTS trials_active_idx ON trials(source) WHERE expired_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS refresh_runs (
+    run_id                TEXT PRIMARY KEY,
+    source                TEXT NOT NULL,
+    started_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    heartbeat_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    finished_at           TIMESTAMPTZ,
+    outcome               TEXT NOT NULL DEFAULT 'running',
+    reason                TEXT,
+    ctgov_data_timestamp  TEXT,
+    ctgov_total_count     INTEGER,
+    fetched               INTEGER,
+    counts                JSONB,
+    gates                 JSONB,
+    embed_tag             TEXT,
+    parser_version        TEXT,
+    git_sha               TEXT,
+    duration_s            REAL
+);
+
+CREATE INDEX IF NOT EXISTS refresh_runs_started_idx
+    ON refresh_runs(source, started_at DESC);
+"""
+
 # f-string: JOBS_DDL is spliced in so the two tables have exactly one definition,
 # and a test can create them without the pgvector extension the rest of this needs.
 DDL = f"""
@@ -88,12 +135,10 @@ CREATE TABLE IF NOT EXISTS trials (
 
 CREATE INDEX IF NOT EXISTS trials_source_idx ON trials(source);
 
-CREATE INDEX IF NOT EXISTS trials_embedding_idx
-    ON trials USING ivfflat (embedding vector_cosine_ops)
-    WITH (lists = 161);
-
 CREATE INDEX IF NOT EXISTS trials_doc_tsv_idx
     ON trials USING gin (doc_tsv);
+
+{PROVENANCE_DDL}
 
 -- Durable cache. The disk caches under data/cache/ live on the container's
 -- ephemeral rootfs, so every deploy silently re-rolled them: keyword regeneration
@@ -212,7 +257,33 @@ def close_pool() -> None:
         _pool = None
 
 
+# ivfflat centroids are trained from the rows present when the index is built
+# and never move afterwards. Created by the DDL, it was trained on an empty table
+# on every fresh database. lists = 161 is the Phase 7 tuning for ~26k rows
+# (data/reports/phase7_retrieval.md); scripts/migrate_fts.py rebuilds it.
+VECTOR_INDEX_MIN_ROWS = 1000
+VECTOR_INDEX_SQL = """
+CREATE INDEX IF NOT EXISTS trials_embedding_idx
+    ON trials USING ivfflat (embedding vector_cosine_ops)
+    WITH (lists = 161)
+"""
+
+
+def ensure_vector_index() -> bool:
+    """Build the ivfflat index once there is data to train it on. Returns built."""
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("SELECT to_regclass('trials_embedding_idx')")
+        if cur.fetchone()[0] is not None:
+            return False
+        cur.execute("SELECT count(*) FROM trials WHERE embedding IS NOT NULL")
+        if cur.fetchone()[0] < VECTOR_INDEX_MIN_ROWS:
+            return False
+        cur.execute(VECTOR_INDEX_SQL)
+    return True
+
+
 def init_schema() -> None:
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute(DDL)
+    ensure_vector_index()
     print("Schema initialised.")

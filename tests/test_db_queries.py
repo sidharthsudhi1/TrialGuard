@@ -27,6 +27,8 @@ _ROW_VALUES = {
     "healthy_volunteers": False,
     "last_updated": "2026-08-14",
     "source": "ctgov_live",
+    "expired_at": None,
+    "expired_reason": None,
 }
 
 

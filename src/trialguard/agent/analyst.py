@@ -290,7 +290,11 @@ def prompt_version() -> str:
 LEGACY_PAIR = ("groq", "llama-3.3-70b-versatile")
 
 
-def _cache_key(patient_note: str, nct_id: str) -> str:
+def _criteria_fingerprint(criteria: list) -> str:
+    return hashlib.sha256(json.dumps(criteria, sort_keys=True).encode()).hexdigest()[:12]
+
+
+def _cache_key(patient_note: str, nct_id: str, criteria: list | None = None) -> str:
     """Cache key discriminated by (prompt_version, provider, model, trial, note).
 
     Provider and model belong in the key because they change the output: DeepInfra
@@ -316,6 +320,14 @@ def _cache_key(patient_note: str, nct_id: str) -> str:
     # committed key byte for byte, the LEGACY_PAIR format included.
     if strict_criteria():
         raw = f"{raw}|s1"
+    # The served corpus is refreshed, and a revised trial keeps its nct_id. Keyed
+    # without its criteria, a cached answer to the old criteria is replayed for
+    # the same note forever; the graph drops the answers whose criterion text no
+    # longer exists and the rest decay to unverifiable, never re-asked. Only the
+    # served path sets TG_CACHE_KEY_CRITERIA=1: eval cohorts are fixed corpora and
+    # every committed key must stay byte-identical.
+    if criteria is not None and os.environ.get("TG_CACHE_KEY_CRITERIA") == "1":
+        raw = f"{raw}|c{_criteria_fingerprint(criteria)}"
     return hashlib.sha256(raw.encode()).hexdigest()[:20]
 
 
@@ -516,7 +528,7 @@ def analyze_trial(
 
     typed = normalize_criteria(criteria)
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    cache_key = _cache_key(patient_note, nct_id)
+    cache_key = _cache_key(patient_note, nct_id, typed)
     cache_path = CACHE_DIR / f"{cache_key}.json"
     # Disk first: those files back the committed Phase 3/4/8 results and stay
     # authoritative, so no existing number can shift. Postgres is the layer

@@ -1,9 +1,12 @@
 """Phase 1 ingestion CLI.
 
 Usage:
-    python -m trialguard.scripts.ingest --trials 3000
+    python -m trialguard.scripts.ingest                # schema, trials, eval cohorts
     python -m trialguard.scripts.ingest --skip-trials  # only eval cohorts
     python -m trialguard.scripts.ingest --skip-eval    # only trials
+
+Trials load through scripts/refresh.py, so a first load gets the same
+completeness proof, audit gates and ledger row as every refresh after it.
 """
 
 from __future__ import annotations
@@ -15,13 +18,9 @@ from rich.console import Console
 console = Console()
 
 
-def run(max_trials: int, skip_trials: bool, skip_eval: bool) -> None:
+def run(skip_trials: bool, skip_eval: bool) -> None:
     from trialguard.db.schema import init_schema
     from trialguard.eval.cohorts import download_cohorts, load_labels, load_patients
-    from trialguard.ingestion.ctgov import fetch_oncology_trials
-    from trialguard.ingestion.embed import eligibility_text_for_embedding, embed_batch
-    from trialguard.ingestion.loader import upsert_trials
-    from trialguard.ingestion.normalise import normalise_trial
     from trialguard.tracing import flush
 
     console.print("[bold]TrialGuard Phase 1 — Ingestion[/bold]")
@@ -30,42 +29,16 @@ def run(max_trials: int, skip_trials: bool, skip_eval: bool) -> None:
     init_schema()
 
     if not skip_trials:
-        # Resume: skip trials already embedded so a re-run after a mid-ingest
-        # failure does not re-embed what is already loaded.
-        from trialguard.db.schema import get_conn
+        # The corpus load is the refresh: an empty corpus bootstraps (chunked
+        # commits, churn gates off, content gates on), and a partial one resumes
+        # as an ordinary diff, re-embedding nothing it already holds.
+        from trialguard.scripts.refresh import EXIT_OK
+        from trialguard.scripts.refresh import run as refresh_run
 
-        with get_conn() as _c, _c.cursor() as _cur:
-            _cur.execute("SELECT nct_id FROM trials WHERE embedding IS NOT NULL")
-            existing = {r[0] for r in _cur.fetchall()}
-        console.print(f"Pulling up to {max_trials} oncology trials from CT.gov...")
-        console.print(f"  {len(existing)} already loaded — skipping those.")
-        batch: list[dict] = []
-        total = 0
-
-        for trial in fetch_oncology_trials(max_trials=max_trials):
-            if trial["nct_id"] in existing:
-                continue
-            trial = normalise_trial(trial)
-            batch.append(trial)
-
-            if len(batch) == 200:
-                texts = [eligibility_text_for_embedding(t) for t in batch]
-                embeddings = embed_batch(texts)
-                for t, emb in zip(batch, embeddings, strict=True):
-                    t["embedding"] = emb
-                upserted = upsert_trials(batch)
-                total += upserted
-                console.print(f"  Upserted {total} trials so far...")
-                batch = []
-
-        if batch:
-            texts = [eligibility_text_for_embedding(t) for t in batch]
-            embeddings = embed_batch(texts)
-            for t, emb in zip(batch, embeddings, strict=True):
-                t["embedding"] = emb
-            total += upsert_trials(batch)
-
-        console.print(f"[green]Trials done: {total} upserted.[/green]")
+        code, report = refresh_run()
+        if code != EXIT_OK:
+            raise SystemExit(f"Trial load did not publish ({report.get('outcome')}).")
+        console.print(f"[green]Trials: {report.get('summary') or report}[/green]")
 
     if not skip_eval:
         console.print("Downloading eval cohorts...")
@@ -117,11 +90,10 @@ def run(max_trials: int, skip_trials: bool, skip_eval: bool) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="TrialGuard Phase 1 ingestion")
-    parser.add_argument("--trials", type=int, default=3000, dest="max_trials")
     parser.add_argument("--skip-trials", action="store_true")
     parser.add_argument("--skip-eval", action="store_true")
     args = parser.parse_args()
-    run(args.max_trials, args.skip_trials, args.skip_eval)
+    run(args.skip_trials, args.skip_eval)
 
 
 if __name__ == "__main__":

@@ -1,11 +1,13 @@
-"""WS-3: the corpus refresh notices revised records and costs nothing when idle."""
+"""Refresh v1 (TG_REFRESH_V2=0 rollback path): date diff, idle costs nothing."""
 
 from __future__ import annotations
 
 from contextlib import contextmanager
 from unittest.mock import MagicMock, patch
 
-from trialguard.scripts.refresh import plan_refresh, refresh
+from trialguard.ingestion.ctgov import PullResult
+from trialguard.scripts.refresh_v1 import plan_refresh
+from trialguard.scripts.refresh_v1 import refresh_v1 as refresh
 
 
 def _t(nct: str, status: str = "RECRUITING", updated: str = "2026-08-01") -> dict:
@@ -86,22 +88,31 @@ def _stub_db(rows: list[tuple]):
     def fake_get_conn():
         yield conn
 
-    with patch("trialguard.scripts.refresh.get_conn", fake_get_conn):
+    with patch("trialguard.scripts.refresh_v1.get_conn", fake_get_conn):
         yield cur
+
+
+def _pull(fresh: list[dict]) -> PullResult:
+    return PullResult(
+        trials={t["nct_id"]: t for t in fresh},
+        total_count=len(fresh),
+        pages=1,
+        data_timestamp="2026-09-23T09:00:05",
+    )
 
 
 def _run(fresh: list[dict], rows: list[tuple]):
     with (
         _stub_db(rows),
-        patch("trialguard.scripts.refresh.fetch_oncology_trials", return_value=fresh),
-        patch("trialguard.scripts.refresh.normalise_trial", side_effect=lambda t: t),
+        patch("trialguard.scripts.refresh_v1.pull_trials", return_value=_pull(fresh)),
+        patch("trialguard.scripts.refresh_v1.normalise_trial", side_effect=lambda t: t),
         # One vector per input is embed_batch's contract. A bare MagicMock
         # returns a single mock instead, which let refresh() zip mismatched
         # lengths without the test noticing.
-        patch("trialguard.scripts.refresh.embed_batch",
+        patch("trialguard.scripts.refresh_v1.embed_batch",
               side_effect=lambda texts: [[0.0] * 768 for _ in texts]) as embed,
-        patch("trialguard.scripts.refresh.upsert_trials") as upsert,
-        patch("trialguard.scripts.refresh.cache_put") as cache_put,
+        patch("trialguard.scripts.refresh_v1.upsert_trials") as upsert,
+        patch("trialguard.scripts.refresh_v1.cache_put") as cache_put,
     ):
         summary = refresh()
     return summary, embed, upsert, cache_put
@@ -124,6 +135,7 @@ def test_a_noop_refresh_makes_zero_embedding_calls():
         "restatused": 0,
         "corpus": 2,
         "embedded": 0,
+        "ctgov_data_timestamp": "2026-09-23T09:00:05",
     }
 
 

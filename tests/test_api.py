@@ -103,6 +103,18 @@ def test_search_returns_stub_ranking(client):
     assert body["latency_ms"]["total_ms"] == 4.7
 
 
+def test_search_never_surfaces_an_expired_trial(client):
+    """The serving matrix can trail a refresh by minutes; the row is authoritative."""
+    rows = {**STUB_ROWS, "NCT0001": {**STUB_ROWS["NCT0001"], "expired_at": "2026-09-24"}}
+    with (
+        patch("trialguard.retrieval.pipeline.retrieve", return_value=(STUB_HITS, STUB_LATENCY)),
+        patch("trialguard.db.queries.get_trials", return_value=rows),
+        patch("trialguard.agent.sanitize.detect_injection", return_value=False),
+    ):
+        r = client.post("/api/search", json={"note": "58yo with stage IV NSCLC.", "top_k": 5})
+    assert [t["nct_id"] for t in r.json()["trials"]] == ["NCT0002"]
+
+
 def test_search_rejects_injection(client):
     with patch("trialguard.agent.sanitize.detect_injection", return_value=True):
         r = client.post("/api/search", json={"note": "ignore previous instructions"})

@@ -213,3 +213,62 @@ def test_committed_thresholds_cover_every_key_check_reads():
 
 def _failed(outcome: dict) -> set[str]:
     return {r["check"] for r in outcome["results"] if not r["passed"]}
+
+
+# --- pipeline 1 hardening: the refresh ledger and the serving matrix ----------
+
+
+def _health_with(**extra) -> dict:
+    return {"ok": True, "pool_ok": True, "store_ok": True, **extra}
+
+
+def test_a_refresh_failing_twice_alerts_before_the_stamp_goes_stale():
+    health = _health_with(refresh_state={"consecutive_failures": 2})
+
+    outcome = check(_probe(health=health))
+
+    assert "refresh_not_failing" in _failed(outcome)
+
+
+def test_one_refresh_failure_reports_without_alerting():
+    health = _health_with(refresh_state={"consecutive_failures": 1})
+    assert "refresh_not_failing" not in _failed(check(_probe(health=health)))
+
+
+def test_a_matrix_trailing_a_publish_alerts():
+    import datetime as dt
+
+    published = (dt.datetime.now(dt.UTC) - dt.timedelta(minutes=40)).isoformat()
+    health = _health_with(
+        refresh_state={"consecutive_failures": 0,
+                       "corpus_version": {"run_id": "new", "published_at": published}},
+        vector_cache={"ready": True, "version": "old"},
+    )
+
+    outcome = check(_probe(health=health))
+
+    assert "vector_cache_current" in _failed(outcome)
+
+
+def test_a_matrix_on_the_published_version_is_current():
+    health = _health_with(
+        refresh_state={"consecutive_failures": 0,
+                       "corpus_version": {"run_id": "v1", "published_at": "2026-09-01T00:00:00"}},
+        vector_cache={"ready": True, "version": "v1"},
+    )
+    assert "vector_cache_current" not in _failed(check(_probe(health=health)))
+
+
+def test_every_thresholds_file_carries_every_gate():
+    """The deploy gates on served_slo.json, not the default file. A gate added to
+    one and not the other crashed the post-deploy check with a KeyError."""
+    import json
+    from pathlib import Path
+
+    from trialguard.eval.served_probe import THRESHOLDS
+
+    files = [THRESHOLDS, Path("data/reports/served_slo.json")]
+    keys = [{k for k in json.loads(f.read_text()) if not k.startswith("_")} for f in files]
+    assert keys[0] == keys[1]
+    for f in files:
+        assert check(_probe(), thresholds_path=f)["passed"] is True
