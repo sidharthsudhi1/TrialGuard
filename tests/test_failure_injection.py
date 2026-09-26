@@ -371,3 +371,15 @@ def test_the_probe_gates_on_store_readiness_not_just_the_pool():
     outcome = check(broken)
     assert outcome["passed"] is False
     assert "store_ok" in {r["check"] for r in outcome["results"] if not r["passed"]}
+
+
+def test_a_bare_array_response_is_parsed_not_crashed():
+    """Models sometimes drop the {"assessments": ...} wrapper. That used to raise
+    AttributeError and fail the whole trial."""
+    from trialguard.agent.analyst import _parse
+
+    out = _parse('[{"criterion": "A", "verdict": "met", "quote": "aa bb"}]')
+
+    assert [a["criterion"] for a in out] == ["A"]
+    assert _parse('{"assessments": null}') == []
+    assert _parse("42") == []

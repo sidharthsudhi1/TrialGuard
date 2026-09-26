@@ -1,4 +1,12 @@
-from trialguard.verify.grounding import ground_assessments, is_grounded, normalize
+import pytest
+
+from trialguard.verify.grounding import (
+    absence_extra_terms,
+    ground_assessments,
+    is_absence_grounded,
+    is_grounded,
+    normalize,
+)
 
 SRC = (
     "Inclusion Criteria: Patients must have histologically confirmed Stage IV "
@@ -371,3 +379,83 @@ def test_inclusion_verdicts_are_never_marked_weak_absence():
     )
 
     assert "weak_absence" not in out[0]
+
+
+# --- G1: meaning-bearing symbols and token boundaries (TG_GROUND_SYMBOLS) ---
+
+
+@pytest.mark.parametrize(
+    ("quote", "source"),
+    [
+        ("stage I", "patient has stage IV NSCLC"),
+        ("PR-/HER2+", "ER+/PR-/HER2- breast cancer"),
+        ("platelets > 100", "platelets < 100 x10^9/L"),
+        ("5 mg daily", "took 25 mg daily"),
+    ],
+)
+def test_strict_mode_rejects_a_quote_that_flips_the_fact(monkeypatch, quote, source):
+    """Each pair grounds under plain normalization, which is the defect."""
+    monkeypatch.delenv("TG_GROUND_SYMBOLS", raising=False)
+    assert not is_grounded(quote, source)
+    monkeypatch.setenv("TG_GROUND_SYMBOLS", "0")
+    assert is_grounded(quote, source)
+
+
+@pytest.mark.parametrize(
+    ("quote", "source"),
+    [
+        ("58-year-old woman", "A 58-year-old woman with NSCLC."),
+        ("ER+/PR-", "Tumor was ER+/PR-/HER2-."),
+        ("ANC >= 1500", "Required: ANC ≥ 1500/uL"),
+        ("EF was 25%", "Echo: EF was 25%."),
+        ("T-L spine", "MRI of the T-L spine"),
+    ],
+)
+def test_strict_mode_keeps_real_verbatim_quotes(monkeypatch, quote, source):
+    monkeypatch.delenv("TG_GROUND_SYMBOLS", raising=False)
+    assert is_grounded(quote, source)
+
+
+# --- G2: acronyms and synonyms in absence checks (TG_ABSENCE_ACRONYMS) ---
+
+
+@pytest.mark.parametrize(
+    ("criterion", "note"),
+    [
+        ("HIV infection", "45M, HIV-positive on ART, metastatic NSCLC"),
+        ("Active hepatitis B", "60F with chronic HBV and HCC"),
+        ("Known CNS metastases", "Brain metastasis treated with SRS."),
+        ("History of myocardial infarction", "Prior MI in 2019."),
+    ],
+)
+def test_acronym_mode_sees_a_disqualifier_named_differently(monkeypatch, criterion, note):
+    monkeypatch.delenv("TG_ABSENCE_ACRONYMS", raising=False)
+    assert not is_absence_grounded(criterion, note)
+    monkeypatch.setenv("TG_ABSENCE_ACRONYMS", "0")
+    assert is_absence_grounded(criterion, note)
+
+
+@pytest.mark.parametrize(
+    ("criterion", "note"),
+    [
+        # "mi" is inside "mild", "pe" inside "performance": token-bounded.
+        ("History of MI", "Mild anemia, performance status 1."),
+        ("Pulmonary embolism or PE", "Good performance status."),
+        # Capitalised connectives and roman numerals are not disqualifiers.
+        ("HIV OR hepatitis C", "Stage IV lung cancer, IV fluids given, or so."),
+    ],
+)
+def test_acronym_mode_does_not_invent_mentions(monkeypatch, criterion, note):
+    monkeypatch.delenv("TG_ABSENCE_ACRONYMS", raising=False)
+    assert is_absence_grounded(criterion, note)
+
+
+def test_an_all_caps_criterion_contributes_no_acronyms():
+    assert absence_extra_terms("ACTIVE INFECTION REQUIRING ANTIBIOTICS") == []
+
+
+def test_both_flags_are_on_by_default(monkeypatch):
+    monkeypatch.delenv("TG_GROUND_SYMBOLS", raising=False)
+    monkeypatch.delenv("TG_ABSENCE_ACRONYMS", raising=False)
+    assert not is_grounded("stage I", "stage IV")
+    assert not is_absence_grounded("HIV infection", "HIV-positive")

@@ -13,12 +13,12 @@ Two arms share this graph:
 from __future__ import annotations
 
 import os
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from langgraph.graph import END, StateGraph
 
 from trialguard.agent.analyst import CACHE_DIR as ANALYST_CACHE
-from trialguard.agent.analyst import _cache_key, analyze_trial
+from trialguard.agent.analyst import analyze_trial, prompt_version, retry_cache_key
 from trialguard.agent.schema import attach_kinds, normalize_criteria, rollup_trial
 from trialguard.verify.grounding import ground_assessments
 
@@ -153,6 +153,71 @@ def _merge_retry(
     return out
 
 
+def _keep_grounded() -> bool:
+    """R7: a retry may not replace a grounded answer with an ungrounded one.
+
+    The full-list retry re-decides every criterion, including ones attempt one
+    already grounded, and the retry's answer used to win unconditionally. So a
+    retry that wandered could turn a verified verdict into an unverifiable one.
+    TG_RETRY_KEEP_GROUNDED=0 restores retry-always-wins.
+    """
+    return os.environ.get("TG_RETRY_KEEP_GROUNDED", "1") != "0"
+
+
+def _dedup_answers() -> bool:
+    """R8: one answer per criterion, on every attempt.
+
+    437 of 12,915 cached analyst responses answer some criterion twice, and 114
+    answer the same criterion both met and not_met. An inclusion answered twice
+    with one not_met excluded the trial however the other copy read.
+    TG_DEDUP_ANSWERS=0 restores the undeduplicated first attempt.
+    """
+    return os.environ.get("TG_DEDUP_ANSWERS", "1") != "0"
+
+
+def _decisive(a: dict | None) -> bool:
+    return bool(a and a.get("grounded") and a.get("verdict") in ("met", "not_met"))
+
+
+def _dedup(rows: list[dict]) -> list[dict]:
+    """Collapse repeated answers to one per criterion text.
+
+    A grounded decisive answer is preferred over the rest. Two grounded answers
+    that disagree are the model contradicting itself, and neither side can be
+    picked on evidence, so the criterion becomes cannot_determine and is marked
+    `conflict`. Entries with no criterion text pass through.
+    """
+    from trialguard.verify.grounding import normalize
+
+    groups: dict[str, list[dict]] = {}
+    order: list[str | dict] = []
+    for a in rows:
+        key = normalize(str(a.get("criterion", "")))
+        if not key:
+            order.append(a)
+            continue
+        if key not in groups:
+            groups[key] = []
+            order.append(key)
+        groups[key].append(a)
+
+    out = []
+    for item in order:
+        if isinstance(item, dict):
+            out.append(item)
+            continue
+        answers = groups[item]
+        decisive = [a for a in answers if _decisive(a)]
+        if len({a["verdict"] for a in decisive}) > 1:
+            out.append(
+                {**decisive[0], "verdict": "cannot_determine", "quote": "",
+                 "grounded": False, "conflict": True}
+            )
+        else:
+            out.append(decisive[0] if decisive else answers[0])
+    return out
+
+
 def _backfill(
     retried: list[dict], prior: list[dict], typed: list[dict]
 ) -> list[dict]:
@@ -166,9 +231,11 @@ def _backfill(
     with opposing verdicts can flip a trial to excluded on a disqualifier that
     does not exist.
 
-    So exactly one entry per criterion, the retry's where it answered. Retried
-    entries matching no criterion pass through unchanged, as they always have;
-    attach_kinds marks those "unknown" and the roll-up treats them as unresolved.
+    So exactly one entry per criterion, the retry's where it answered, unless
+    attempt one grounded it and the retry did not (TG_RETRY_KEEP_GROUNDED).
+    Retried entries matching no criterion pass through unchanged, as they always
+    have; attach_kinds marks those "unknown" and the roll-up treats them as
+    unresolved.
     """
     from trialguard.verify.grounding import normalize
 
@@ -182,11 +249,14 @@ def _backfill(
 
     ret_by, prior_by = _index(retried), _index(prior)
     known = {normalize(c["text"]) for c in typed}
+    keep = _keep_grounded()
 
     out = [a for a in retried if normalize(str(a.get("criterion", ""))) not in known]
     for c in typed:
         key = normalize(c["text"])
         answer = ret_by.get(key) or prior_by.get(key)
+        if keep and _decisive(prior_by.get(key)) and not _decisive(answer):
+            answer = prior_by[key]
         if answer is not None:
             out.append(answer)
     return out
@@ -204,6 +274,7 @@ def _analyst_node(state: State) -> State:
     prior: list[dict] = []
     missing: list[dict] = []
     asked_subset = False
+    retry_context = ""
     if attempt > 0:
         prior = state.get("assessments", [])
         failed = [a.get("criterion", "") for a in prior if a.get("grounding_failure")]
@@ -251,18 +322,24 @@ def _analyst_node(state: State) -> State:
             "Copy quotes character-for-character from this exact trial source "
             f'text:\n"""\n{span}\n"""'
         )
-        note = f"{note}\n\n[Retry {attempt}] " + "\n\n".join(blocks)
+        retry_context = f"[Retry {attempt}] " + "\n\n".join(blocks)
+        # v7 sends the retry outside the patient-note fence. Earlier versions
+        # fold it into the note, which keeps their retry cache keys unchanged.
+        if prompt_version() != "v7":
+            note, retry_context = f"{note}\n\n{retry_context}", ""
         # In cached-only mode a cold retry cache must not trigger a fresh Groq call.
         # Keep the first-attempt assessments; the bounded loop then exhausts to
         # "unverifiable" without spending quota. Lets all cohorts regenerate the
         # significance + curve from cache alone.
         if os.environ.get("TG_CACHED_ONLY") == "1":
-            key = _cache_key(note, state["nct_id"])
+            key = retry_cache_key(note, state["nct_id"], typed, retry_context, prompt_version())
             if not (ANALYST_CACHE / f"{key}.json").exists():
                 return {"assessments": prior}
     # on_criterion is passed only when a caller actually wants progress events,
     # so the default path's call shape is unchanged.
-    extra = {}
+    extra: dict[str, Any] = {}
+    if retry_context:
+        extra["retry_context"] = retry_context
     if state.get("on_criterion") is not None:
         extra["on_criterion"] = state["on_criterion"]
     raw = analyze_trial(
@@ -287,6 +364,8 @@ def _analyst_node(state: State) -> State:
         patient_text=state["patient_note"],
         trial_text=state["source_text"],
     )
+    if _dedup_answers():
+        grounded = _dedup(grounded)
     # A retry must never lose a criterion attempt one answered. Without this the
     # full-list retry replaces attempt one wholesale, so a retry that happens to
     # return a shorter list makes coverage *worse*: measured at 71, 144 and 269
@@ -339,8 +418,21 @@ def _retry_node(state: State) -> State:
 
 def _report_node(state: State) -> State:
     """Trial roll-up with inverted exclusion semantics (see rollup_trial)."""
+    # Retries are bounded, so a criterion can still be unanswered when the loop
+    # ends. Rolled up over only what came back, a trial reads `eligible` over a
+    # subset of its criteria. Counted as unresolved instead, and kept out of
+    # `assessments` so per-criterion metrics still count only what was answered.
+    # Tied to TG_RETRY_MISSING so =0 still reproduces pre-2026-09-10 verdicts.
+    unanswered = []
+    if _retry_missing():
+        typed = normalize_criteria(state["criteria"])
+        unanswered = [
+            {"criterion": c["text"], "kind": c["kind"], "verdict": "cannot_determine"}
+            for c in _missing_criteria(state["assessments"], typed)
+        ]
     roll = rollup_trial(
-        state["assessments"], truncated=state.get("criteria_truncated", False)
+        state["assessments"] + unanswered,
+        truncated=state.get("criteria_truncated", False),
     )
     return {
         "trial_verdict": roll["verdict"],
@@ -387,6 +479,11 @@ def assess(
     global _GRAPH
     if _GRAPH is None:
         _GRAPH = build_graph()
+    if not source_text.strip():
+        # A trial with no raw eligibility text left the patient note as the only
+        # grounding source, so every decisive verdict rested on user-supplied
+        # text. The criteria are the trial's own words.
+        source_text = "\n".join(c["text"] for c in normalize_criteria(criteria))
     from trialguard.tracing import trace_config
 
     config = trace_config(handler, nct_id=nct_id, max_retries=max_retries)
