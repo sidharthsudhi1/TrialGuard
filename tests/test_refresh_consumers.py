@@ -60,9 +60,39 @@ def test_the_same_version_does_not_reload(monkeypatch):
 def test_the_check_is_throttled(monkeypatch):
     monkeypatch.setattr("trialguard.config.settings.vector_cache_check_s", 300.0)
     cache = _resident("v1")
-    cache._last_check = __import__("time").monotonic()
+    cache._last_check = __import__("time").time()
 
     assert cache.maybe_reload() is None
+
+
+def test_time_spent_suspended_counts_toward_the_throttle(monkeypatch):
+    """CLOCK_MONOTONIC stops while a Fly machine is suspended. A check made just
+    before suspend must not hold the next one off after resume."""
+    import time
+
+    monkeypatch.setattr("trialguard.config.settings.vector_cache_check_s", 300.0)
+    monkeypatch.setattr(V, "corpus_version", lambda: "v2")
+    cache = _resident("v1")
+    reloads = []
+    monkeypatch.setattr(cache, "load", lambda reload=False: reloads.append(reload))
+    cache._last_check = time.time() - 3600  # an hour ago on the wall clock
+    monkeypatch.setattr(time, "monotonic", lambda: 0.0)  # but no running time
+
+    cache.maybe_reload().join()
+
+    assert reloads == [True]
+
+
+def test_a_health_poll_starts_the_version_check(monkeypatch):
+    """Reloads hung off search traffic alone, so an idle deployment kept the
+    pre-publish matrix until someone searched and was answered from it."""
+    calls = []
+    monkeypatch.setattr("trialguard.config.settings.retrieval_vector_cache", True)
+    monkeypatch.setattr(V.VectorCache, "maybe_reload", lambda self: calls.append(self.source))
+
+    V.kick()
+
+    assert calls == ["ctgov_live"]
 
 
 def test_searches_keep_the_old_matrix_while_a_reload_is_in_flight():

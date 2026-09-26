@@ -142,7 +142,11 @@ class VectorCache:
         """Throttled, non-blocking: check the corpus version and reload if it moved."""
         from trialguard.config import settings
 
-        now = time.monotonic()
+        # Wall clock, not monotonic: CLOCK_MONOTONIC does not advance while a Fly
+        # machine is suspended, so a check made just before suspend could hold
+        # the next one off for up to vector_cache_check_s of *running* time
+        # after resume, with the resumed process serving the old matrix.
+        now = time.time()
         if self._matrix is None or now - self._last_check < settings.vector_cache_check_s:
             return None
         self._last_check = now
@@ -205,6 +209,20 @@ def corpus_version() -> str | None:
 
     value = cache_get("corpus", "version")
     return value.get("run_id") if isinstance(value, dict) else None
+
+
+def kick() -> None:
+    """Start the throttled version check without a search behind it.
+
+    Reloads used to hang off search traffic alone, so an idle deployment kept
+    the pre-publish matrix until someone searched, and that first search was
+    answered from it. /api/health calls this: Fly polls health every 30s while
+    the machine runs, and a resume's first request is usually a health check.
+    """
+    from trialguard.config import settings
+
+    if settings.retrieval_vector_cache:
+        get_cache(settings.retrieval_vector_cache_source).maybe_reload()
 
 
 def warm_in_background(source: str) -> threading.Thread | None:
