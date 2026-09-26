@@ -9,3 +9,15 @@ data/raw
 **/__pycache__
 *.pyc
 .env
+# Keys and local tool state never belong in the build context. The Dockerfile
+# copies only named paths, but fly deploy uploads the whole context to a remote
+# builder, and an SSH key sat at the repo root.
+*.pem
+.env.*
+.claude
+.claude-flow
+.swarm
+*.db
+*.rvf
+*.rvf.lock
+.coverage
