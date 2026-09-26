@@ -9,3 +9,26 @@ data/raw
 **/__pycache__
 *.pyc
 .env
+# Keys and local tool state never belong in the build context. The Dockerfile
+# copies only named paths, but fly deploy uploads the whole context to a remote
+# builder, and an SSH key sat at the repo root.
+*.pem
+.env.*
+.claude
+.claude-flow
+.swarm
+*.db
+*.rvf
+*.rvf.lock
+.coverage
+# The image takes one file from data/ (Dockerfile.api); the rest is 370 MB of
+# cohorts, reports and caches uploaded on every deploy.
+data/*
+!data/eval
+data/eval/*
+!data/eval/sigir
+data/eval/sigir/*
+!data/eval/sigir/queries.jsonl
+.mypy_cache
+.ruff_cache
+.pytest_cache
