@@ -209,3 +209,20 @@ def test_v6_output_shape_is_v4s_so_nothing_downstream_changes():
     raw = '{"assessments": [{"criterion": "Age >= 18 years", "verdict": "met"}]}'
 
     assert _parse(raw, TYPED)[0]["criterion"] == "Age >= 18 years"
+
+
+def test_v8_is_v4_plus_exactly_its_rules():
+    from trialguard.agent.analyst import _PROMPTS, _V8_RULES
+
+    v4, v8 = _PROMPTS["v4"], _PROMPTS["v8"]
+    assert v8 != v4
+    assert v8.replace(_V8_RULES, "", 1) == v4
+
+
+def test_v8_tags_criteria_and_fences_the_note():
+    from trialguard.agent.analyst import build_messages
+
+    typed = [{"text": "Stage IV disease", "kind": "inclusion"}]
+    _, user = build_messages("62M", "NCT1", typed, "v8")
+    assert "- [inclusion] Stage IV disease" in user
+    assert "<patient_note>" in user

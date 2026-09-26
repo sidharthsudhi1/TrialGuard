@@ -25,6 +25,7 @@ SAMPLES = Path(__file__).parent / "fixtures/ctgov/eligibility_samples.json"
 
 PINNED = {
     "2026-09-23.1": "67fb1f63ec9fea45",
+    "2026-09-25.1": "d48eb4a998d5e71d",
 }
 
 

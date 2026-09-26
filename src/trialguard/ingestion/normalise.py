@@ -10,7 +10,7 @@ import re
 # parser fix reaches only trials CT.gov happens to revise, and the corpus is a
 # mix of parses. tests/test_parser_version.py fails when the output changes
 # and this does not.
-PARSER_VERSION = "2026-09-23.1"
+PARSER_VERSION = "2026-09-25.1"
 
 
 def _strip_markdown(text: str) -> str:
@@ -41,10 +41,21 @@ _BARE_HEADER = re.compile(r"^[ \t]*:[ \t]*$", re.M)
 # Exclusion disjunctions are deliberately not listed as a problem — "excluded if
 # any exclusion is met" already is the disjunction, so flattening those 2,416
 # trials happens to produce the right answer.
+#
+# Disjunctions are matched by their quantifier: "one of", "1 or more of",
+# "either of", "at least two of". The first version knew only "any/one or
+# more/at least one", with a colon at most 40 characters on, and missed 943
+# ctgov_live trials worded "must meet one of the following", "at least 1 of the
+# following" or "defined as one of the following conditions" -- 679 of them
+# indented, so groupable. A k-of-n list is grouped too: flattened it demands
+# every item, grouped the analyst reads the rule as written. "all of the
+# following" is already a conjunction and "none of" is excluded by the word
+# boundary. Carve-outs keep the stricter colon rule: "unless" ends ordinary
+# sentences.
 _GROUP_HEADER = re.compile(
-    r"(?:any (?:one )?of the following|one or more of the following"
-    r"|at least one of the following|except|with the exception of|unless)"
-    r"[^.\n]{0,40}:\s*$",
+    r"(?:\b(?:(?:one|1|two|2|three|3)(?:\s+or\s+more)?|either|any(?:\s+one)?)"
+    r"\s+of\s+the\s+following[^.\n]{0,60}:?\s*$"
+    r"|(?:except|with the exception of|unless)[^.\n]{0,40}:\s*$)",
     re.IGNORECASE,
 )
 
