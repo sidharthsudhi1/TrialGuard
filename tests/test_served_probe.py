@@ -45,6 +45,10 @@ class _FakeClient:
             self.calls.append("health")
             if "health" in self.raise_on:
                 raise ConnectionError("refused")
+            if isinstance(self.health, list):
+                # A sequence of health bodies, one per call, the last repeating.
+                n = self.calls.count("health") - 1
+                return _Resp(200, self.health[min(n, len(self.health) - 1)])
             return _Resp(200, self.health)
         self.calls.append("budget")
         if "budget" in self.raise_on:
@@ -61,8 +65,13 @@ class _FakeClient:
         pass
 
 
-def _probe(**kw) -> dict:
-    return probe("https://example.test", client=_FakeClient(**kw))
+def _probe(catchup_s: float = 0.0, **kw) -> dict:
+    return probe(
+        "https://example.test",
+        client=_FakeClient(**kw),
+        catchup_s=catchup_s,
+        sleep=lambda _: None,
+    )
 
 
 def test_a_healthy_deployment_passes_every_check():
@@ -235,19 +244,44 @@ def test_one_refresh_failure_reports_without_alerting():
     assert "refresh_not_failing" not in _failed(check(_probe(health=health)))
 
 
-def test_a_matrix_trailing_a_publish_alerts():
-    import datetime as dt
-
-    published = (dt.datetime.now(dt.UTC) - dt.timedelta(minutes=40)).isoformat()
-    health = _health_with(
+def _stale(published_minutes_ago: float = 40) -> dict:
+    published = (
+        dt.datetime.now(dt.UTC) - dt.timedelta(minutes=published_minutes_ago)
+    ).isoformat()
+    return _health_with(
         refresh_state={"consecutive_failures": 0,
                        "corpus_version": {"run_id": "new", "published_at": published}},
         vector_cache={"ready": True, "version": "old"},
     )
 
-    outcome = check(_probe(health=health))
+
+def _current() -> dict:
+    return _health_with(
+        refresh_state={"consecutive_failures": 0,
+                       "corpus_version": {"run_id": "new", "published_at": "2026-09-25T12:29:13"}},
+        vector_cache={"ready": True, "version": "new"},
+    )
+
+
+def test_a_matrix_that_never_catches_up_alerts():
+    outcome = check(_probe(health=_stale()))
 
     assert "vector_cache_current" in _failed(outcome)
+
+
+def test_idle_lag_that_clears_once_traffic_arrives_does_not_alert():
+    """2026-09-25: 687 min behind a publish because nothing had searched since.
+    The probe's own requests started the reload, which landed 30 s later."""
+    health = [_stale(687), _stale(687), _current()]
+
+    result = _probe(health=health, catchup_s=5.0)
+    outcome = check(result)
+
+    assert result["vector_cache_lag_minutes"] >= 687
+    assert result["vector_cache_catchup_s"] is not None
+    assert "vector_cache_current" not in _failed(outcome)
+    idle = next(r for r in outcome["results"] if r["check"] == "vector_cache_idle_lag")
+    assert idle["passed"] and idle["value"] >= 687
 
 
 def test_a_matrix_on_the_published_version_is_current():

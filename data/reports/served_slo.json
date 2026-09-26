@@ -8,5 +8,5 @@
   "min_search_results": 1,
   "max_corpus_age_hours": 48,
   "max_refresh_consecutive_failures": 1,
-  "max_vector_cache_lag_minutes": 15
+  "max_vector_cache_catchup_s": 90
 }

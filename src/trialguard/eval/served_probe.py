@@ -95,13 +95,23 @@ def _vector_cache_lag_minutes(health: dict) -> float | None:
     return round((dt.datetime.now(dt.UTC) - at).total_seconds() / 60, 1)
 
 
-def probe(base_url: str, *, client=None, timeout: float = 60.0) -> dict:
+def probe(
+    base_url: str,
+    *,
+    client=None,
+    timeout: float = 60.0,
+    catchup_s: float = 120.0,
+    poll_s: float = 5.0,
+    sleep=None,
+) -> dict:
     """Hit the live endpoints once each and report what happened."""
     import httpx
 
+    sleep = sleep or time.sleep
     base = base_url.rstrip("/")
     owns_client = client is None
     client = client or httpx.Client(timeout=timeout)
+    started = time.monotonic()
     try:
         # First health call absorbs a Fly resume if the machine was suspended, so
         # it is reported separately rather than folded into the warm number.
@@ -121,6 +131,20 @@ def probe(base_url: str, *, client=None, timeout: float = 60.0) -> dict:
         )
         r_cold_search, cold_search_ms, cold_search_err = _timed(_search)
         r_search, search_ms, search_err = _timed(_search)
+
+        # A stale matrix on the first health read says only that nothing asked
+        # for a reload while the service sat idle; the probe's own calls are
+        # what start it. The question that matters to a user is how long the
+        # matrix stays stale once traffic arrives, so poll until it catches up.
+        first = _json_or_empty(r_warm) or _json_or_empty(r_cold)
+        idle_lag = _vector_cache_lag_minutes(first)
+        catchup: float | None = 0.0 if idle_lag is None else None
+        while catchup is None and time.monotonic() - started <= catchup_s:
+            r_poll, _, poll_err = _timed(lambda: client.get(f"{base}/api/health"))
+            if not poll_err and _vector_cache_lag_minutes(_json_or_empty(r_poll)) is None:
+                catchup = round(time.monotonic() - started, 1)
+                break
+            sleep(poll_s)
     finally:
         if owns_client:
             client.close()
@@ -140,7 +164,8 @@ def probe(base_url: str, *, client=None, timeout: float = 60.0) -> dict:
         "store_ok": bool(health.get("store_ok")),
         "corpus_age_hours": _corpus_age_hours(health),
         "refresh_consecutive_failures": _refresh_failures(health),
-        "vector_cache_lag_minutes": _vector_cache_lag_minutes(health),
+        "vector_cache_lag_minutes": idle_lag,
+        "vector_cache_catchup_s": catchup,
         "budget_ms": budget_ms,
         "budget_status": _status(r_budget, budget_err),
         "budget_exhausted": bool(budget.get("exhausted")),
@@ -290,12 +315,22 @@ def check(result: dict, thresholds_path: Path = THRESHOLDS) -> dict:
             failures,
             f"<= {t['max_refresh_consecutive_failures']} in a row",
         )
+    # Idle lag is how long nothing asked for a reload, which on a demo that
+    # nobody opened overnight is most of the night. Gating it failed the nightly
+    # monitor at 687 minutes on 2026-09-25 while no user had been served stale.
     lag = result.get("vector_cache_lag_minutes")
     _row(
-        "vector_cache_current",
-        lag is None or lag <= t["max_vector_cache_lag_minutes"],
+        "vector_cache_idle_lag",
+        True,
         "current" if lag is None else lag,
-        f"<= {t['max_vector_cache_lag_minutes']} min behind the corpus",
+        "reported, not gated",
+    )
+    catchup = result.get("vector_cache_catchup_s")
+    _row(
+        "vector_cache_current",
+        catchup is not None and catchup <= t["max_vector_cache_catchup_s"],
+        "never caught up" if catchup is None else catchup,
+        f"<= {t['max_vector_cache_catchup_s']} s after traffic arrives",
     )
 
     return {"passed": all(r["passed"] for r in rows), "results": rows}
