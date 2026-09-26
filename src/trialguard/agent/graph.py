@@ -13,7 +13,7 @@ Two arms share this graph:
 from __future__ import annotations
 
 import os
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from langgraph.graph import END, StateGraph
 
@@ -337,7 +337,7 @@ def _analyst_node(state: State) -> State:
                 return {"assessments": prior}
     # on_criterion is passed only when a caller actually wants progress events,
     # so the default path's call shape is unchanged.
-    extra = {}
+    extra: dict[str, Any] = {}
     if retry_context:
         extra["retry_context"] = retry_context
     if state.get("on_criterion") is not None:
