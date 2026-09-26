@@ -21,3 +21,14 @@ data/raw
 *.rvf
 *.rvf.lock
 .coverage
+# The image takes one file from data/ (Dockerfile.api); the rest is 370 MB of
+# cohorts, reports and caches uploaded on every deploy.
+data/*
+!data/eval
+data/eval/*
+!data/eval/sigir
+data/eval/sigir/*
+!data/eval/sigir/queries.jsonl
+.mypy_cache
+.ruff_cache
+.pytest_cache
