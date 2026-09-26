@@ -152,8 +152,9 @@ def _is_preset(note: str) -> bool:
 
 
 def _vector_cache_status() -> dict[str, Any]:
-    from trialguard.retrieval.vector_cache import status
+    from trialguard.retrieval.vector_cache import kick, status
 
+    kick()
     return status()
 
 
