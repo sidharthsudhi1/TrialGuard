@@ -138,6 +138,8 @@ Full reports: [`data/reports/phase2_3_results.md`](data/reports/phase2_3_results
 | TREC 2022 | 20 | top-10 | 0.067 | 0.0430 | 0.698 | 0.547 | 1.28x |
 | TREC 2022 | 20 | top-100 | 0.378 | **0.2580** | 0.533 | 0.369 | 1.45x |
 
+> **Intervals (AD-34, 2026-09-28).** Patient-bootstrap 95% CIs on the rows above: surfaced recall [0.143, 0.216] and [0.202, 0.335] at top-100; lift 1.59x [1.35, 1.96], 1.62x [1.48, 1.82], 1.27x [1.12, 1.48], 1.45x [1.31, 1.62]. The 10→100 widening holds for 20 of 20 patients on both cohorts (BH-adjusted p ≤ 0.0001). **These 20 patients flatter the lift.** On all 75 TREC 2021 patients at top-10 it's **1.37x [1.26, 1.49]**, and the other 55 alone give 1.30x. The full-cohort top-100 run is pending. [`v1_findings.md`](data/reports/v1_findings.md)
+
 **The assessed-pool size, not the embedding model, was the binding constraint.** A depth diagnostic showed gold trials are not missing from the candidate space — they are present and misordered (recall 0.766@500 on 2021, 0.788@500 on 2022, under 6% never ranked; median gold rank 130–180). Widening the pool handed to the agent from 10 to 100 lifts surfaced recall **6.4x / 6.0x** with no change to retrieval, prompt or verifier, and the agent's lift over its pool's own base rate stays flat-to-rising through the full 10x dilution — it filters at a constant rate rather than borrowing its precision from a rich pool. Reports: [`h1_pool_curve_trec2021.md`](data/reports/h1_pool_curve_trec2021.md), [`h1_pool_curve_trec2022.md`](data/reports/h1_pool_curve_trec2022.md). Quote the lift, not the raw precision: TREC's retrieved pool is already 34–55% gold-eligible. Deep pools are a serving-cost question (~$0.05 and ~10 min/patient at top-100), so the demo makes depth an explicit opt-in: search returns 5 candidates by default, or up to 25 with **Deep search** checked, and the UI quotes the measured cost and wait before you commit to it.
 
 **Split by specialty, the two halves pull opposite ways.** The tables above are a
@@ -154,6 +156,8 @@ published 1.60x, so nothing in the system's value depends on the patient having
 cancer. Stated with its limit: 14 oncology patients, so the 1.90x carries roughly
 ±0.4. [`e3_findings.md`](data/reports/e3_findings.md),
 [AD-28](docs/adr/0028-specialty-split-of-published-numbers.md).
+
+> **Correction 2026-09-28 (AD-34).** The lift figures in this paragraph are wrong. E3 divided precision over labelled trials by a base rate over all assessed trials, including unlabelled ones, which inflates the ratio. With labelled trials on both sides: oncology **1.51x [1.22, 1.99]**, non-oncology **1.34x [1.23, 1.46]**. The intervals overlap, so "the agent is better inside oncology" is not supported on lift, and neither cell clears 1.60x. The faithfulness split (unverifiable 0.0138 vs 0.0355) is unaffected. [`v1_findings.md`](data/reports/v1_findings.md)
 
 **Retrieval under dilution.** Growing the haystack with 99,098 real all-conditions
 trials takes recall@100 from 0.1759 to 0.1102 at **4.79x dilution** — retaining
@@ -300,7 +304,7 @@ faithfulness alone. [`e2_findings.md`](data/reports/e2_findings.md),
 
 **Provider parity.** Inference moved to an FP8-quantized build, which changes numerical precision on the model that produces verbatim quotes — a failure that would be *silent*, since a paraphrased quote just fails grounding and downgrades to *unverifiable*, a legitimate output. Measured rather than assumed: on a matched 180-trial baseline arm, citation precision was unchanged (0.9057 → 0.9086). [`phase8_provider_parity.md`](data/reports/phase8_provider_parity.md)
 
-> **Note on `criterion-matching accuracy ≥ 87%`:** retired as a target (2026-08-31). It was never measurable here — every label in SIGIR and both TREC cohorts is trial-level (`qrels`: 0=irrelevant, 1=excluded, 2=eligible), and no criterion-level gold exists. Trial-level roll-up had been standing in for it, which answers a different question. The claim in its place is **faithfulness** (2.76% unverifiable on SIGIR, 3.95% on TREC 2021; verifier catch rate 100%) plus the **tiered contract** — trials separate into `eligible` / `needs_review` / `excluded`, where `needs_review` means no disqualifier and N unstated facts. Worth **1.60x lift over base rate on TREC, 1.39x on SIGIR** ([`e1b_findings.md`](data/reports/e1b_findings.md)); quote the lift, not raw precision, because TREC's retrieved pool is already 42.9% gold-eligible.
+> **Note on `criterion-matching accuracy ≥ 87%`:** retired as a target (2026-08-31). It was never measurable here — every label in SIGIR and both TREC cohorts is trial-level (`qrels`: 0=irrelevant, 1=excluded, 2=eligible), and no criterion-level gold exists. Trial-level roll-up had been standing in for it, which answers a different question. The claim in its place is **faithfulness** (2.76% unverifiable on SIGIR, 3.95% on TREC 2021; verifier catch rate 100%) plus the **tiered contract** — trials separate into `eligible` / `needs_review` / `excluded`, where `needs_review` means no disqualifier and N unstated facts. Worth **1.60x lift over base rate on TREC (n=20; 1.37x [1.26, 1.49] on all 75, AD-34), 1.39x on SIGIR** ([`e1b_findings.md`](data/reports/e1b_findings.md)); quote the lift, not raw precision, because TREC's retrieved pool is already 42.9% gold-eligible.
 
 > **Note on `recall@10 ≥ 90%`:** retired as a target. It is mathematically capped at `min(10, |gold|)/|gold|` per patient — TREC patients average 60+ eligible trials (ceiling ~0.25). TrialGPT's ">90% recall" was measured at large depth. Primary retrieval metric is now **recall@pool** (recall@50/100).
 
@@ -601,6 +605,7 @@ what it corrects.
 | [AD-31](docs/adr/0031-ci-gates-widened.md) | The CI gate is widened until it can fail |  |
 | [AD-32](docs/adr/0032-nli-route-at-350-items.md) | The NLI route re-tested at 350 items |  |
 | [AD-33](docs/adr/0033-refresh-write-audit-publish.md) | The corpus refresh is write-audit-publish over content hashes |  |
+| [AD-34](docs/adr/0034-headlines-carry-intervals.md) | Headlines carry intervals, and lift uses one denominator |  |
 
 *When a decision is reversed during the build, the reversal and reason are recorded — not deleted.*
 
