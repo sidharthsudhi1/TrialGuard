@@ -89,7 +89,7 @@ def retrieve_for_patients(
                 "retrieved": [n for n, _ in hits],
             }
         )
-        if len(rows) >= n_patients:
+        if n_patients and len(rows) >= n_patients:
             break
     return rows, {"retrieval_s": round(time.perf_counter() - t0, 1)}
 
@@ -391,6 +391,74 @@ def score(rows: list[dict]) -> dict:
         "weak_absence": crit_weak_absence,
         "weak_absence_rate": _rate(crit_weak_absence, crit_grounded),
         "incomplete_patients": sum(1 for r in rows if r.get("incomplete")),
+        **_lift_and_confidence(per_patient(rows)),
+    }
+
+
+def per_patient(rows: list[dict]) -> list[dict]:
+    """The counts every pooled rate above is built from, kept per patient.
+
+    Pooled rates hide how few patients carry them; keeping the counts is what lets
+    a later run put an interval on a number, or pair two arms patient by patient.
+    """
+    out = []
+    for r in rows:
+        gold_elig = set(r["gold_eligible"])
+        verdicts = r.get("verdicts", {})
+        labels = r["gold_labels"]
+        labelled = [n for n in verdicts if labels.get(n)]
+        surfaced = [n for n, v in verdicts.items() if v.get("trial_tier") != "excluded"]
+        out.append(
+            {
+                "patient_id": r["patient_id"],
+                "gold": len(gold_elig),
+                "retrieved_gold": len(gold_elig & set(r["retrieved"])),
+                "correct": sum(
+                    1 for n in gold_elig if verdicts.get(n, {}).get("trial_verdict") == "eligible"
+                ),
+                "assessed": len(verdicts),
+                "assessed_labelled": len(labelled),
+                "assessed_gold": sum(1 for n in labelled if n in gold_elig),
+                "surfaced_hit": sum(1 for n in surfaced if n in gold_elig),
+                "surfaced_labelled": sum(1 for n in surfaced if labels.get(n)),
+            }
+        )
+    return out
+
+
+def _lift_and_confidence(pp: list[dict], seed: int = 0) -> dict:
+    """Lift over the assessed pool's base rate, and patient-bootstrap 95% CIs.
+
+    Lift is the number the thesis quotes, because TREC pools are already 34-55%
+    gold before the agent reads anything. It had been computed by hand per report,
+    and E3 divided a labelled-only precision by a base rate over every assessed
+    trial, unlabelled included, which inflates it. Both sides here count labelled
+    trials only, the same convention as surfaced precision.
+    """
+    from trialguard.eval.significance import bootstrap_ci, ratio_of_sums
+
+    def col(name):
+        return [p[name] for p in pp]
+
+    def lift(idx):
+        base = ratio_of_sums(col("assessed_gold"), col("assessed_labelled"))(idx)
+        prec = ratio_of_sums(col("surfaced_hit"), col("surfaced_labelled"))(idx)
+        return prec / base if base else float("nan")
+
+    stats = {
+        "retrieval_recall": ratio_of_sums(col("retrieved_gold"), col("gold")),
+        "end_to_end_recall": ratio_of_sums(col("correct"), col("gold")),
+        "surfaced_recall": ratio_of_sums(col("surfaced_hit"), col("gold")),
+        "surfaced_precision": ratio_of_sums(col("surfaced_hit"), col("surfaced_labelled")),
+        "pool_base_rate": ratio_of_sums(col("assessed_gold"), col("assessed_labelled")),
+        "surfaced_lift": lift,
+    }
+    ci = {name: bootstrap_ci(fn, len(pp), seed=seed) for name, fn in stats.items()}
+    return {
+        "pool_base_rate": ci["pool_base_rate"]["point"],
+        "surfaced_lift": ci["surfaced_lift"]["point"],
+        "ci95": {name: c["ci"] for name, c in ci.items()},
+        "per_patient": pp,
     }
 
 
@@ -429,7 +497,8 @@ def main() -> None:
 
     ap = argparse.ArgumentParser(description="End-to-end eval: note -> retrieval -> verdicts")
     ap.add_argument("--cohort", default="sigir", choices=["sigir", "trec_2021", "trec_2022"])
-    ap.add_argument("--n-patients", type=int, default=10)
+    ap.add_argument("--n-patients", type=int, default=10,
+                    help="0 scores every patient with an in-corpus eligible trial")
     ap.add_argument("--top-k", type=int, default=10)
     ap.add_argument("--cached-only", action="store_true",
                     help="Skip pairs with no cached analyst response. Bounds the "
@@ -459,6 +528,11 @@ def main() -> None:
     t.add_row("trials surfaced", str(ts["shown"]))
     t.add_row("agent loss", f"{m['agent_loss']:.4f}")
     t.add_row("precision of 'eligible'", f"{m['eligible_precision']:.4f}")
+    rlo, rhi = m["ci95"]["surfaced_recall"]
+    llo, lhi = m["ci95"]["surfaced_lift"]
+    t.add_row("surfaced recall 95% CI", f"[{rlo:.4f}, {rhi:.4f}]")
+    t.add_row("pool base rate", f"{m['pool_base_rate']:.4f}")
+    t.add_row("surfaced lift (95% CI)", f"{m['surfaced_lift']:.2f}x [{llo:.2f}, {lhi:.2f}]")
     t.add_row("criterion unverifiable rate", f"{m['criterion_unverifiable_rate']:.4f}")
     t.add_row("trials assessed", str(result["counts"]["assessed"]))
     t.add_row("cache coverage", f"{result['counts']['cache_coverage']:.4f}")

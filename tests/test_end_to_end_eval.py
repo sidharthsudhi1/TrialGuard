@@ -210,3 +210,31 @@ def test_one_failing_trial_does_not_void_the_run(monkeypatch):
 
     assert counts["skipped"] == 1
     assert set(rows[0]["verdicts"]) == {"A", "C"}
+
+
+def test_lift_is_surfaced_precision_over_the_assessed_pool_base_rate():
+    # pool: A,B gold-eligible, X,Y excluded -> base 0.5; surfaced A,B only -> precision 1.0
+    tiers = {"A": "eligible", "B": "needs_review", "X": "excluded", "Y": "excluded"}
+    row = _row(
+        "p1", ["A", "B"], list(tiers),
+        {"A": "eligible", "B": "cannot_determine", "X": "excluded", "Y": "excluded"},
+        labels={"A": "eligible", "B": "eligible", "X": "excluded", "Y": "excluded"},
+    )
+    for n, t in tiers.items():
+        row["verdicts"][n]["trial_tier"] = t
+    m = score([row])
+    assert m["pool_base_rate"] == 0.5
+    assert m["surfaced_lift"] == 2.0
+    assert m["per_patient"][0]["surfaced_hit"] == 2
+
+
+def test_every_headline_rate_carries_a_patient_bootstrap_interval():
+    rows = [
+        _row(f"p{i}", ["A", "B"], ["A", "B"], {"A": "eligible", "B": "cannot_determine"})
+        for i in range(5)
+    ]
+    m = score(rows)
+    for name in ("retrieval_recall", "end_to_end_recall", "surfaced_recall", "surfaced_lift"):
+        lo, hi = m["ci95"][name]
+        assert lo is None or lo <= hi
+    assert m["ci95"]["end_to_end_recall"] == [0.5, 0.5]
