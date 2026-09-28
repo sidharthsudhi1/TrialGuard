@@ -212,6 +212,21 @@ def test_one_failing_trial_does_not_void_the_run(monkeypatch):
     assert set(rows[0]["verdicts"]) == {"A", "C"}
 
 
+def test_one_failing_trial_does_not_end_a_concurrent_run(monkeypatch):
+    """Executor.map finalises its iterator on the first worker exception, so a
+    single provider error used to end the run and still report coverage 1.0."""
+    def _flaky(note, nct, criteria, source, **kw):
+        if nct == "A":
+            raise RuntimeError("provider 500")
+        return {"trial_verdict": "eligible", "trial_tier": "eligible", "assessments": []}
+
+    rows, counts = _run_assess(8, monkeypatch, _flaky)
+
+    assert set(rows[0]["verdicts"]) == {"B", "C"}
+    assert counts["errors"] == 1
+    assert counts["completion"] == round(2 / 3, 4)
+
+
 def test_lift_is_surfaced_precision_over_the_assessed_pool_base_rate():
     # pool: A,B gold-eligible, X,Y excluded -> base 0.5; surfaced A,B only -> precision 1.0
     tiers = {"A": "eligible", "B": "needs_review", "X": "excluded", "Y": "excluded"}

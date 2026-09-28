@@ -126,7 +126,7 @@ def assess_retrieved(
     needed = {n for r in rows for n in r["retrieved"]}
     corpus = _load_corpus(cohort, needed)
 
-    assessed = skipped = budget_stops = uncached = 0
+    assessed = skipped = budget_stops = uncached = errors = 0
     t0 = time.perf_counter()
 
     # Flatten first so the work can run concurrently. Every (patient, trial) pair
@@ -150,16 +150,22 @@ def assess_retrieved(
                 continue
             work.append((r, nct, trial, criteria, truncated))
 
+    # Errors come back as values. Executor.map finalises its iterator on the first
+    # exception a worker raises, so letting one escape ended the whole run after a
+    # single provider error while the counts still read as complete.
     def _one(item):
         r, nct, trial, criteria, truncated = item
-        return item, assess(
-            r["note"],
-            nct,
-            criteria,
-            trial.get("eligibility_raw", ""),
-            max_retries=max_retries,
-            criteria_truncated=truncated,
-        )
+        try:
+            return item, assess(
+                r["note"],
+                nct,
+                criteria,
+                trial.get("eligibility_raw", ""),
+                max_retries=max_retries,
+                criteria_truncated=truncated,
+            ), None
+        except Exception as exc:
+            return item, None, exc
 
     workers = _eval_workers()
     if workers > 1:
@@ -174,10 +180,10 @@ def assess_retrieved(
     try:
         for _ in work:
             try:
-                item, state = next(results)
+                item, state, err = next(results)
             except StopIteration:
                 break
-            except BudgetExhausted:
+            if isinstance(err, BudgetExhausted):
                 # Stop rather than silently scoring a partial run as if complete.
                 # Which patient the exhausted call belonged to is not recoverable
                 # once the work is pooled, so every patient still holding
@@ -189,8 +195,9 @@ def assess_retrieved(
                     if set(row["retrieved"]) - assessed_ids:
                         row["incomplete"] = True
                 break
-            except Exception:
+            if err is not None:
                 skipped += 1
+                errors += 1
                 continue
             r, nct, _trial, criteria, _truncated = item
             ass = state.get("assessments", [])
@@ -240,6 +247,11 @@ def assess_retrieved(
         # retrieved ones. The headline is then not comparable to a full run.
         "cache_coverage": round(assessed / total, 4) if total else 0.0,
         "budget_stops": budget_stops,
+        # Pairs that raised. cache_coverage cannot see these, so a run cut short
+        # by errors reads complete there; completion is the share of attempted
+        # pairs that actually produced a verdict.
+        "errors": errors,
+        "completion": round(assessed / len(work), 4) if work else 0.0,
         "assess_s": round(time.perf_counter() - t0, 1),
     }
 
