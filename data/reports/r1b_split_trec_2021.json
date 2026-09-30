@@ -1,0 +1,99 @@
+{
+  "cohort": "trec_2021",
+  "mean": {
+    "d200l200@100": 0.4576,
+    "d200l200@200": 0.634,
+    "d200l50@100": 0.4601,
+    "d200l50@200": 0.6199,
+    "d50l200@100": 0.4504,
+    "d50l200@200": 0.6055,
+    "d50l50@100": 0.4392,
+    "d50l50@200": 0.561
+  },
+  "vs_d50l50": {
+    "d200l200@100": {
+      "better": 38,
+      "delta_ci": [
+        0.0062,
+        0.0305
+      ],
+      "mean_delta": 0.0184,
+      "n": 75,
+      "p": 0.0005,
+      "p_bh": 0.0006,
+      "significant_bh": true,
+      "ties": 20,
+      "worse": 17
+    },
+    "d200l200@200": {
+      "better": 53,
+      "delta_ci": [
+        0.051,
+        0.0952
+      ],
+      "mean_delta": 0.073,
+      "n": 75,
+      "p": 0.0,
+      "p_bh": 0.0,
+      "significant_bh": true,
+      "ties": 13,
+      "worse": 9
+    },
+    "d200l50@100": {
+      "better": 47,
+      "delta_ci": [
+        0.0126,
+        0.0297
+      ],
+      "mean_delta": 0.0209,
+      "n": 75,
+      "p": 0.0,
+      "p_bh": 0.0,
+      "significant_bh": true,
+      "ties": 18,
+      "worse": 10
+    },
+    "d200l50@200": {
+      "better": 52,
+      "delta_ci": [
+        0.0438,
+        0.0744
+      ],
+      "mean_delta": 0.0589,
+      "n": 75,
+      "p": 0.0,
+      "p_bh": 0.0,
+      "significant_bh": true,
+      "ties": 14,
+      "worse": 9
+    },
+    "d50l200@100": {
+      "better": 35,
+      "delta_ci": [
+        0.0022,
+        0.02
+      ],
+      "mean_delta": 0.0112,
+      "n": 75,
+      "p": 0.0132,
+      "p_bh": 0.0132,
+      "significant_bh": true,
+      "ties": 22,
+      "worse": 18
+    },
+    "d50l200@200": {
+      "better": 41,
+      "delta_ci": [
+        0.0256,
+        0.0642
+      ],
+      "mean_delta": 0.0445,
+      "n": 75,
+      "p": 0.0001,
+      "p_bh": 0.0002,
+      "significant_bh": true,
+      "ties": 16,
+      "worse": 18
+    }
+  }
+}

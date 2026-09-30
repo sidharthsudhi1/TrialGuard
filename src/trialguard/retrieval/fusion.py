@@ -31,6 +31,26 @@ def keyword_decay_enabled() -> bool:
     return os.environ.get("TG_KEYWORD_DECAY", "1") == "1"
 
 
+def list_pool() -> int:
+    """Depth of each per-keyword ranked list fed to RRF. 200.
+
+    With 50-deep lists a trial scores only by reaching the top 50 of some single
+    keyword's list, so a trial ranked moderately for many keywords -- the shape
+    of an eligible one -- scores nothing. Measured (R1, $0, cached keywords):
+
+        TREC 2021  recall@100 +0.018, recall@200 +0.073  (p_bh < 0.001)
+        TREC 2022  recall@100 +0.022, recall@200 +0.067  (p_bh < 0.03)
+        SIGIR      flat (2,991 trials; gold already at the head)
+
+    It pays only because of keyword decay: before 1/i weighting, deep lists from
+    minor keywords diluted recall (structural_recall_plan.md §5). See
+    data/reports/r1_findings.md.
+
+    Set TG_LIST_POOL=50 to reproduce any ranking committed before this.
+    """
+    return int(os.environ.get("TG_LIST_POOL", "200"))
+
+
 def importance_weights(n_lists: int, lists_per_query: int = 2) -> list[float] | None:
     """1/i weight per ranked list, i being its keyword's 1-based importance rank.
 

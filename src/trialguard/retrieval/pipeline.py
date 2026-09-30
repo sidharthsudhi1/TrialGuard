@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from trialguard.retrieval.bm25 import bm25_search
 from trialguard.retrieval.dense import dense_search
-from trialguard.retrieval.fusion import importance_weights, rrf
+from trialguard.retrieval.fusion import importance_weights, list_pool, rrf
 
 
 def _apply_demographics(query, rankings, fused, top_k, source):
@@ -43,8 +43,8 @@ def retrieve(
     query: str,
     top_k: int = 10,
     source: str | None = None,
-    dense_pool: int = 50,
-    bm25_pool: int = 50,
+    dense_pool: int | None = None,
+    bm25_pool: int | None = None,
     use_keywords: bool = False,
     handler=None,
 ) -> tuple[list[tuple[str, float]], dict[str, float]]:
@@ -54,6 +54,8 @@ def retrieve(
     latency: {"dense_ms", "bm25_ms", "fanout_ms", "fusion_ms", "keyword_ms", "total_ms"}
     """
     t0 = time.perf_counter()
+    dense_pool = dense_pool or list_pool()
+    bm25_pool = bm25_pool or list_pool()
 
     if use_keywords:
         from trialguard.retrieval.query_transform import generate_keywords
