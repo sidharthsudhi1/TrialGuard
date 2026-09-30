@@ -67,6 +67,9 @@ dev = [
 demo = [
     "gradio>=4.0",
 ]
+eval = [
+    "lightgbm>=4.5",
+]
 web = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
