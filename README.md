@@ -131,16 +131,34 @@ Full reports: [`data/reports/phase2_3_results.md`](data/reports/phase2_3_results
 
 **End-to-end — the number the thesis actually claims.** Retrieval recall and faithfulness each describe one stage; neither says whether a patient note in yields eligible trials out. Composed end to end (note → keywords → retrieval → agent → tiered roll-up), the system surfaces eligible trials at:
 
+Every patient with an in-corpus eligible trial, served config (current defaults, prompt v4). The 95% ranges in brackets come from resampling patients (AD-34). Lift is surfaced precision over the assessed pool's base rate, with labelled trials on both sides.
+
 | Cohort | n | assessed pool | retrieval ceiling | **surfaced recall** | precision | pool base rate | lift |
 |---|---|---|---|---|---|---|---|
+| TREC 2021 | 75 | top-10 | 0.054 | 0.034 [0.028, 0.042] | 0.673 | 0.492 | 1.37x [1.26, 1.49] |
+| TREC 2021 | 75 | top-100 | 0.339 | **0.207** [0.181, 0.235] | 0.590 | 0.386 | **1.53x** [1.45, 1.62] |
+| TREC 2022 | 50 | top-10 | 0.060 | 0.042 [0.031, 0.055] | 0.601 | 0.515 | 1.17x [1.08, 1.26] |
+| TREC 2022 | 50 | top-100 | 0.392 | **0.275** [0.231, 0.325] | 0.535 | 0.406 | **1.32x** [1.24, 1.40] |
+| SIGIR | 52 | top-10 | 0.224 | 0.163 [0.127, 0.198] | 0.398 | 0.269 | 1.48x [1.29, 1.70] |
+| SIGIR | 52 | top-100 | 0.756 | **0.503** [0.439, 0.558] | 0.270 | 0.184 | **1.47x** [1.36, 1.60] |
+
+Widening the pool from 10 to 100 trials raises surfaced recall for 75/75, 49/50 and 40/52 patients, and lowers it for none (the rest tie). The mean per-patient gain is +0.21, +0.27 and +0.33, and the BH-adjusted p is below 0.0001 on each cohort. Criterion unverifiable rate at top-100 is 1.8–2.9%. [`v2_findings.md`](data/reports/v2_findings.md), [`v2_widening.json`](data/reports/v2_widening.json).
+
+<details>
+<summary>History: the n=20 table this replaced (2026-09-01/02)</summary>
+
+These rows were measured on the first 20 patients of each TREC cohort under settings that are now off (before keyword decay and strict criteria). They were the published headline until 2026-09-30. On both cohorts those 20 patients give a higher lift than the rest (V1, V2), and TREC 2022's 1.45x lies outside its full-cohort range. Reproduce them with the flags listed in [`v1_findings.md`](data/reports/v1_findings.md).
+
+| Cohort | n | assessed pool | retrieval ceiling | surfaced recall | precision | pool base rate | lift |
+|---|---|---|---|---|---|---|---|
 | TREC 2021 | 20 | top-10 | 0.048 | 0.0276 | 0.689 | 0.429 | 1.60x |
-| TREC 2021 | 20 | top-100 | 0.298 | **0.1770** | 0.555 | 0.345 | 1.61x |
+| TREC 2021 | 20 | top-100 | 0.298 | 0.1770 | 0.555 | 0.345 | 1.61x |
 | TREC 2022 | 20 | top-10 | 0.067 | 0.0430 | 0.698 | 0.547 | 1.28x |
-| TREC 2022 | 20 | top-100 | 0.378 | **0.2580** | 0.533 | 0.369 | 1.45x |
+| TREC 2022 | 20 | top-100 | 0.378 | 0.2580 | 0.533 | 0.369 | 1.45x |
 
-> **Intervals (AD-34, 2026-09-28).** Patient-bootstrap 95% CIs on the rows above: surfaced recall [0.143, 0.216] and [0.202, 0.335] at top-100; lift 1.59x [1.35, 1.96], 1.62x [1.48, 1.82], 1.27x [1.12, 1.48], 1.45x [1.31, 1.62]. The 10→100 widening holds for 20 of 20 patients on both cohorts (BH-adjusted p ≤ 0.0001). **These 20 patients flatter the lift.** On all 75 TREC 2021 patients at top-10 it's **1.37x [1.26, 1.49]**, and the other 55 alone give 1.30x. The full-cohort top-100 run is pending. [`v1_findings.md`](data/reports/v1_findings.md)
+</details>
 
-**The assessed-pool size, not the embedding model, was the binding constraint.** A depth diagnostic showed gold trials are not missing from the candidate space — they are present and misordered (recall 0.766@500 on 2021, 0.788@500 on 2022, under 6% never ranked; median gold rank 130–180). Widening the pool handed to the agent from 10 to 100 lifts surfaced recall **6.4x / 6.0x** with no change to retrieval, prompt or verifier, and the agent's lift over its pool's own base rate stays flat-to-rising through the full 10x dilution — it filters at a constant rate rather than borrowing its precision from a rich pool. Reports: [`h1_pool_curve_trec2021.md`](data/reports/h1_pool_curve_trec2021.md), [`h1_pool_curve_trec2022.md`](data/reports/h1_pool_curve_trec2022.md). Quote the lift, not the raw precision: TREC's retrieved pool is already 34–55% gold-eligible. Deep pools are a serving-cost question (~$0.05 and ~10 min/patient at top-100), so the demo makes depth an explicit opt-in: search returns 5 candidates by default, or up to 25 with **Deep search** checked, and the UI quotes the measured cost and wait before you commit to it.
+**The assessed-pool size, not the embedding model, was the binding constraint.** A depth diagnostic showed gold trials are not missing from the candidate space — they are present and misordered (recall 0.766@500 on 2021, 0.788@500 on 2022, under 6% never ranked; median gold rank 130–180). Widening the pool handed to the agent from 10 to 100 lifts surfaced recall **6.4x / 6.0x** on the original 20-patient runs (**6.1x / 6.6x / 3.1x** on the full TREC 2021 / TREC 2022 / SIGIR cohorts), with no change to retrieval, prompt or verifier, and the agent's lift over its pool's own base rate stays flat-to-rising through the full 10x dilution — it filters at a constant rate rather than borrowing its precision from a rich pool. Reports: [`h1_pool_curve_trec2021.md`](data/reports/h1_pool_curve_trec2021.md), [`h1_pool_curve_trec2022.md`](data/reports/h1_pool_curve_trec2022.md). Quote the lift, not the raw precision: TREC's retrieved pool is already 34–55% gold-eligible. Deep pools are a serving-cost question (~$0.05 and ~10 min/patient at top-100), so the demo makes depth an explicit opt-in: search returns 5 candidates by default, or up to 25 with **Deep search** checked, and the UI quotes the measured cost and wait before you commit to it.
 
 **Split by specialty, the two halves pull opposite ways.** The tables above are a
 mix nobody had labelled, so the same patients were partitioned and each group scored
@@ -304,7 +322,7 @@ faithfulness alone. [`e2_findings.md`](data/reports/e2_findings.md),
 
 **Provider parity.** Inference moved to an FP8-quantized build, which changes numerical precision on the model that produces verbatim quotes — a failure that would be *silent*, since a paraphrased quote just fails grounding and downgrades to *unverifiable*, a legitimate output. Measured rather than assumed: on a matched 180-trial baseline arm, citation precision was unchanged (0.9057 → 0.9086). [`phase8_provider_parity.md`](data/reports/phase8_provider_parity.md)
 
-> **Note on `criterion-matching accuracy ≥ 87%`:** retired as a target (2026-08-31). It was never measurable here — every label in SIGIR and both TREC cohorts is trial-level (`qrels`: 0=irrelevant, 1=excluded, 2=eligible), and no criterion-level gold exists. Trial-level roll-up had been standing in for it, which answers a different question. The claim in its place is **faithfulness** (2.76% unverifiable on SIGIR, 3.95% on TREC 2021; verifier catch rate 100%) plus the **tiered contract** — trials separate into `eligible` / `needs_review` / `excluded`, where `needs_review` means no disqualifier and N unstated facts. Worth **1.60x lift over base rate on TREC (n=20; 1.37x [1.26, 1.49] on all 75, AD-34), 1.39x on SIGIR** ([`e1b_findings.md`](data/reports/e1b_findings.md)); quote the lift, not raw precision, because TREC's retrieved pool is already 42.9% gold-eligible.
+> **Note on `criterion-matching accuracy ≥ 87%`:** retired as a target (2026-08-31). It was never measurable here — every label in SIGIR and both TREC cohorts is trial-level (`qrels`: 0=irrelevant, 1=excluded, 2=eligible), and no criterion-level gold exists. Trial-level roll-up had been standing in for it, which answers a different question. The claim in its place is **faithfulness** (2.76% unverifiable on SIGIR, 3.95% on TREC 2021; verifier catch rate 100%) plus the **tiered contract** — trials separate into `eligible` / `needs_review` / `excluded`, where `needs_review` means no disqualifier and N unstated facts. Worth **1.53x / 1.32x lift over base rate on TREC 2021 / 2022 and 1.47x on SIGIR at top-100, full cohorts** ([`v2_findings.md`](data/reports/v2_findings.md)); quote the lift, not raw precision, because TREC's assessed pool is already 39–51% gold-eligible.
 
 > **Note on `recall@10 ≥ 90%`:** retired as a target. It is mathematically capped at `min(10, |gold|)/|gold|` per patient — TREC patients average 60+ eligible trials (ceiling ~0.25). TrialGPT's ">90% recall" was measured at large depth. Primary retrieval metric is now **recall@pool** (recall@50/100).
 
