@@ -1,0 +1,44 @@
+{
+  "sigir": {
+    "better": 40,
+    "delta_ci": [
+      0.2558,
+      0.3985
+    ],
+    "mean_delta": 0.326,
+    "n": 52,
+    "p": 0.0,
+    "p_bh": 0.0,
+    "significant_bh": true,
+    "ties": 12,
+    "worse": 0
+  },
+  "trec_2021": {
+    "better": 75,
+    "delta_ci": [
+      0.1806,
+      0.2398
+    ],
+    "mean_delta": 0.2095,
+    "n": 75,
+    "p": 0.0,
+    "p_bh": 0.0,
+    "significant_bh": true,
+    "ties": 0,
+    "worse": 0
+  },
+  "trec_2022": {
+    "better": 49,
+    "delta_ci": [
+      0.2318,
+      0.313
+    ],
+    "mean_delta": 0.2721,
+    "n": 50,
+    "p": 0.0,
+    "p_bh": 0.0,
+    "significant_bh": true,
+    "ties": 1,
+    "worse": 0
+  }
+}
