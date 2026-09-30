@@ -40,12 +40,23 @@ which case `LIMIT 200` changes nothing and costs nothing.
 - **Dense (in-process matrix, 26,037 × 768, local):** full matmul + argpartition
   + sort takes p50 3.3 ms at top-50 and 2.8 ms at top-200, which is noise. The
   matmul dominates, and it doesn't depend on k.
-- **Lexical (Postgres FTS):** **not measured.** A read-only `EXPLAIN ANALYZE` of
-  the production query at `LIMIT` 50 vs 200 was drafted
-  (`r1b_latency_probe`), but it reads the production database and was not run
-  without explicit permission. Expected to be small: `ORDER BY score LIMIT n`
-  over GIN matches ranks the full match set whatever n is. That's
-  `[inferred]` until measured.
+- **Lexical (Postgres FTS), measured 2026-09-30** (`r1b_latency_probe.json`):
+  60 cached keywords, the served query under `EXPLAIN ANALYZE` against the
+  production corpus in a read-only transaction. There is one warm pass, then
+  `LIMIT` 50 and 200 run in random order, 3 reps each, median per keyword.
+
+  | | p50 | p95 | mean rows returned | keywords reaching the limit |
+  |---|---|---|---|---|
+  | LIMIT 50 | 0.43 ms | 20.5 ms | 27.5 | 47% |
+  | LIMIT 200 | 0.46 ms | 20.1 ms | 79.6 | 28% |
+
+  There's no difference. FTS ranks the whole GIN match set before the limit
+  applies, and 72% of keywords match fewer than 200 trials anyway.
+  **The first draft of this probe reported LIMIT 50 at p95 1,853 ms.** That was
+  an ordering artefact: 50 always ran first and paid the cold-buffer read for
+  both. The warm pass and randomized order remove it. That cold first touch is
+  real, though, and it's independent of the limit, which is worth knowing for
+  E6's cold path.
 - **Fusion:** 24 lists × 200 entries instead of × 50 in pure Python, well under
   1 ms `[inferred]`.
 
@@ -66,6 +77,6 @@ which case `LIMIT 200` changes nothing and costs nothing.
 ## Standing
 
 - **Adopted in code**, default 200. AD-35.
-- **Not yet deployed.** Before a Fly deploy: run the FTS latency probe with
-  permission, then run E6's warm-path harness against the deployed app to
-  confirm the p95 is still inside the 1500 ms SLO.
+- **Not yet deployed.** Both backends cost nothing extra at 200 (dense is
+  noise, FTS is identical warm). What's left is a Fly deploy and E6's
+  warm-path harness against it, to confirm the p95 stays inside the 1500 ms SLO.

@@ -8,7 +8,7 @@ Every per-keyword dense and lexical list fed to RRF is 200 deep, set by `fusion.
 
 This reverses a recorded result. `structural_recall_plan.md` §5 found 1000-deep fusion diluted recall@200. That was measured under uniform weights. Under the `1/i` keyword decay adopted on 2026-09-04, deep lists from the important keywords add consensus instead of noise. Two levers measured separately interacted.
 
-The dense half alone delivers most of the gain (+0.016–0.021 @100, +0.055–0.059 @200), and it runs on the same exact matrix product in production as in eval, so that share carries over as measured. The lexical half is measured on rank-bm25 only. Production uses Postgres FTS, whose latency and effect at `LIMIT 200` are not yet measured. Deploying waits on that probe and on an E6 warm-path check against the 1500 ms SLO.
+The dense half alone delivers most of the gain (+0.016–0.021 @100, +0.055–0.059 @200), and it runs on the same exact matrix product in production as in eval, so that share carries over as measured. The lexical half is measured on rank-bm25 only. Production uses Postgres FTS. Its latency at `LIMIT 200` was measured on the production corpus (read-only `EXPLAIN ANALYZE`, 60 keywords, warmed, randomized order) and is identical to `LIMIT 50`: p50 0.46 vs 0.43 ms, p95 20.1 vs 20.5 ms. Only 28% of keywords match 200 trials at all. Its recall effect stays unmeasured because TREC is not in Postgres. Deploying waits only on an E6 warm-path check against the 1500 ms SLO.
 
 ## Alternatives considered
 
