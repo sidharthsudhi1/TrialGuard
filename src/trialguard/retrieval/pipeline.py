@@ -54,8 +54,8 @@ def retrieve(
     latency: {"dense_ms", "bm25_ms", "fanout_ms", "fusion_ms", "keyword_ms", "total_ms"}
     """
     t0 = time.perf_counter()
-    dense_pool = dense_pool or list_pool()
-    bm25_pool = bm25_pool or list_pool()
+    dense_pool = dense_pool or list_pool(top_k)
+    bm25_pool = bm25_pool or list_pool(top_k)
 
     if use_keywords:
         from trialguard.retrieval.query_transform import generate_keywords

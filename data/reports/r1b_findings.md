@@ -6,9 +6,11 @@ recall@200 by ~0.07.
 
 ## What changed
 
-`fusion.list_pool()` sets the depth of every per-keyword list fed to RRF. The
-default is 200, and `TG_LIST_POOL=50` reproduces every ranking committed before
-this. Both `retrieval/pipeline.retrieve()` (served) and `FileIndex.search`
+`fusion.list_pool(top_k)` sets the depth of every per-keyword list fed to RRF:
+**200 when the caller asks for 100 or more results, 50 otherwise**.
+`TG_LIST_POOL=<n>` pins every list to n, and `TG_LIST_POOL=50` reproduces every
+ranking committed before this. (The first cut made 200 the default everywhere;
+the head check below is why it doesn't.) Both `retrieval/pipeline.retrieve()` (served) and `FileIndex.search`
 (eval) read it when no explicit pool is passed. Explicit `dense_pool` /
 `bm25_pool` arguments still win, so scripts that pin a depth are unchanged.
 This follows the `TG_KEYWORD_DECAY` pattern.
@@ -60,6 +62,30 @@ which case `LIMIT 200` changes nothing and costs nothing.
 - **Fusion:** 24 lists × 200 entries instead of × 50 in pure Python, well under
   1 ms `[inferred]`.
 
+## The head: no gain where the demo looks
+
+The demo assesses the top 5 by default, and the top 25 with Deep search.
+`r1_pool_sweep_head_*.json`, pool 200 vs 50, Wilcoxon + BH:
+
+| cohort | @5 | @10 | @25 |
+|---|---|---|---|
+| TREC 2021 (n=75) | −0.002 | −0.002 | −0.006 |
+| TREC 2022 (n=50) | −0.005 | +0.004 | +0.001 |
+| SIGIR (n=52) | −0.004 | −0.002 | **−0.032** [−0.064, −0.004] |
+
+None is significant after correction (lowest p_bh 0.19). Deeper lists lift
+trials from ranks 100–500 but don't improve the head, and on SIGIR they may
+push a few gold trials out of the top 25. So depth now follows the request: the
+demo's 5–25 keep 50-deep lists, bit-identical to before, and deep pools get
+200. **For the served demo this change is a no-op**, and so is deploying it. It
+pays off only for callers that consume 100+ results: end-to-end evals at
+top-100, and R4.
+
+One consequence: a top-10 request and a top-100 request now fuse different
+lists, so the first 10 of a top-100 ranking need not equal a top-10 ranking.
+Any analysis that treats top-10 as a prefix of top-100 (V2's $0 top-10 rerun
+did) must pin `TG_LIST_POOL`.
+
 ## Side effects
 
 - **Eval reproducibility:** every committed ranking and cached end-to-end number
@@ -76,7 +102,7 @@ which case `LIMIT 200` changes nothing and costs nothing.
 
 ## Standing
 
-- **Adopted in code**, default 200. AD-35.
-- **Not yet deployed.** Both backends cost nothing extra at 200 (dense is
-  noise, FTS is identical warm). What's left is a Fly deploy and E6's
-  warm-path harness against it, to confirm the p95 stays inside the 1500 ms SLO.
+- **Adopted in code**, depth-dependent: 200 for `top_k` ≥ 100, 50 below. AD-35.
+- **Deploy is optional.** The demo requests 5–25 results, so it keeps 50-deep
+  lists and serves exactly what it did before. Both backends were measured at
+  200 anyway: dense cost is noise, and FTS is identical when warm.

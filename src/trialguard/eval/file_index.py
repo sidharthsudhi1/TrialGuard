@@ -169,8 +169,8 @@ class FileIndex:
     ) -> list[tuple[str, float]]:
         from trialguard.ingestion.embed import embed_text
 
-        dense_pool = dense_pool or list_pool()
-        bm25_pool = bm25_pool or list_pool()
+        dense_pool = dense_pool or list_pool(top_k)
+        bm25_pool = bm25_pool or list_pool(top_k)
 
         if not self._loaded:
             raise RuntimeError("FileIndex.build() must run before this call")
