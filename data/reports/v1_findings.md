@@ -16,7 +16,7 @@ Reproduce:
 
 ```
 TG_KEYWORD_DECAY=0 TG_GROUND_SYMBOLS=0 TG_ABSENCE_ACRONYMS=0 TG_STRICT_CRITERIA=0 \
-TG_DEDUP_ANSWERS=0 TG_RETRY_KEEP_GROUNDED=0 TG_RETRY_MISSING=0 TG_PROMPT_VERSION=v4 \
+TG_DEDUP_ANSWERS=0 TG_RETRY_KEEP_GROUNDED=0 TG_RETRY_MISSING=0 TG_LIST_POOL=50 TG_PROMPT_VERSION=v4 \
   python -m trialguard.eval.end_to_end --cohort trec_2021 --n-patients 20 --top-k 100 --cached-only
 # trec_2022 additionally needs TG_INDEX_EXCLUSION=0 (only noexcl is cached)
 TG_PROMPT_VERSION=v4 python -m trialguard.eval.end_to_end --cohort trec_2021 --n-patients 0 --top-k 10 --cached-only

@@ -17,7 +17,7 @@ from pathlib import Path
 
 import numpy as np
 
-from trialguard.retrieval.fusion import importance_weights, rrf
+from trialguard.retrieval.fusion import importance_weights, list_pool, rrf
 
 INDEX_DIR = Path("data/indexes")
 EVAL_DIR = Path("data/eval")
@@ -163,11 +163,14 @@ class FileIndex:
         self,
         query: str,
         top_k: int = 10,
-        dense_pool: int = 50,
-        bm25_pool: int = 50,
+        dense_pool: int | None = None,
+        bm25_pool: int | None = None,
         use_keywords: bool = False,
     ) -> list[tuple[str, float]]:
         from trialguard.ingestion.embed import embed_text
+
+        dense_pool = dense_pool or list_pool(top_k)
+        bm25_pool = bm25_pool or list_pool(top_k)
 
         if not self._loaded:
             raise RuntimeError("FileIndex.build() must run before this call")

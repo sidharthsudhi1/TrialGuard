@@ -31,6 +31,36 @@ def keyword_decay_enabled() -> bool:
     return os.environ.get("TG_KEYWORD_DECAY", "1") == "1"
 
 
+DEEP_TOP_K = 100
+
+
+def list_pool(top_k: int) -> int:
+    """Depth of each per-keyword ranked list fed to RRF: 200 for deep pools, else 50.
+
+    With 50-deep lists a trial scores only by reaching the top 50 of some single
+    keyword's list, so a trial ranked moderately for many keywords -- the shape
+    of an eligible one -- scores nothing. 200-deep lists recover those, which
+    moves ranks 100-500 but not the head (R1/R1b, $0, cached keywords):
+
+        TREC 2021  @100 +0.018  @200 +0.073  @500 +0.113   (p_bh < 0.001)
+        TREC 2022  @100 +0.022  @200 +0.067  @500 +0.088   (p_bh < 0.03)
+        @5/@10/@25 on TREC 2021, TREC 2022 and SIGIR: no gain, none significant,
+        SIGIR @25 -0.032 (CI excludes 0, p_bh 0.19)
+
+    So depth follows the request: the demo's 5-25 results keep 50-deep lists and
+    anything asking for 100+ gets 200. It pays only because of keyword decay;
+    before 1/i weighting deep lists diluted recall (structural_recall_plan §5).
+    See data/reports/r1b_findings.md.
+
+    TG_LIST_POOL=<n> pins every list to n; TG_LIST_POOL=50 reproduces any ranking
+    committed before 2026-09-30.
+    """
+    pinned = os.environ.get("TG_LIST_POOL")
+    if pinned:
+        return int(pinned)
+    return 200 if top_k >= DEEP_TOP_K else 50
+
+
 def importance_weights(n_lists: int, lists_per_query: int = 2) -> list[float] | None:
     """1/i weight per ranked list, i being its keyword's 1-based importance rank.
 

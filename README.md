@@ -624,6 +624,7 @@ what it corrects.
 | [AD-32](docs/adr/0032-nli-route-at-350-items.md) | The NLI route re-tested at 350 items |  |
 | [AD-33](docs/adr/0033-refresh-write-audit-publish.md) | The corpus refresh is write-audit-publish over content hashes |  |
 | [AD-34](docs/adr/0034-headlines-carry-intervals.md) | Headlines carry intervals, and lift uses one denominator |  |
+| [AD-35](docs/adr/0035-deeper-keyword-lists.md) | Per-keyword lists are 200 deep for deep pools, 50 for the head |  |
 
 *When a decision is reversed during the build, the reversal and reason are recorded — not deleted.*
 
