@@ -92,7 +92,8 @@ def _groups(data: dict, rng: random.Random) -> list[list[tuple[str, str, int]]]:
     return groups
 
 
-def train_score(train_path: str, test_path: str, out_path: str, batch_groups: int = 4) -> None:
+def train_score(train_path: str, test_path: str, out_path: str, batch_groups: int = 4,
+                extra_path: str | None = None) -> None:
     import torch
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
@@ -119,6 +120,11 @@ def train_score(train_path: str, test_path: str, out_path: str, batch_groups: in
     with gzip.open(train_path, "rt") as f:
         train = json.load(f)
     groups = _groups(train, rng)
+    if extra_path:  # R3: synthetic groups, already (query, positive-first docs)
+        with gzip.open(extra_path, "rt") as f:
+            extra = json.load(f)["groups"]
+        groups += [[(g["query"], d, i) for i, d in enumerate(g["docs"])] for g in extra]
+        rng.shuffle(groups)
     opt = torch.optim.AdamW(model.parameters(), lr=LR)
     steps = (len(groups) + batch_groups - 1) // batch_groups
     sched = torch.optim.lr_scheduler.LambdaLR(
@@ -171,42 +177,63 @@ def _recall(order: list[str], gold: list[str], k: int) -> float:
     return len(set(gold) & set(order[:k])) / len(gold)
 
 
-def evaluate() -> dict:
+def _orders(p: dict, s) -> dict[str, list[str]]:
+    import numpy as np
+
+    cand = p["candidates"]
+    ce = [cand[i] for i in np.argsort(-np.array(s), kind="stable")]
+    ce_rank = {n: r for r, n in enumerate(ce, start=1)}
+    deep_rank = {n: r for r, n in enumerate(cand, start=1)}
+    fused = sorted(cand, key=lambda n: -(1 / (RRF_K + ce_rank[n]) + 1 / (RRF_K + deep_rank[n])))
+    return {"deep": cand, "served50": p["served"], "ce": ce, "ce_rrf_deep": fused}
+
+
+def evaluate(tag: str = "") -> dict:
+    """Arms vs deep fusion. With a tag (R3), also each arm vs the same R2 arm."""
     import numpy as np
 
     from trialguard.eval.significance import compare_family
 
-    report: dict = {"folds": {}}
-    family, depths = {}, (100, 200)
+    report: dict = {"tag": tag, "folds": {}}
+    vs_deep, vs_r2, depths = {}, {}, (100, 200)
     for train_c, test_c in (("trec_2021", "trec_2022"), ("trec_2022", "trec_2021")):
         with gzip.open(EXPORT_DIR / f"{test_c}.json.gz", "rt") as f:
             test = json.load(f)
-        scores = json.loads((EXPORT_DIR / f"scores_{train_c}_to_{test_c}.json").read_text())
-        per: dict[str, list[float]] = {}
-        for p in test["patients"]:
-            cand, s = p["candidates"], np.array(scores["scores"][p["patient_id"]])
-            ce = [cand[i] for i in np.argsort(-s, kind="stable")]
-            ce_rank = {n: r for r, n in enumerate(ce, start=1)}
-            fused = sorted(cand, key=lambda n: -(1 / (RRF_K + ce_rank[n])
-                                                 + 1 / (RRF_K + cand.index(n) + 1)))
-            orders = {"deep": cand, "served50": p["served"], "ce": ce, "ce_rrf_deep": fused}
-            for name, order in orders.items():
-                for k in depths:
-                    per.setdefault(f"{name}@{k}", []).append(_recall(order, p["gold_eligible"], k))
         fold = f"{train_c}->{test_c}"
-        report["folds"][fold] = {"n_test": len(test["patients"]),
+        runs = {tag or "r2": f"scores_{tag + '_' if tag else ''}{train_c}_to_{test_c}.json"}
+        if tag:
+            runs["r2"] = f"scores_{train_c}_to_{test_c}.json"
+        per: dict[str, list[float]] = {}
+        for run, fname in runs.items():
+            scores = json.loads((EXPORT_DIR / fname).read_text())["scores"]
+            for p in test["patients"]:
+                for name, order in _orders(p, scores[p["patient_id"]]).items():
+                    key = name if name in ("deep", "served50") else f"{run}:{name}"
+                    for k in depths:
+                        per.setdefault(f"{key}@{k}", []).append(
+                            _recall(order, p["gold_eligible"], k))
+        # Baselines were appended once per run; keep one copy.
+        n = len(test["patients"])
+        per = {m: v[:n] for m, v in per.items()}
+        report["folds"][fold] = {"n_test": n,
                                  "mean": {m: round(float(np.mean(v)), 4) for m, v in per.items()}}
+        run = tag or "r2"
         for arm in ("ce", "ce_rrf_deep"):
             for k in depths:
-                family[f"{arm}:{fold}@{k}"] = (per[f"deep@{k}"], per[f"{arm}@{k}"])
-    report["vs_deep"] = compare_family(family)
-    Path("data/reports/r2_crossencoder.json").write_text(json.dumps(report, indent=2,
-                                                                    sort_keys=True))
+                vs_deep[f"{run}:{arm}:{fold}@{k}"] = (per[f"deep@{k}"], per[f"{run}:{arm}@{k}"])
+                if tag:
+                    vs_r2[f"{arm}:{fold}@{k}"] = (per[f"r2:{arm}@{k}"], per[f"{run}:{arm}@{k}"])
+    report["vs_deep"] = compare_family(vs_deep)
+    if tag:
+        report["vs_r2"] = compare_family(vs_r2)
+    name = f"r2_crossencoder{'_' + tag if tag else ''}.json"
+    Path("data/reports", name).write_text(json.dumps(report, indent=2, sort_keys=True))
     for fold, f in report["folds"].items():
         print(fold, f["mean"])
-    for name, v in report["vs_deep"].items():
-        print(f"{name}: {v['mean_delta']:+.4f} {v['delta_ci']} {v['better']}/{v['worse']} "
-              f"p_bh {v['p_bh']}")
+    for fam in ("vs_deep", "vs_r2"):
+        for key, v in report.get(fam, {}).items():
+            print(f"{fam} {key}: {v['mean_delta']:+.4f} {v['delta_ci']} "
+                  f"{v['better']}/{v['worse']} p_bh {v['p_bh']}")
     return report
 
 
@@ -216,15 +243,19 @@ def main() -> None:
     ap.add_argument("--train")
     ap.add_argument("--test")
     ap.add_argument("--dir", default=str(EXPORT_DIR))
+    ap.add_argument("--extra", help="R3 synthetic groups (.json.gz)")
+    ap.add_argument("--tag", default="", help="prefix for score files and report")
     args = ap.parse_args()
     if args.cmd == "export":
         export()
     elif args.cmd == "train-score":
         d = Path(args.dir)
+        prefix = f"{args.tag}_" if args.tag else ""
         train_score(str(d / f"{args.train}.json.gz"), str(d / f"{args.test}.json.gz"),
-                    str(d / f"scores_{args.train}_to_{args.test}.json"))
+                    str(d / f"scores_{prefix}{args.train}_to_{args.test}.json"),
+                    extra_path=args.extra)
     else:
-        evaluate()
+        evaluate(args.tag)
 
 
 if __name__ == "__main__":
