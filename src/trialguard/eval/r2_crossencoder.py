@@ -237,9 +237,23 @@ def evaluate(tag: str = "") -> dict:
     return report
 
 
+def write_orders(tag: str = "") -> None:
+    """Per-patient ce_rrf_deep rankings for each test cohort, for end_to_end --order-file."""
+    for train_c, test_c in (("trec_2021", "trec_2022"), ("trec_2022", "trec_2021")):
+        with gzip.open(EXPORT_DIR / f"{test_c}.json.gz", "rt") as f:
+            test = json.load(f)
+        prefix = f"{tag}_" if tag else ""
+        scores = json.loads((EXPORT_DIR / f"scores_{prefix}{train_c}_to_{test_c}.json").read_text())
+        orders = {p["patient_id"]: _orders(p, scores["scores"][p["patient_id"]])["ce_rrf_deep"]
+                  for p in test["patients"]}
+        path = EXPORT_DIR / f"order_ce_rrf_deep_{prefix}{test_c}.json"
+        path.write_text(json.dumps(orders))
+        print(f"{path}: {len(orders)} patients")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["export", "train-score", "evaluate"])
+    ap.add_argument("cmd", choices=["export", "train-score", "evaluate", "orders"])
     ap.add_argument("--train")
     ap.add_argument("--test")
     ap.add_argument("--dir", default=str(EXPORT_DIR))
@@ -254,6 +268,8 @@ def main() -> None:
         train_score(str(d / f"{args.train}.json.gz"), str(d / f"{args.test}.json.gz"),
                     str(d / f"scores_{prefix}{args.train}_to_{args.test}.json"),
                     extra_path=args.extra)
+    elif args.cmd == "orders":
+        write_orders(args.tag)
     else:
         evaluate(args.tag)
 

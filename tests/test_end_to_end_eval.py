@@ -253,3 +253,24 @@ def test_every_headline_rate_carries_a_patient_bootstrap_interval():
         lo, hi = m["ci95"][name]
         assert lo is None or lo <= hi
     assert m["ci95"]["end_to_end_recall"] == [0.5, 0.5]
+
+
+def test_an_order_file_replaces_retrieval_for_the_patients_it_covers(monkeypatch):
+    """A reranker's pool is assessed exactly as retrieval's; uncovered patients drop out."""
+    import trialguard.eval.end_to_end as E
+
+    class _Idx:
+        _nct_ids = ["A", "B", "C"]
+
+        def search(self, *a, **k):
+            raise AssertionError("retrieval must not run when an order is given")
+
+    monkeypatch.setattr("trialguard.eval.file_index.get_index", lambda c: _Idx())
+    monkeypatch.setattr(E, "_gold_by_patient",
+                        lambda c: {"p1": {"A": "eligible"}, "p2": {"B": "eligible"}})
+    monkeypatch.setattr("trialguard.eval.cohorts.load_patients",
+                        lambda c: [{"patient_id": "p1", "description": "n1"},
+                                   {"patient_id": "p2", "description": "n2"}])
+    rows, _ = E.retrieve_for_patients("x", 0, 2, order={"p1": ["C", "A", "B"]})
+    assert [r["patient_id"] for r in rows] == ["p1"]
+    assert rows[0]["retrieved"] == ["C", "A"]
