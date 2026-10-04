@@ -130,7 +130,7 @@ def wilcoxon_paired(a, b) -> dict:
 
 def bh_adjust(pvalues: dict[str, float]) -> dict[str, float]:
     """Benjamini-Hochberg adjusted p-values, keyed like the input."""
-    names = sorted(pvalues, key=pvalues.get)
+    names = sorted(pvalues, key=lambda name: pvalues[name])
     m = len(names)
     adjusted, running = {}, 1.0
     for rank in range(m, 0, -1):
