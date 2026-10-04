@@ -8,6 +8,8 @@ index is cached; it's the same variant as every prior 2022 number.
 17,628 assessments. **Every cohort finished at `completion` 1.0 with 0 errors.**
 DeepInfra spend was $9.52. Raw: `v2_e2e_{trec_2021,trec_2022,sigir}_top100.json`.
 CIs are patient-bootstrap 95% (V1). Lift counts labelled trials on both sides (AD-34).
+Measured at per-keyword list depth 50; since AD-35 the default is 200, so rerun
+with `TG_LIST_POOL=50` to reproduce.
 
 ## Headline
 

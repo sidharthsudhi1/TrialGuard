@@ -133,7 +133,9 @@ def patient_pool(idx, note: str) -> dict:
     # reproduces only up to ties.
     row = {n: i for i, n in enumerate(ids)}
     served_order = np.array(
-        [row[n] for n, _ in idx.search(note, top_k=CANDIDATES, use_keywords=True)], dtype=np.int64
+        [row[n] for n, _ in idx.search(note, top_k=CANDIDATES, dense_pool=SERVED_POOL,
+                                       bm25_pool=SERVED_POOL, use_keywords=True)],
+        dtype=np.int64,
     )
     deep_order = np.argsort(-deep, kind="stable")
     cand = deep_order[:CANDIDATES]

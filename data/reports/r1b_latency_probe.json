@@ -1,0 +1,17 @@
+{
+  "fts": {
+    "limit_200": {
+      "mean_rows": 79.6,
+      "p50_ms": 0.46,
+      "p95_ms": 20.1,
+      "share_reaching_limit": 0.283
+    },
+    "limit_50": {
+      "mean_rows": 27.5,
+      "p50_ms": 0.43,
+      "p95_ms": 20.48,
+      "share_reaching_limit": 0.467
+    }
+  },
+  "n_keywords": 60
+}
