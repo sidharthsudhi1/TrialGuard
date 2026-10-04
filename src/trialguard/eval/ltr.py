@@ -275,8 +275,8 @@ def train(rows: list[dict], label_gain: list[float]):
 
 
 def score_fold(model, rows: list[dict], depths=(100, 200)) -> dict:
-    per = {f"served@{k}": [] for k in depths} | {f"deep@{k}": [] for k in depths} | {
-        f"ltr@{k}": [] for k in depths
+    per: dict[str, list[float]] = {
+        f"{kind}@{k}": [] for kind in ("served", "deep", "ltr") for k in depths
     }
     for r in rows:
         pred = model.predict(r["X"])
