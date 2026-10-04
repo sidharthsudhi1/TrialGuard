@@ -1,0 +1,293 @@
+{
+  "cached_only": true,
+  "cohort": "trec_2022",
+  "counts": {
+    "assess_s": 4.4,
+    "assessed": 2000,
+    "budget_stops": 0,
+    "cache_coverage": 1.0,
+    "skipped": 0,
+    "uncached_skipped": 0
+  },
+  "metrics": {
+    "agent_loss": 0.3427,
+    "ci95": {
+      "end_to_end_recall": [
+        0.0203,
+        0.0574
+      ],
+      "pool_base_rate": [
+        0.2672,
+        0.4774
+      ],
+      "retrieval_recall": [
+        0.2991,
+        0.4885
+      ],
+      "surfaced_lift": [
+        1.311,
+        1.6245
+      ],
+      "surfaced_precision": [
+        0.4136,
+        0.6464
+      ],
+      "surfaced_recall": [
+        0.2022,
+        0.3345
+      ]
+    },
+    "criterion_asked": 20154,
+    "criterion_grounded": 10061,
+    "criterion_grounded_in": {
+      "absence": 1251,
+      "note": 8733,
+      "trial": 77
+    },
+    "criterion_grounded_rate": 0.4992,
+    "criterion_total": 18319,
+    "criterion_unanswered": 2329,
+    "criterion_unmatched": 494,
+    "criterion_unverifiable_rate": 0.021,
+    "criterion_verdicts": {
+      "cannot_determine": 7949,
+      "met": 2482,
+      "not_met": 7504,
+      "unverifiable": 384
+    },
+    "eligible_precision": 0.6471,
+    "end_to_end_recall": 0.0353,
+    "gold_eligible_total": 1558,
+    "incomplete_patients": 0,
+    "note_only_grounded_rate": 0.868,
+    "patients": 20,
+    "per_patient": [
+      {
+        "assessed_gold": 35,
+        "assessed_labelled": 74,
+        "correct": 0,
+        "gold": 76,
+        "patient_id": "trec-20221",
+        "retrieved_gold": 35,
+        "surfaced_hit": 24,
+        "surfaced_labelled": 41
+      },
+      {
+        "assessed_gold": 21,
+        "assessed_labelled": 61,
+        "correct": 0,
+        "gold": 59,
+        "patient_id": "trec-20222",
+        "retrieved_gold": 21,
+        "surfaced_hit": 13,
+        "surfaced_labelled": 22
+      },
+      {
+        "assessed_gold": 25,
+        "assessed_labelled": 91,
+        "correct": 4,
+        "gold": 25,
+        "patient_id": "trec-20223",
+        "retrieved_gold": 25,
+        "surfaced_hit": 14,
+        "surfaced_labelled": 23
+      },
+      {
+        "assessed_gold": 52,
+        "assessed_labelled": 66,
+        "correct": 2,
+        "gold": 268,
+        "patient_id": "trec-20224",
+        "retrieved_gold": 52,
+        "surfaced_hit": 34,
+        "surfaced_labelled": 42
+      },
+      {
+        "assessed_gold": 39,
+        "assessed_labelled": 89,
+        "correct": 4,
+        "gold": 59,
+        "patient_id": "trec-20225",
+        "retrieved_gold": 39,
+        "surfaced_hit": 26,
+        "surfaced_labelled": 41
+      },
+      {
+        "assessed_gold": 48,
+        "assessed_labelled": 79,
+        "correct": 3,
+        "gold": 118,
+        "patient_id": "trec-20226",
+        "retrieved_gold": 48,
+        "surfaced_hit": 41,
+        "surfaced_labelled": 59
+      },
+      {
+        "assessed_gold": 12,
+        "assessed_labelled": 75,
+        "correct": 1,
+        "gold": 15,
+        "patient_id": "trec-20227",
+        "retrieved_gold": 12,
+        "surfaced_hit": 8,
+        "surfaced_labelled": 25
+      },
+      {
+        "assessed_gold": 10,
+        "assessed_labelled": 78,
+        "correct": 3,
+        "gold": 14,
+        "patient_id": "trec-20228",
+        "retrieved_gold": 10,
+        "surfaced_hit": 8,
+        "surfaced_labelled": 21
+      },
+      {
+        "assessed_gold": 15,
+        "assessed_labelled": 75,
+        "correct": 1,
+        "gold": 77,
+        "patient_id": "trec-20229",
+        "retrieved_gold": 15,
+        "surfaced_hit": 13,
+        "surfaced_labelled": 52
+      },
+      {
+        "assessed_gold": 12,
+        "assessed_labelled": 78,
+        "correct": 2,
+        "gold": 113,
+        "patient_id": "trec-202210",
+        "retrieved_gold": 12,
+        "surfaced_hit": 7,
+        "surfaced_labelled": 31
+      },
+      {
+        "assessed_gold": 83,
+        "assessed_labelled": 94,
+        "correct": 3,
+        "gold": 235,
+        "patient_id": "trec-202211",
+        "retrieved_gold": 83,
+        "surfaced_hit": 54,
+        "surfaced_labelled": 56
+      },
+      {
+        "assessed_gold": 22,
+        "assessed_labelled": 90,
+        "correct": 1,
+        "gold": 51,
+        "patient_id": "trec-202212",
+        "retrieved_gold": 22,
+        "surfaced_hit": 10,
+        "surfaced_labelled": 28
+      },
+      {
+        "assessed_gold": 11,
+        "assessed_labelled": 78,
+        "correct": 3,
+        "gold": 14,
+        "patient_id": "trec-202213",
+        "retrieved_gold": 11,
+        "surfaced_hit": 10,
+        "surfaced_labelled": 35
+      },
+      {
+        "assessed_gold": 19,
+        "assessed_labelled": 95,
+        "correct": 4,
+        "gold": 33,
+        "patient_id": "trec-202214",
+        "retrieved_gold": 19,
+        "surfaced_hit": 13,
+        "surfaced_labelled": 49
+      },
+      {
+        "assessed_gold": 62,
+        "assessed_labelled": 92,
+        "correct": 6,
+        "gold": 122,
+        "patient_id": "trec-202215",
+        "retrieved_gold": 62,
+        "surfaced_hit": 39,
+        "surfaced_labelled": 48
+      },
+      {
+        "assessed_gold": 31,
+        "assessed_labelled": 83,
+        "correct": 3,
+        "gold": 36,
+        "patient_id": "trec-202216",
+        "retrieved_gold": 31,
+        "surfaced_hit": 21,
+        "surfaced_labelled": 43
+      },
+      {
+        "assessed_gold": 9,
+        "assessed_labelled": 80,
+        "correct": 0,
+        "gold": 24,
+        "patient_id": "trec-202217",
+        "retrieved_gold": 9,
+        "surfaced_hit": 5,
+        "surfaced_labelled": 29
+      },
+      {
+        "assessed_gold": 22,
+        "assessed_labelled": 77,
+        "correct": 1,
+        "gold": 36,
+        "patient_id": "trec-202218",
+        "retrieved_gold": 22,
+        "surfaced_hit": 14,
+        "surfaced_labelled": 26
+      },
+      {
+        "assessed_gold": 5,
+        "assessed_labelled": 52,
+        "correct": 0,
+        "gold": 10,
+        "patient_id": "trec-202219",
+        "retrieved_gold": 5,
+        "surfaced_hit": 3,
+        "surfaced_labelled": 24
+      },
+      {
+        "assessed_gold": 56,
+        "assessed_labelled": 90,
+        "correct": 14,
+        "gold": 173,
+        "patient_id": "trec-202220",
+        "retrieved_gold": 56,
+        "surfaced_hit": 45,
+        "surfaced_labelled": 57
+      }
+    ],
+    "pool_base_rate": 0.3688,
+    "retrieval_recall": 0.378,
+    "self_referential": 18,
+    "self_referential_rate": 0.0018,
+    "surfaced_lift": 1.4494,
+    "tier_surfaced": {
+      "precision": 0.5346,
+      "recall": 0.258,
+      "shown": 923
+    },
+    "trial_verdicts": {
+      "cannot_determine": 838,
+      "eligible": 85,
+      "excluded": 1077
+    },
+    "weak_absence": 1390,
+    "weak_absence_rate": 0.1382
+  },
+  "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+  "prompt_version": "v4",
+  "provider": "deepinfra",
+  "run_usd": 0.0,
+  "timing": {
+    "assess_s": 4.4,
+    "retrieval_s": 16.5
+  },
+  "top_k": 100
+}

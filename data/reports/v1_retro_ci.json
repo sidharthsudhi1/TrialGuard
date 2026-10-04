@@ -1,0 +1,167 @@
+{
+  "headlines": {
+    "trec_2021@10": {
+      "lift": 1.5913,
+      "lift_ci": [
+        1.351,
+        1.956
+      ],
+      "n": 20,
+      "pool_base_rate": 0.4294,
+      "surfaced_precision": 0.6833,
+      "surfaced_recall": 0.027,
+      "surfaced_recall_ci": [
+        0.0171,
+        0.0403
+      ]
+    },
+    "trec_2021@100": {
+      "lift": 1.6243,
+      "lift_ci": [
+        1.4821,
+        1.8151
+      ],
+      "n": 20,
+      "pool_base_rate": 0.345,
+      "surfaced_precision": 0.5604,
+      "surfaced_recall": 0.177,
+      "surfaced_recall_ci": [
+        0.1431,
+        0.2162
+      ]
+    },
+    "trec_2022@10": {
+      "lift": 1.2704,
+      "lift_ci": [
+        1.1197,
+        1.4836
+      ],
+      "n": 20,
+      "pool_base_rate": 0.5469,
+      "surfaced_precision": 0.6947,
+      "surfaced_recall": 0.0424,
+      "surfaced_recall_ci": [
+        0.0317,
+        0.0597
+      ]
+    },
+    "trec_2022@100": {
+      "lift": 1.4494,
+      "lift_ci": [
+        1.311,
+        1.6245
+      ],
+      "n": 20,
+      "pool_base_rate": 0.3688,
+      "surfaced_precision": 0.5346,
+      "surfaced_recall": 0.258,
+      "surfaced_recall_ci": [
+        0.2022,
+        0.3345
+      ]
+    }
+  },
+  "power": {
+    "trec_2021": {
+      "full_n": 75,
+      "mde_at_full_n": 0.0356,
+      "mde_at_n20": 0.0689,
+      "surfaced_recall_delta_sd": 0.11
+    },
+    "trec_2022": {
+      "full_n": 50,
+      "mde_at_full_n": 0.061,
+      "mde_at_n20": 0.0964,
+      "surfaced_recall_delta_sd": 0.154
+    }
+  },
+  "specialty": {
+    "all": {
+      "lift": {
+        "ci": [
+          1.2595,
+          1.4903
+        ],
+        "n": 75,
+        "point": 1.3678
+      },
+      "lift_e3_mixed_denominator": {
+        "ci": [
+          1.5404,
+          1.8642
+        ],
+        "n": 75,
+        "point": 1.6905
+      },
+      "n": 75
+    },
+    "non_oncology": {
+      "lift": {
+        "ci": [
+          1.2296,
+          1.459
+        ],
+        "n": 61,
+        "point": 1.3413
+      },
+      "lift_e3_mixed_denominator": {
+        "ci": [
+          1.4908,
+          1.826
+        ],
+        "n": 61,
+        "point": 1.6502
+      },
+      "n": 61
+    },
+    "oncology": {
+      "lift": {
+        "ci": [
+          1.2218,
+          1.9939
+        ],
+        "n": 14,
+        "point": 1.5058
+      },
+      "lift_e3_mixed_denominator": {
+        "ci": [
+          1.5131,
+          2.5455
+        ],
+        "n": 14,
+        "point": 1.8992
+      },
+      "n": 14
+    }
+  },
+  "widening": {
+    "trec_2021": {
+      "better": 20,
+      "delta_ci": [
+        0.139,
+        0.2319
+      ],
+      "mean_delta": 0.1808,
+      "n": 20,
+      "p": 0.0,
+      "p_bh": 0.0,
+      "significant_bh": true,
+      "ties": 0,
+      "worse": 0
+    },
+    "trec_2022": {
+      "better": 20,
+      "delta_ci": [
+        0.2164,
+        0.3484
+      ],
+      "mean_delta": 0.2804,
+      "n": 20,
+      "p": 0.0001,
+      "p_bh": 0.0001,
+      "significant_bh": true,
+      "ties": 0,
+      "worse": 0
+    }
+  }
+}
