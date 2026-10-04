@@ -135,6 +135,7 @@ def assess_retrieved(
     corpus = _load_corpus(cohort, needed)
 
     assessed = skipped = budget_stops = uncached = errors = 0
+    error_types: dict[str, int] = {}
     t0 = time.perf_counter()
 
     # Flatten first so the work can run concurrently. Every (patient, trial) pair
@@ -206,6 +207,10 @@ def assess_retrieved(
             if err is not None:
                 skipped += 1
                 errors += 1
+                # Without the class a failed run cannot say whether the provider,
+                # the client timeout or the code broke.
+                kind = f"{type(err).__name__}: {str(err)[:80]}"
+                error_types[kind] = error_types.get(kind, 0) + 1
                 continue
             r, nct, _trial, criteria, _truncated = item
             ass = state.get("assessments", [])
@@ -259,6 +264,7 @@ def assess_retrieved(
         # by errors reads complete there; completion is the share of attempted
         # pairs that actually produced a verdict.
         "errors": errors,
+        "error_types": dict(sorted(error_types.items(), key=lambda kv: -kv[1])[:10]),
         "completion": round(assessed / len(work), 4) if work else 0.0,
         "assess_s": round(time.perf_counter() - t0, 1),
     }
