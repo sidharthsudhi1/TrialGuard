@@ -1,0 +1,136 @@
+{
+  "cohorts": {
+    "trec_2021": {
+      "ce_rrf_deep": {
+        "completion": 1.0,
+        "lift": 1.4542,
+        "lift_ci": [
+          1.3762,
+          1.542
+        ],
+        "pool_base_rate": 0.4271,
+        "retrieval_recall": 0.406,
+        "surfaced_precision": 0.6211,
+        "surfaced_recall": 0.2514,
+        "surfaced_recall_ci": [
+          0.2249,
+          0.2808
+        ],
+        "unverifiable": 0.0349
+      },
+      "deep": {
+        "completion": 1.0,
+        "lift": 1.5482,
+        "lift_ci": [
+          1.4547,
+          1.6537
+        ],
+        "pool_base_rate": 0.3877,
+        "retrieval_recall": 0.3572,
+        "surfaced_precision": 0.6002,
+        "surfaced_recall": 0.2184,
+        "surfaced_recall_ci": [
+          0.192,
+          0.2474
+        ],
+        "unverifiable": 0.0328
+      },
+      "n": 75
+    },
+    "trec_2022": {
+      "ce_rrf_deep": {
+        "completion": 1.0,
+        "lift": 1.2471,
+        "lift_ci": [
+          1.1849,
+          1.3189
+        ],
+        "pool_base_rate": 0.4425,
+        "retrieval_recall": 0.4521,
+        "surfaced_precision": 0.5518,
+        "surfaced_recall": 0.3176,
+        "surfaced_recall_ci": [
+          0.2692,
+          0.3728
+        ],
+        "unverifiable": 0.0198
+      },
+      "deep": {
+        "completion": 1.0,
+        "lift": 1.2945,
+        "lift_ci": [
+          1.2234,
+          1.3756
+        ],
+        "pool_base_rate": 0.4125,
+        "retrieval_recall": 0.4123,
+        "surfaced_precision": 0.534,
+        "surfaced_recall": 0.2851,
+        "surfaced_recall_ci": [
+          0.2391,
+          0.3375
+        ],
+        "unverifiable": 0.0205
+      },
+      "n": 50
+    }
+  },
+  "paired": {
+    "trec_2021:retrieval_recall": {
+      "better": 59,
+      "delta_ci": [
+        0.0407,
+        0.063
+      ],
+      "mean_delta": 0.0519,
+      "n": 75,
+      "p": 0.0,
+      "p_bh": 0.0,
+      "significant_bh": true,
+      "ties": 10,
+      "worse": 6
+    },
+    "trec_2021:surfaced_recall": {
+      "better": 56,
+      "delta_ci": [
+        0.0245,
+        0.0397
+      ],
+      "mean_delta": 0.0321,
+      "n": 75,
+      "p": 0.0,
+      "p_bh": 0.0,
+      "significant_bh": true,
+      "ties": 14,
+      "worse": 5
+    },
+    "trec_2022:retrieval_recall": {
+      "better": 37,
+      "delta_ci": [
+        0.0343,
+        0.0732
+      ],
+      "mean_delta": 0.0538,
+      "n": 50,
+      "p": 0.0,
+      "p_bh": 0.0,
+      "significant_bh": true,
+      "ties": 9,
+      "worse": 4
+    },
+    "trec_2022:surfaced_recall": {
+      "better": 35,
+      "delta_ci": [
+        0.0238,
+        0.0541
+      ],
+      "mean_delta": 0.0395,
+      "n": 50,
+      "p": 0.0,
+      "p_bh": 0.0,
+      "significant_bh": true,
+      "ties": 10,
+      "worse": 5
+    }
+  }
+}
