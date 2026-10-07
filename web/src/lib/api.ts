@@ -46,11 +46,15 @@ export function apiBase(): string {
   return API_URL;
 }
 
-export async function searchTrials(note: string, topK = 5): Promise<SearchResponse> {
+export async function searchTrials(
+  note: string,
+  topK = 5,
+  deep = false
+): Promise<SearchResponse> {
   const res = await fetch(`${API_URL}/api/search`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ note, top_k: topK }),
+    body: JSON.stringify({ note, top_k: topK, deep }),
   });
   if (!res.ok) throw await parseError(res);
   return res.json();

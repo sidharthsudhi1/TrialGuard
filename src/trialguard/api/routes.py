@@ -117,8 +117,9 @@ def _reject_empty_or_injection(note: str) -> None:
         )
 
 
-def _cap_top_k(top_k: int) -> int:
-    return max(1, min(int(top_k), settings.api_max_search_results))
+def _cap_top_k(top_k: int, deep: bool = False) -> int:
+    cap = settings.api_max_assess_trials_deep if deep else settings.api_max_search_results
+    return max(1, min(int(top_k), cap))
 
 
 @lru_cache(maxsize=1)
@@ -252,6 +253,8 @@ def limits() -> LimitsResponse:
     return LimitsResponse(
         max_assess_trials=settings.api_max_assess_trials,
         max_assess_trials_deep=settings.api_max_assess_trials_deep,
+        deep_head=settings.api_deep_head,
+        deep_job_workers=settings.api_deep_job_workers,
         assess_workers=settings.api_assess_workers,
         usd_per_trial=settings.api_assess_usd_per_trial,
         seconds_per_trial=settings.api_assess_seconds_per_trial,
@@ -282,7 +285,7 @@ def search(body: SearchRequest, request: Request) -> dict[str, Any]:
     _rate_or_429(request, "search")
     _reject_empty_or_injection(body.note)
 
-    top_k = _cap_top_k(body.top_k)
+    top_k = _cap_top_k(body.top_k, body.deep)
     from trialguard.agent.ratelimit import BudgetExhausted
     from trialguard.db.queries import get_trials
     from trialguard.retrieval.pipeline import retrieve

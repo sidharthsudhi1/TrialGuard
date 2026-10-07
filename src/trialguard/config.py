@@ -123,11 +123,19 @@ class Settings(BaseSettings):
     # the same calls, overlapped — and the daily ledger still bounds the total.
     api_assess_workers: int = 10
 
-    # Opt-in deep assessment. H1 measured surfaced recall rising 6x from a top-10
-    # pool to top-100 (data/reports/h1_pool_curve_trec*.md), so depth is the one
-    # lever that moves the headline number — but at ~29 s per trial it is minutes
-    # of wall clock, which is why it is a deliberate choice and not the default.
-    api_max_assess_trials_deep: int = 25
+    # Opt-in deep assessment. V2 measured surfaced recall rising 6x from a top-10
+    # pool to top-100 on full cohorts (data/reports/v2_findings.md), so depth is
+    # the one lever that moves the headline number -- but at ~29 s per trial it is
+    # minutes of wall clock, which is why it is a deliberate choice and not the
+    # default. Also the deep search cap: search what a deep job can assess.
+    api_max_assess_trials_deep: int = 100
+    # Progressive deep jobs: once the top `api_deep_head` ranked trials are done
+    # the stream says so, and the rest keep landing behind it. The head arrives
+    # in about the time a 25-trial job always took.
+    api_deep_head: int = 25
+    # In-flight trials per deep job, below api_assess_workers so a running deep
+    # job leaves workers free for everyone else's.
+    api_deep_job_workers: int = 6
     # Both measured, so the UI can quote a real number instead of a guess:
     # $0.8496 over the 2,000-call TREC 2022 prewarm, and the median served
     # assess latency from Langfuse traces.

@@ -8,6 +8,9 @@ from pydantic import BaseModel, Field
 class SearchRequest(BaseModel):
     note: str = Field(..., min_length=1)
     top_k: int = Field(default=5, ge=1)
+    # Raises the result cap to the deep assess cap, so a deep job has a ranked
+    # pool to assess. Search itself stays a fixed amount of SQL.
+    deep: bool = False
 
 
 class AssessRequest(BaseModel):
@@ -24,6 +27,8 @@ class LimitsResponse(BaseModel):
 
     max_assess_trials: int
     max_assess_trials_deep: int
+    deep_head: int
+    deep_job_workers: int
     assess_workers: int
     usd_per_trial: float
     seconds_per_trial: float

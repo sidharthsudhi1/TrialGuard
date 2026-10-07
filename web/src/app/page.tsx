@@ -47,24 +47,39 @@ export default function SearchPage() {
   // Whatever the API says it will cache. Falling back only until it answers.
   const presets =
     limits?.presets?.length ? limits.presets : FALLBACK_PRESETS;
+  const minutesFor = (n: number) => {
+    if (!limits) return 0;
+    const workers =
+      deep && selected.size > limits.deep_head
+        ? limits.deep_job_workers
+        : limits.assess_workers;
+    return (Math.ceil(n / workers) * limits.seconds_per_trial) / 60;
+  };
   const quote =
     limits && selected.size
       ? {
           usd: selected.size * limits.usd_per_trial,
-          minutes:
-            (Math.ceil(selected.size / limits.assess_workers) *
-              limits.seconds_per_trial) /
-            60,
+          minutes: minutesFor(selected.size),
+          // Progressive: the top-ranked head lands first, the rest behind it.
+          headMinutes:
+            deep && selected.size > limits.deep_head
+              ? minutesFor(limits.deep_head)
+              : null,
         }
       : null;
+  const fmt = (m: number) =>
+    m < 1 ? `${Math.round(m * 60)} s` : `${m.toFixed(1)} min`;
 
   async function onSearch() {
     setError(null);
     setBusy("search");
     setSelected(new Set());
     try {
-      const res = await searchTrials(note, searchTopK);
+      const res = await searchTrials(note, searchTopK, deep);
       setTrials(res.trials);
+      // Deep is a progressive run over the whole ranked pool, so it starts with
+      // everything selected; the user can still drop trials before starting.
+      if (deep) setSelected(new Set(res.trials.map((t) => t.nct_id)));
       setLatency(
         res.latency_ms?.total_ms != null
           ? `${res.latency_ms.total_ms.toFixed(0)} ms total`
@@ -106,7 +121,9 @@ export default function SearchPage() {
     setCooldown(0);
     setBusy("assess");
     try {
-      const ids = [...selected];
+      // Rank order, not click order: the API assesses in the order sent, and a
+      // progressive deep job only means "top N first" if the top N go first.
+      const ids = trials.map((t) => t.nct_id).filter((n) => selected.has(n));
       const { job_id } = await startAssess(note, ids, deep);
       sessionStorage.setItem(
         `tg-job-${job_id}`,
@@ -159,10 +176,12 @@ export default function SearchPage() {
               disabled={busy !== null}
               onChange={(e) => setDeep(e.target.checked)}
             />{" "}
-            Deep search — return up to {limits.max_assess_trials_deep} candidates
-            instead of 5. A wider assessed pool surfaces roughly 6x more eligible
-            trials (measured on TREC 2021/2022), and costs proportionally more
-            time and money. You still choose which trials to assess.
+            Deep search — rank up to {limits.max_assess_trials_deep} candidates
+            instead of 5 and assess them in rank order. The top{" "}
+            {limits.deep_head} arrive in about the usual time; the rest keep
+            streaming in behind them. Assessing 100 instead of 10 surfaced about
+            6x more eligible trials on TREC 2021/2022, and costs proportionally
+            more time and money.
           </label>
         )}
         {error && (
@@ -195,10 +214,10 @@ export default function SearchPage() {
           {quote && (
             <p className="muted">
               {selected.size} trial{selected.size === 1 ? "" : "s"} ≈ $
-              {quote.usd.toFixed(4)}, about{" "}
-              {quote.minutes < 1
-                ? `${Math.round(quote.minutes * 60)} s`
-                : `${quote.minutes.toFixed(1)} min`}
+              {quote.usd.toFixed(4)}, about {fmt(quote.minutes)}
+              {quote.headMinutes != null && limits
+                ? ` in all; the top ${limits.deep_head} in about ${fmt(quote.headMinutes)}`
+                : ""}
               . Results stream as each trial finishes.
             </p>
           )}

@@ -1,0 +1,669 @@
+{
+  "cached_only": true,
+  "cohort": "sigir",
+  "counts": {
+    "assess_s": 4.4,
+    "assessed": 1288,
+    "budget_stops": 0,
+    "cache_coverage": 1.0,
+    "completion": 1.0,
+    "error_types": {},
+    "errors": 0,
+    "skipped": 12,
+    "uncached_skipped": 0
+  },
+  "metrics": {
+    "agent_loss": 0.3498,
+    "ci95": {
+      "end_to_end_recall": [
+        0.0244,
+        0.0744
+      ],
+      "pool_base_rate": [
+        0.1827,
+        0.2667
+      ],
+      "retrieval_recall": [
+        0.3414,
+        0.4585
+      ],
+      "surfaced_lift": [
+        1.349,
+        1.623
+      ],
+      "surfaced_precision": [
+        0.2675,
+        0.3919
+      ],
+      "surfaced_recall": [
+        0.2453,
+        0.3347
+      ]
+    },
+    "criterion_asked": 11324,
+    "criterion_grounded": 5435,
+    "criterion_grounded_in": {
+      "absence": 1028,
+      "note": 4337,
+      "trial": 70
+    },
+    "criterion_grounded_rate": 0.48,
+    "criterion_total": 11447,
+    "criterion_unanswered": 18,
+    "criterion_unmatched": 141,
+    "criterion_unverifiable_rate": 0.0176,
+    "criterion_verdicts": {
+      "cannot_determine": 5866,
+      "met": 1510,
+      "not_met": 3869,
+      "unverifiable": 202
+    },
+    "eligible_precision": 0.4419,
+    "end_to_end_recall": 0.0468,
+    "gold_eligible_total": 406,
+    "incomplete_patients": 0,
+    "note_only_grounded_rate": 0.798,
+    "patients": 52,
+    "per_patient": [
+      {
+        "assessed": 25,
+        "assessed_gold": 2,
+        "assessed_labelled": 11,
+        "correct": 0,
+        "gold": 11,
+        "patient_id": "sigir-20141",
+        "retrieved_gold": 2,
+        "surfaced_hit": 2,
+        "surfaced_labelled": 6
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 1,
+        "assessed_labelled": 4,
+        "correct": 0,
+        "gold": 4,
+        "patient_id": "sigir-20142",
+        "retrieved_gold": 1,
+        "surfaced_hit": 0,
+        "surfaced_labelled": 1
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 5,
+        "assessed_labelled": 17,
+        "correct": 2,
+        "gold": 11,
+        "patient_id": "sigir-20143",
+        "retrieved_gold": 5,
+        "surfaced_hit": 3,
+        "surfaced_labelled": 9
+      },
+      {
+        "assessed": 22,
+        "assessed_gold": 3,
+        "assessed_labelled": 8,
+        "correct": 0,
+        "gold": 5,
+        "patient_id": "sigir-20144",
+        "retrieved_gold": 3,
+        "surfaced_hit": 3,
+        "surfaced_labelled": 4
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 0,
+        "assessed_labelled": 3,
+        "correct": 0,
+        "gold": 12,
+        "patient_id": "sigir-20145",
+        "retrieved_gold": 0,
+        "surfaced_hit": 0,
+        "surfaced_labelled": 3
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 3,
+        "assessed_labelled": 12,
+        "correct": 1,
+        "gold": 12,
+        "patient_id": "sigir-20146",
+        "retrieved_gold": 3,
+        "surfaced_hit": 3,
+        "surfaced_labelled": 4
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 6,
+        "assessed_labelled": 21,
+        "correct": 0,
+        "gold": 21,
+        "patient_id": "sigir-20147",
+        "retrieved_gold": 6,
+        "surfaced_hit": 5,
+        "surfaced_labelled": 9
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 1,
+        "assessed_labelled": 7,
+        "correct": 0,
+        "gold": 2,
+        "patient_id": "sigir-20148",
+        "retrieved_gold": 1,
+        "surfaced_hit": 0,
+        "surfaced_labelled": 2
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 3,
+        "assessed_labelled": 12,
+        "correct": 0,
+        "gold": 6,
+        "patient_id": "sigir-20149",
+        "retrieved_gold": 3,
+        "surfaced_hit": 3,
+        "surfaced_labelled": 8
+      },
+      {
+        "assessed": 24,
+        "assessed_gold": 1,
+        "assessed_labelled": 18,
+        "correct": 0,
+        "gold": 4,
+        "patient_id": "sigir-201410",
+        "retrieved_gold": 1,
+        "surfaced_hit": 1,
+        "surfaced_labelled": 9
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 1,
+        "assessed_labelled": 3,
+        "correct": 0,
+        "gold": 1,
+        "patient_id": "sigir-201411",
+        "retrieved_gold": 1,
+        "surfaced_hit": 1,
+        "surfaced_labelled": 1
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 3,
+        "assessed_labelled": 10,
+        "correct": 0,
+        "gold": 6,
+        "patient_id": "sigir-201412",
+        "retrieved_gold": 3,
+        "surfaced_hit": 3,
+        "surfaced_labelled": 8
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 0,
+        "assessed_labelled": 10,
+        "correct": 0,
+        "gold": 3,
+        "patient_id": "sigir-201413",
+        "retrieved_gold": 0,
+        "surfaced_hit": 0,
+        "surfaced_labelled": 3
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 2,
+        "assessed_labelled": 8,
+        "correct": 0,
+        "gold": 6,
+        "patient_id": "sigir-201414",
+        "retrieved_gold": 2,
+        "surfaced_hit": 2,
+        "surfaced_labelled": 6
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 2,
+        "assessed_labelled": 9,
+        "correct": 0,
+        "gold": 3,
+        "patient_id": "sigir-201415",
+        "retrieved_gold": 2,
+        "surfaced_hit": 0,
+        "surfaced_labelled": 3
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 0,
+        "assessed_labelled": 11,
+        "correct": 0,
+        "gold": 2,
+        "patient_id": "sigir-201417",
+        "retrieved_gold": 0,
+        "surfaced_hit": 0,
+        "surfaced_labelled": 3
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 1,
+        "assessed_labelled": 20,
+        "correct": 0,
+        "gold": 2,
+        "patient_id": "sigir-201418",
+        "retrieved_gold": 1,
+        "surfaced_hit": 1,
+        "surfaced_labelled": 9
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 1,
+        "assessed_labelled": 22,
+        "correct": 0,
+        "gold": 3,
+        "patient_id": "sigir-201419",
+        "retrieved_gold": 1,
+        "surfaced_hit": 1,
+        "surfaced_labelled": 13
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 2,
+        "assessed_labelled": 7,
+        "correct": 0,
+        "gold": 6,
+        "patient_id": "sigir-201420",
+        "retrieved_gold": 2,
+        "surfaced_hit": 0,
+        "surfaced_labelled": 5
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 9,
+        "assessed_labelled": 25,
+        "correct": 3,
+        "gold": 24,
+        "patient_id": "sigir-201421",
+        "retrieved_gold": 9,
+        "surfaced_hit": 8,
+        "surfaced_labelled": 19
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 10,
+        "assessed_labelled": 23,
+        "correct": 4,
+        "gold": 12,
+        "patient_id": "sigir-201422",
+        "retrieved_gold": 10,
+        "surfaced_hit": 7,
+        "surfaced_labelled": 13
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 3,
+        "assessed_labelled": 15,
+        "correct": 1,
+        "gold": 7,
+        "patient_id": "sigir-201423",
+        "retrieved_gold": 3,
+        "surfaced_hit": 2,
+        "surfaced_labelled": 7
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 2,
+        "assessed_labelled": 13,
+        "correct": 1,
+        "gold": 5,
+        "patient_id": "sigir-201424",
+        "retrieved_gold": 2,
+        "surfaced_hit": 2,
+        "surfaced_labelled": 5
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 4,
+        "assessed_labelled": 16,
+        "correct": 1,
+        "gold": 6,
+        "patient_id": "sigir-201425",
+        "retrieved_gold": 4,
+        "surfaced_hit": 3,
+        "surfaced_labelled": 7
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 6,
+        "assessed_labelled": 23,
+        "correct": 1,
+        "gold": 9,
+        "patient_id": "sigir-201427",
+        "retrieved_gold": 6,
+        "surfaced_hit": 3,
+        "surfaced_labelled": 5
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 4,
+        "assessed_labelled": 24,
+        "correct": 1,
+        "gold": 9,
+        "patient_id": "sigir-201429",
+        "retrieved_gold": 4,
+        "surfaced_hit": 2,
+        "surfaced_labelled": 12
+      },
+      {
+        "assessed": 23,
+        "assessed_gold": 1,
+        "assessed_labelled": 16,
+        "correct": 0,
+        "gold": 3,
+        "patient_id": "sigir-201430",
+        "retrieved_gold": 1,
+        "surfaced_hit": 0,
+        "surfaced_labelled": 7
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 9,
+        "assessed_labelled": 16,
+        "correct": 0,
+        "gold": 21,
+        "patient_id": "sigir-20151",
+        "retrieved_gold": 9,
+        "surfaced_hit": 8,
+        "surfaced_labelled": 12
+      },
+      {
+        "assessed": 24,
+        "assessed_gold": 2,
+        "assessed_labelled": 22,
+        "correct": 0,
+        "gold": 5,
+        "patient_id": "sigir-20152",
+        "retrieved_gold": 2,
+        "surfaced_hit": 1,
+        "surfaced_labelled": 5
+      },
+      {
+        "assessed": 24,
+        "assessed_gold": 2,
+        "assessed_labelled": 9,
+        "correct": 0,
+        "gold": 15,
+        "patient_id": "sigir-20153",
+        "retrieved_gold": 2,
+        "surfaced_hit": 2,
+        "surfaced_labelled": 7
+      },
+      {
+        "assessed": 24,
+        "assessed_gold": 1,
+        "assessed_labelled": 8,
+        "correct": 0,
+        "gold": 3,
+        "patient_id": "sigir-20154",
+        "retrieved_gold": 1,
+        "surfaced_hit": 1,
+        "surfaced_labelled": 4
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 0,
+        "assessed_labelled": 13,
+        "correct": 0,
+        "gold": 1,
+        "patient_id": "sigir-20155",
+        "retrieved_gold": 0,
+        "surfaced_hit": 0,
+        "surfaced_labelled": 9
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 8,
+        "assessed_labelled": 20,
+        "correct": 0,
+        "gold": 16,
+        "patient_id": "sigir-20156",
+        "retrieved_gold": 8,
+        "surfaced_hit": 6,
+        "surfaced_labelled": 15
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 6,
+        "assessed_labelled": 18,
+        "correct": 1,
+        "gold": 20,
+        "patient_id": "sigir-20157",
+        "retrieved_gold": 6,
+        "surfaced_hit": 5,
+        "surfaced_labelled": 11
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 3,
+        "assessed_labelled": 19,
+        "correct": 1,
+        "gold": 3,
+        "patient_id": "sigir-201510",
+        "retrieved_gold": 3,
+        "surfaced_hit": 2,
+        "surfaced_labelled": 13
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 2,
+        "assessed_labelled": 16,
+        "correct": 0,
+        "gold": 2,
+        "patient_id": "sigir-201511",
+        "retrieved_gold": 2,
+        "surfaced_hit": 2,
+        "surfaced_labelled": 12
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 2,
+        "assessed_labelled": 13,
+        "correct": 0,
+        "gold": 7,
+        "patient_id": "sigir-201512",
+        "retrieved_gold": 2,
+        "surfaced_hit": 2,
+        "surfaced_labelled": 6
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 1,
+        "assessed_labelled": 6,
+        "correct": 0,
+        "gold": 2,
+        "patient_id": "sigir-201513",
+        "retrieved_gold": 1,
+        "surfaced_hit": 1,
+        "surfaced_labelled": 2
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 3,
+        "assessed_labelled": 18,
+        "correct": 0,
+        "gold": 3,
+        "patient_id": "sigir-201514",
+        "retrieved_gold": 3,
+        "surfaced_hit": 1,
+        "surfaced_labelled": 4
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 8,
+        "assessed_labelled": 22,
+        "correct": 0,
+        "gold": 13,
+        "patient_id": "sigir-201515",
+        "retrieved_gold": 8,
+        "surfaced_hit": 5,
+        "surfaced_labelled": 10
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 4,
+        "assessed_labelled": 18,
+        "correct": 0,
+        "gold": 9,
+        "patient_id": "sigir-201516",
+        "retrieved_gold": 4,
+        "surfaced_hit": 2,
+        "surfaced_labelled": 5
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 3,
+        "assessed_labelled": 24,
+        "correct": 0,
+        "gold": 7,
+        "patient_id": "sigir-201517",
+        "retrieved_gold": 3,
+        "surfaced_hit": 1,
+        "surfaced_labelled": 9
+      },
+      {
+        "assessed": 23,
+        "assessed_gold": 10,
+        "assessed_labelled": 20,
+        "correct": 1,
+        "gold": 29,
+        "patient_id": "sigir-201518",
+        "retrieved_gold": 10,
+        "surfaced_hit": 9,
+        "surfaced_labelled": 16
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 2,
+        "assessed_labelled": 15,
+        "correct": 1,
+        "gold": 14,
+        "patient_id": "sigir-201519",
+        "retrieved_gold": 2,
+        "surfaced_hit": 2,
+        "surfaced_labelled": 8
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 3,
+        "assessed_labelled": 14,
+        "correct": 0,
+        "gold": 8,
+        "patient_id": "sigir-201520",
+        "retrieved_gold": 3,
+        "surfaced_hit": 1,
+        "surfaced_labelled": 4
+      },
+      {
+        "assessed": 24,
+        "assessed_gold": 1,
+        "assessed_labelled": 11,
+        "correct": 0,
+        "gold": 3,
+        "patient_id": "sigir-201521",
+        "retrieved_gold": 1,
+        "surfaced_hit": 1,
+        "surfaced_labelled": 2
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 1,
+        "assessed_labelled": 5,
+        "correct": 0,
+        "gold": 7,
+        "patient_id": "sigir-201522",
+        "retrieved_gold": 1,
+        "surfaced_hit": 0,
+        "surfaced_labelled": 1
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 1,
+        "assessed_labelled": 3,
+        "correct": 0,
+        "gold": 1,
+        "patient_id": "sigir-201523",
+        "retrieved_gold": 1,
+        "surfaced_hit": 1,
+        "surfaced_labelled": 1
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 8,
+        "assessed_labelled": 19,
+        "correct": 0,
+        "gold": 15,
+        "patient_id": "sigir-201524",
+        "retrieved_gold": 8,
+        "surfaced_hit": 7,
+        "surfaced_labelled": 12
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 3,
+        "assessed_labelled": 14,
+        "correct": 0,
+        "gold": 3,
+        "patient_id": "sigir-201526",
+        "retrieved_gold": 3,
+        "surfaced_hit": 2,
+        "surfaced_labelled": 3
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 0,
+        "assessed_labelled": 4,
+        "correct": 0,
+        "gold": 2,
+        "patient_id": "sigir-201527",
+        "retrieved_gold": 0,
+        "surfaced_hit": 0,
+        "surfaced_labelled": 2
+      },
+      {
+        "assessed": 25,
+        "assessed_gold": 2,
+        "assessed_labelled": 3,
+        "correct": 0,
+        "gold": 2,
+        "patient_id": "sigir-201529",
+        "retrieved_gold": 2,
+        "surfaced_hit": 1,
+        "surfaced_labelled": 2
+      }
+    ],
+    "pool_base_rate": 0.2242,
+    "retrieval_recall": 0.3966,
+    "self_referential": 24,
+    "self_referential_rate": 0.0044,
+    "surfaced_lift": 1.4782,
+    "tier_surfaced": {
+      "precision": 0.3315,
+      "recall": 0.2906,
+      "shown": 579
+    },
+    "trial_verdicts": {
+      "cannot_determine": 536,
+      "eligible": 43,
+      "excluded": 709
+    },
+    "weak_absence": 595,
+    "weak_absence_rate": 0.1095
+  },
+  "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+  "order_file": null,
+  "prompt_version": "v4",
+  "provider": "deepinfra",
+  "run_usd": 0.0,
+  "timing": {
+    "assess_s": 4.4,
+    "retrieval_s": 39.4
+  },
+  "top_k": 25
+}
