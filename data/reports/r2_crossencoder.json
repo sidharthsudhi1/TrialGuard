@@ -1,0 +1,144 @@
+{
+  "folds": {
+    "trec_2021->trec_2022": {
+      "mean": {
+        "ce@100": 0.5643,
+        "ce@200": 0.7166,
+        "ce_rrf_deep@100": 0.574,
+        "ce_rrf_deep@200": 0.7136,
+        "deep@100": 0.5245,
+        "deep@200": 0.6708,
+        "served50@100": 0.4987,
+        "served50@200": 0.6072
+      },
+      "n_test": 50
+    },
+    "trec_2022->trec_2021": {
+      "mean": {
+        "ce@100": 0.5126,
+        "ce@200": 0.7048,
+        "ce_rrf_deep@100": 0.5095,
+        "ce_rrf_deep@200": 0.6916,
+        "deep@100": 0.4596,
+        "deep@200": 0.6341,
+        "served50@100": 0.4393,
+        "served50@200": 0.561
+      },
+      "n_test": 75
+    }
+  },
+  "vs_deep": {
+    "ce:trec_2021->trec_2022@100": {
+      "better": 31,
+      "delta_ci": [
+        0.0092,
+        0.0703
+      ],
+      "mean_delta": 0.0398,
+      "n": 50,
+      "p": 0.0077,
+      "p_bh": 0.0077,
+      "significant_bh": true,
+      "ties": 8,
+      "worse": 11
+    },
+    "ce:trec_2021->trec_2022@200": {
+      "better": 33,
+      "delta_ci": [
+        0.0319,
+        0.0606
+      ],
+      "mean_delta": 0.0459,
+      "n": 50,
+      "p": 0.0,
+      "p_bh": 0.0,
+      "significant_bh": true,
+      "ties": 12,
+      "worse": 5
+    },
+    "ce:trec_2022->trec_2021@100": {
+      "better": 52,
+      "delta_ci": [
+        0.036,
+        0.0702
+      ],
+      "mean_delta": 0.053,
+      "n": 75,
+      "p": 0.0,
+      "p_bh": 0.0,
+      "significant_bh": true,
+      "ties": 9,
+      "worse": 14
+    },
+    "ce:trec_2022->trec_2021@200": {
+      "better": 54,
+      "delta_ci": [
+        0.0546,
+        0.0874
+      ],
+      "mean_delta": 0.0707,
+      "n": 75,
+      "p": 0.0,
+      "p_bh": 0.0,
+      "significant_bh": true,
+      "ties": 14,
+      "worse": 7
+    },
+    "ce_rrf_deep:trec_2021->trec_2022@100": {
+      "better": 38,
+      "delta_ci": [
+        0.0298,
+        0.0704
+      ],
+      "mean_delta": 0.0495,
+      "n": 50,
+      "p": 0.0,
+      "p_bh": 0.0,
+      "significant_bh": true,
+      "ties": 7,
+      "worse": 5
+    },
+    "ce_rrf_deep:trec_2021->trec_2022@200": {
+      "better": 37,
+      "delta_ci": [
+        0.0317,
+        0.0547
+      ],
+      "mean_delta": 0.0429,
+      "n": 50,
+      "p": 0.0,
+      "p_bh": 0.0,
+      "significant_bh": true,
+      "ties": 13,
+      "worse": 0
+    },
+    "ce_rrf_deep:trec_2022->trec_2021@100": {
+      "better": 59,
+      "delta_ci": [
+        0.0391,
+        0.0611
+      ],
+      "mean_delta": 0.0499,
+      "n": 75,
+      "p": 0.0,
+      "p_bh": 0.0,
+      "significant_bh": true,
+      "ties": 10,
+      "worse": 6
+    },
+    "ce_rrf_deep:trec_2022->trec_2021@200": {
+      "better": 58,
+      "delta_ci": [
+        0.0467,
+        0.0691
+      ],
+      "mean_delta": 0.0575,
+      "n": 75,
+      "p": 0.0,
+      "p_bh": 0.0,
+      "significant_bh": true,
+      "ties": 15,
+      "worse": 2
+    }
+  }
+}

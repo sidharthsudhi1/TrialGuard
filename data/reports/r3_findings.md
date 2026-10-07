@@ -1,67 +1,74 @@
-# R3 — weighting fusion by keyword rank
+# R3: synthetic training groups. The cross-encoder crosses the bar; the synthetic data doesn't explain why
 
-Run 2026-08-31. Ten weighting schemes on both cohorts at the validated defaults
-(`pool=50`, `k=60`). Retrieval only, no LLM calls. SIGIR local, TREC on a
-short-lived EC2 box.
+Run 2026-10-01 on EC2 (c7i.8xlarge), pre-registered in
+`docs/weakpoints_fix_plan.md` §4 before any note was generated. Compute about
+$7, generation about $1 of DeepInfra. Raw: `r2_crossencoder_r3.json`;
+`data/cache/r3/` (notes, picks and groups, gitignored).
 
-## The premise is real
+## What was generated
 
-`query_transform.py` prompts the model: *"Order most-to-least important for
-trial matching."* The ranking is requested, paid for in the keyword call, and
-then discarded — `fusion.py:19` sums `1/(k+rank)` over every list with equal
-weight, so the 12th keyword counts exactly as much as the 1st.
+- **Trials:** 5,453 TREC trials sit outside both cohorts' candidate pools with
+  ≥3 inclusion and ≥1 exclusion criteria. 2,000 were sampled (seed 0).
+- **Notes:** 2,000 written, 0 generation errors. 10 dropped by `detect_phi`, 3 for
+  failed keyword extraction.
+- **Negatives:** 1,117 notes were dropped for having fewer than 7 negatives in
+  their retrieval top-30 after excluding every pool trial. Pools cover most of
+  the corpus, so a synthetic note's neighbours are usually pool trials.
+- **870 synthetic groups survived.** That's about 20% more training groups in
+  each direction (real: 4,452 / 3,152), a smaller dose than the 2,000 planned.
 
-## Sweep: consistent direction on both cohorts
+## Result
 
-`recall@50` change against the shipped uniform weighting:
+Recall@100. Δ vs deep fusion is the adopt test; Δ vs R2 is the kill test.
 
-| scheme | SIGIR | TREC 2021 |
-|---|---|---|
-| uniform (shipped) | 0.5235 | 0.2859 |
-| reciprocal `1/(1+i)` | **+10.8%** | **+3.4%** |
-| log `1/log2(i+2)` | **+11.7%** | +3.0% |
-| exp `0.7^i` | +10.4% | +1.3% |
-| exp `0.8^i` | +9.0% | +1.2% |
-| linear `(n-i)/n` | +7.7% | +0.9% |
-| top-4 only | +5.5% | **-4.8%** |
-| top-6 only | **-5.9%** | **-4.7%** |
-| top-8 only | -0.2% | -3.2% |
+| arm | fold | R3 vs deep | R2 vs deep (for reference) | **R3 vs R2** |
+|---|---|---|---|---|
+| ce | 2021→2022 | +0.047 (p_bh 0.002) | +0.040 | +0.007 (ns) |
+| ce | 2022→2021 | +0.053 | +0.053 | +0.000 (ns) |
+| **ce_rrf_deep** | 2021→2022 | **+0.056** (p_bh <0.001) | +0.0495 | **+0.006** (ns) |
+| **ce_rrf_deep** | 2022→2021 | **+0.054** (p_bh <0.001) | +0.0499 | **+0.004** (ns) |
 
-Every *graded* scheme is positive on both cohorts; every *hard cutoff* is
-negative on TREC. Smooth downweighting helps, truncation hurts. Unlike R5, the
-cohorts agree in sign — only the magnitude differs.
+Every R3-vs-deep cell is significant, at both @100 and @200. No R3-vs-R2 cell is
+significant (all p_bh ≥ 0.51), and the 95% CIs all include 0.
 
-## Significance: it does not clear the bar
+## Against the pre-registration: both rules fire
 
-Recall is paired by patient, so the test is paired over patients, not a pooled
-proportion. Uniform vs reciprocal, `recall@50`:
+- **Adopt:** an arm ≥ +0.05 @100 in both directions vs deep. `ce_rrf_deep`
+  gives +0.056 and +0.054. **Met.**
+- **Kill:** for the arm with the larger R3 mean (`ce_rrf_deep`), R3 − R2 < +0.02
+  in either direction. It's +0.006 and +0.004. **Met.**
 
-| | SIGIR | TREC 2021 |
-|---|---|---|
-| patients | 52 | 75 |
-| uniform | 0.5693 | 0.2860 |
-| reciprocal | 0.6264 | 0.2956 |
-| mean delta | +0.0570 | +0.0096 |
-| bootstrap CI95 | **[-0.0019, 0.1177]** | **[-0.0072, 0.0266]** |
-| Wilcoxon p | 0.0673 | 0.3031 |
-| better / worse / tied | 23 / 11 / 18 | 40 / 24 / 11 |
+The pre-registration didn't say what happens when both fire. That is a gap in
+how it was written, and it's stated here rather than resolved quietly. Read
+together, the two rules say:
 
-Both confidence intervals cross zero. Fisher's combined p over the two cohorts
-is **0.0998**. Not adopted.
+1. The synthetic data contributed nothing measurable: +0.004 to +0.006,
+   nowhere near significance. **R3 as a technique is rejected**, as the kill rule
+   says.
+2. R3's model crossing the bar is therefore not evidence that the synthetic
+   data works. R2 sat 0.0005 below the bar and R3 sits 0.004–0.006 above it.
+   That move is inside the noise of a second training run, so it says more about
+   where a seed lands than about the method.
+3. What the two runs do establish together is that a fine-tuned cross-encoder
+   fused with deep fusion is worth about **+0.05 recall@100 over deep fusion**:
+   four independent train/test runs all land between +0.0495 and +0.056, every
+   one significant. The adopt bar was set at +0.05, and the effect sits at it,
+   not clearly above it.
 
-(The recall@50 values here differ from the sweep table because the sweep scores
-every patient through `evaluate_cohort_multi_k` with coverage adjustment, while
-this test is restricted to the patients with in-corpus gold and is unadjusted.
-Each is internally consistent; do not mix the two.)
+## Caveats
 
-## Standing
+- **The dose was small:** 870 groups, not 2,000, because negative mining was
+  restricted to non-pool trials and the pools cover most of the corpus. A
+  larger or differently mined synthetic set could behave differently. That
+  would be a new experiment, not a reading of this one.
+- **Each condition ran once (seed 0).** The R2-vs-R3 gap is the size you'd expect
+  between seeds.
 
-`fusion.py` is unchanged and stays uniform. The direction is consistent across
-two cohorts, seven graded schemes, and inverts for cutoffs — which is more
-structure than noise usually produces — but "more structure than noise usually
-produces" is not a result. On the evidence it is a promising hypothesis with
-p ~= 0.10, and the project's rule for this item was to adopt only on a real lift.
+## Decision needed (not made here)
 
-Worth revisiting with more patients, since both cohorts trend the same way and
-TREC's 40/24 patient split is the kind of margin a larger n would resolve. The
-sweep harness and per-patient test are committed, so a rerun is cheap.
+Whether to wire the cross-encoder (`ce_rrf_deep`) into the deep path, where it
+costs about 7–8 s per patient for 500 candidates on CPU, rests on reading point
+3 above against a bar it meets only at its edge. If adopted, the simpler R2
+recipe (no synthetic data) is the one to ship, since R3 shows the extra step
+buys nothing. The end-to-end check (H1 harness, top-100) comes before any
+claim about surfaced recall.
