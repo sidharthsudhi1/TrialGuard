@@ -1,4 +1,4 @@
-"""R6: how much of a progressive deep job's answer is already in its head?
+"""How much of a progressive deep job's answer is already in its head?
 
 A deep job assesses the top 100 in rank order and signals once the top 25 are
 done. Top-25 is an exact prefix of top-100 when list depth is pinned, so the
@@ -6,7 +6,7 @@ head's result reruns cached-only at $0. Compares each top-25 report with the
 top-100 report it is a prefix of: surfaced recall, the share of the top-100
 answer the head already holds, lift, and the paired 25 -> 100 gain.
 
-    python scripts/r6_head_compare.py
+    python scripts/deep_head_compare.py
 """
 
 from __future__ import annotations
@@ -20,11 +20,11 @@ REPORTS = Path("data/reports")
 CELLS = {
     # (head report, full report). TREC: served deep path (list pool 200).
     # SIGIR: V2's top-100 ran at list pool 50, so its head does too.
-    "trec_2021:deep": ("r6_deep_trec_2021_top25.json", "r2e2e_deep_trec_2021_top100.json"),
-    "trec_2021:ce": ("r6_ce_trec_2021_top25.json", "r2e2e_ce_trec_2021_top100.json"),
-    "trec_2022:deep": ("r6_deep_trec_2022_top25.json", "r2e2e_deep_trec_2022_top100.json"),
-    "trec_2022:ce": ("r6_ce_trec_2022_top25.json", "r2e2e_ce_trec_2022_top100.json"),
-    "sigir:deep": ("r6_deep_sigir_top25.json", "v2_e2e_sigir_top100.json"),
+    "trec_2021:deep": ("deep_head_deep_trec_2021_top25.json", "r2e2e_deep_trec_2021_top100.json"),
+    "trec_2021:ce": ("deep_head_ce_trec_2021_top25.json", "r2e2e_ce_trec_2021_top100.json"),
+    "trec_2022:deep": ("deep_head_deep_trec_2022_top25.json", "r2e2e_deep_trec_2022_top100.json"),
+    "trec_2022:ce": ("deep_head_ce_trec_2022_top25.json", "r2e2e_ce_trec_2022_top100.json"),
+    "sigir:deep": ("deep_head_deep_sigir_top25.json", "v2_e2e_sigir_top100.json"),
 }
 
 
@@ -72,7 +72,7 @@ def main() -> None:
             "patients_with_a_hit_in_full": len(some_f),
         }
     out["paired_head_to_full"] = compare_family(family)
-    (REPORTS / "r6_head_compare.json").write_text(json.dumps(out, indent=2, sort_keys=True))
+    (REPORTS / "deep_head_compare.json").write_text(json.dumps(out, indent=2, sort_keys=True))
     for cell, v in out["cells"].items():
         p = out["paired_head_to_full"][cell]
         print(f"{cell}: n={v['n']} head {v['head']['surfaced_recall']:.3f} "
