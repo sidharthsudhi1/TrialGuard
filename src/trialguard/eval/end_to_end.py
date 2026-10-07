@@ -56,7 +56,8 @@ def _gold_by_patient(cohort: str) -> dict[str, dict[str, str]]:
 
 
 def retrieve_for_patients(
-    cohort: str, n_patients: int, top_k: int, use_keywords: bool = True
+    cohort: str, n_patients: int, top_k: int, use_keywords: bool = True,
+    order: dict[str, list[str]] | None = None,
 ) -> tuple[list[dict], dict[str, float]]:
     """Run the served retrieval shape over a cohort. Returns (rows, timing).
 
@@ -79,7 +80,14 @@ def retrieve_for_patients(
         eligible = {n for n, g in lab.items() if g == "eligible" and n in corpus_ids}
         if not eligible:
             continue
-        hits = idx.search(p["description"], top_k=top_k, use_keywords=use_keywords)
+        if order is not None:
+            # An externally ranked pool (e.g. a reranker's), assessed exactly as a
+            # retrieved one; patients it does not cover are not scored.
+            if pid not in order:
+                continue
+            hits = [(n, 0.0) for n in order[pid][:top_k]]
+        else:
+            hits = idx.search(p["description"], top_k=top_k, use_keywords=use_keywords)
         rows.append(
             {
                 "patient_id": pid,
@@ -127,6 +135,7 @@ def assess_retrieved(
     corpus = _load_corpus(cohort, needed)
 
     assessed = skipped = budget_stops = uncached = errors = 0
+    error_types: dict[str, int] = {}
     t0 = time.perf_counter()
 
     # Flatten first so the work can run concurrently. Every (patient, trial) pair
@@ -198,6 +207,10 @@ def assess_retrieved(
             if err is not None:
                 skipped += 1
                 errors += 1
+                # Without the class a failed run cannot say whether the provider,
+                # the client timeout or the code broke.
+                kind = f"{type(err).__name__}: {str(err)[:80]}"
+                error_types[kind] = error_types.get(kind, 0) + 1
                 continue
             r, nct, _trial, criteria, _truncated = item
             ass = state.get("assessments", [])
@@ -251,6 +264,7 @@ def assess_retrieved(
         # by errors reads complete there; completion is the share of attempted
         # pairs that actually produced a verdict.
         "errors": errors,
+        "error_types": dict(sorted(error_types.items(), key=lambda kv: -kv[1])[:10]),
         "completion": round(assessed / len(work), 4) if work else 0.0,
         "assess_s": round(time.perf_counter() - t0, 1),
     }
@@ -474,7 +488,8 @@ def _lift_and_confidence(pp: list[dict], seed: int = 0) -> dict:
     }
 
 
-def run(cohort: str, n_patients: int, top_k: int, cached_only: bool = False) -> dict:
+def run(cohort: str, n_patients: int, top_k: int, cached_only: bool = False,
+        order_file: str | None = None) -> dict:
     from trialguard.llm.cost import active_ledger
     from trialguard.llm.provider import active_model, active_provider
 
@@ -482,7 +497,8 @@ def run(cohort: str, n_patients: int, top_k: int, cached_only: bool = False) -> 
         os.environ["TG_CACHED_ONLY"] = "1"
 
     spend_before = active_ledger().spent_usd()
-    rows, r_timing = retrieve_for_patients(cohort, n_patients, top_k)
+    order = json.loads(Path(order_file).read_text()) if order_file else None
+    rows, r_timing = retrieve_for_patients(cohort, n_patients, top_k, order=order)
     a_timing = assess_retrieved(rows, cohort, cached_only=cached_only)
     metrics = score(rows)
     run_usd = max(0.0, active_ledger().spent_usd() - spend_before)
@@ -494,6 +510,7 @@ def run(cohort: str, n_patients: int, top_k: int, cached_only: bool = False) -> 
         "model": active_model(),
         "prompt_version": os.environ.get("TG_PROMPT_VERSION", "v1"),
         "cached_only": cached_only,
+        "order_file": order_file,
         "metrics": metrics,
         "counts": a_timing,
         "timing": {**r_timing, **{"assess_s": a_timing["assess_s"]}},
@@ -516,6 +533,9 @@ def main() -> None:
                     help="Skip pairs with no cached analyst response. Bounds the "
                          "expensive half; keyword extraction may still cost a few "
                          "cents on notes never seen before.")
+    ap.add_argument("--order-file", default=None,
+                    help="JSON {patient_id: [nct_id, ...]} ranking to assess instead of "
+                         "retrieval's own")
     ap.add_argument("--out", default=None,
                     help="Report path (default: data/reports/e2e_<cohort>.json)")
     args = ap.parse_args()
@@ -525,7 +545,7 @@ def main() -> None:
         f"[bold]End-to-end[/bold] {args.cohort} · {args.n_patients} patients · top-{args.top_k}"
         + (" · cached-only" if args.cached_only else "")
     )
-    result = run(args.cohort, args.n_patients, args.top_k, args.cached_only)
+    result = run(args.cohort, args.n_patients, args.top_k, args.cached_only, args.order_file)
     m = result["metrics"]
 
     t = Table(show_header=False, box=None)

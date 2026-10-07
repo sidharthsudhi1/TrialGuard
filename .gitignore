@@ -65,3 +65,6 @@ CLAUDE.md
 .agents/
 skills-lock.json
 /docs/pipeline_review.md
+
+# Fine-tuned model weights (R2 cross-encoder); trained on EC2, never committed
+/data/models/

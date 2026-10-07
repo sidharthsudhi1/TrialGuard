@@ -10,7 +10,7 @@ from trialguard.retrieval.dense import dense_search
 from trialguard.retrieval.fusion import importance_weights, list_pool, rrf
 
 
-def _apply_demographics(query, rankings, fused, top_k, source):
+def _apply_demographics(query, rankings, fused, top_k, source, wide=None):
     """Drop candidates a hard age or sex gate rules out. Returns (hits, n_dropped).
 
     Re-fuses wider before filtering so the caller still gets top_k results rather
@@ -31,7 +31,8 @@ def _apply_demographics(query, rankings, fused, top_k, source):
 
         from trialguard.db.queries import get_trials
 
-        wide = rrf(rankings, top_k=top_k * 4, weights=importance_weights(len(rankings)))
+        if wide is None:
+            wide = rrf(rankings, top_k=top_k * 4, weights=importance_weights(len(rankings)))
         meta = get_trials([n for n, _ in wide], source=source)
         kept, dropped = filter_candidates(wide, meta, patient)
         return kept[:top_k], len(dropped)
@@ -51,7 +52,7 @@ def retrieve(
     """Run hybrid retrieval. Returns (results, latency_ms_breakdown).
 
     results: list of (nct_id, rrf_score) sorted descending, length top_k.
-    latency: {"dense_ms", "bm25_ms", "fanout_ms", "fusion_ms", "keyword_ms", "total_ms"}
+    latency: {"dense_ms", "bm25_ms", "fanout_ms", "fusion_ms", "ce_ms", "keyword_ms", "total_ms"}
     """
     t0 = time.perf_counter()
     dense_pool = dense_pool or list_pool(top_k)
@@ -107,12 +108,31 @@ def retrieve(
     dense_ms_total = sum(e for e, (kind, _) in zip(elapsed, tasks, strict=True) if kind == "dense")
     bm25_ms_total = sum(e for e, (kind, _) in zip(elapsed, tasks, strict=True) if kind == "bm25")
 
+    from trialguard.retrieval import ce_rerank as rerank
+
+    use_ce = rerank.enabled(top_k, use_keywords)
     t3 = time.perf_counter()
-    fused = rrf(rankings, top_k=top_k, weights=importance_weights(len(rankings)))
+    fused = rrf(
+        rankings,
+        top_k=rerank.CANDIDATES if use_ce else top_k,
+        weights=importance_weights(len(rankings)),
+    )
     fusion_ms = (time.perf_counter() - t3) * 1000
 
+    ce_ms, wide = 0.0, None
+    if use_ce:
+        from trialguard.db.queries import get_trials
+
+        tc = time.perf_counter()
+        meta = get_trials([n for n, _ in fused], source=source)
+        # The whole reranked pool goes to the demographic filter, so trials it
+        # drops are back-filled in cross-encoder order rather than re-fused.
+        wide = rerank.rerank(queries, fused, {n: rerank.doc_text(t) for n, t in meta.items()})
+        fused = wide[:top_k]
+        ce_ms = (time.perf_counter() - tc) * 1000
+
     t4 = time.perf_counter()
-    fused, n_dropped = _apply_demographics(query, rankings, fused, top_k, source)
+    fused, n_dropped = _apply_demographics(query, rankings, fused, top_k, source, wide)
     demographics_ms = (time.perf_counter() - t4) * 1000
 
     total_ms = (time.perf_counter() - t0) * 1000
@@ -127,6 +147,7 @@ def retrieve(
         "bm25_ms": round(bm25_ms_total, 1),
         "fanout_ms": round(fanout_ms, 1),
         "fusion_ms": round(fusion_ms, 1),
+        "ce_ms": round(ce_ms, 1),
         "demographics_ms": round(demographics_ms, 1),
         "demographics_dropped": n_dropped,
         "total_ms": round(total_ms, 1),

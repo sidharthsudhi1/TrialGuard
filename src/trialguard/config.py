@@ -48,6 +48,12 @@ class Settings(BaseSettings):
     # oncology corpus is almost entirely age-inappropriate for a child.
     retrieval_demographic_filter: bool = True
 
+    # Fine-tuned cross-encoder (R2) for deep requests (top_k >= 100): local path
+    # or HF id of the saved weights. Empty = off. Measured end to end at top-100:
+    # surfaced recall +0.032 / +0.040 on TREC 2021 / 2022, unverifiable flat
+    # (data/reports/r2e2e_findings.md). Costs ~7-8 s/patient on CPU.
+    retrieval_ce_model: str = ""
+
     # Serve dense retrieval from an in-memory matrix instead of pgvector. At 26k
     # rows the planner declines the ivfflat index anyway and scans the table, so
     # this moves an exact scan to where it is cheap. Falls back to SQL whenever

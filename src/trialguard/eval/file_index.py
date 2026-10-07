@@ -53,6 +53,7 @@ class FileIndex:
         self._matrix: np.ndarray | None = None
         self._bm25 = None
         self._trial_texts: dict[str, str] = {}
+        self._ce_docs: dict[str, str] = {}
         self._loaded = False
 
     def _cache_path(self) -> tuple[Path, Path]:
@@ -77,6 +78,13 @@ class FileIndex:
         texts = [eligibility_text_for_embedding(t) for t in normalised]
         nct_ids_from_trials = [t["nct_id"] for t in normalised]
         self._trial_texts = dict(zip(nct_ids_from_trials, texts, strict=True))
+
+        from trialguard.config import settings
+
+        if settings.retrieval_ce_model:
+            from trialguard.retrieval.ce_rerank import doc_text
+
+            self._ce_docs = {t["nct_id"]: doc_text(t) for t in normalised}
 
         self._nct_ids = nct_ids_from_trials
 
@@ -197,9 +205,16 @@ class FileIndex:
             )[:bm25_pool]
             all_rankings.append(bm25_ranked)
 
-        return rrf(
-            all_rankings, top_k=top_k, weights=importance_weights(len(all_rankings))
+        from trialguard.retrieval import ce_rerank as rerank
+
+        if not rerank.enabled(top_k, use_keywords):
+            return rrf(
+                all_rankings, top_k=top_k, weights=importance_weights(len(all_rankings))
+            )
+        pool = rrf(
+            all_rankings, top_k=rerank.CANDIDATES, weights=importance_weights(len(all_rankings))
         )
+        return rerank.rerank(queries, pool, self._ce_docs)[:top_k]
 
 
 # ---- Source-specific loaders ----
