@@ -37,9 +37,10 @@ RRF_K = 60
 # ---- export (local) --------------------------------------------------------
 
 def _doc(t: dict) -> str:
-    incl = " ".join(t.get("inclusion_criteria", []))
-    excl = " ".join(t.get("exclusion_criteria", []))
-    return f"{t.get('title', '')}. Inclusion: {incl} Exclusion: {excl}"
+    # Shared with serving, so the text the model reads cannot drift from training.
+    from trialguard.retrieval.ce_rerank import doc_text
+
+    return doc_text(t)
 
 
 def export() -> None:
@@ -92,8 +93,8 @@ def _groups(data: dict, rng: random.Random) -> list[list[tuple[str, str, int]]]:
     return groups
 
 
-def train_score(train_path: str, test_path: str, out_path: str, batch_groups: int = 4,
-                extra_path: str | None = None) -> None:
+def _train(train_paths: list[str], batch_groups: int, extra_path: str | None = None):
+    """Fine-tune from MODEL on every train file. Returns (tok, model, dev, amp, n_groups)."""
     import torch
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
@@ -117,9 +118,12 @@ def train_score(train_path: str, test_path: str, out_path: str, batch_groups: in
         MODEL, attention_probs_dropout_prob=0.0
     ).to(dev)
 
-    with gzip.open(train_path, "rt") as f:
-        train = json.load(f)
-    groups = _groups(train, rng)
+    groups = []
+    for path in train_paths:
+        with gzip.open(path, "rt") as f:
+            groups += _groups(json.load(f), rng)
+    if len(train_paths) > 1:
+        rng.shuffle(groups)
     if extra_path:  # R3: synthetic groups, already (query, positive-first docs)
         with gzip.open(extra_path, "rt") as f:
             extra = json.load(f)["groups"]
@@ -150,7 +154,14 @@ def train_score(train_path: str, test_path: str, out_path: str, batch_groups: in
         sched.step()
         if step % 50 == 0:
             print(f"step {step}/{steps} loss {loss.item():.4f}", flush=True)
+    return tok, model, dev, amp, len(groups)
 
+
+def train_score(train_path: str, test_path: str, out_path: str, batch_groups: int = 4,
+                extra_path: str | None = None) -> None:
+    import torch
+
+    tok, model, dev, amp, n_groups = _train([train_path], batch_groups, extra_path)
     with gzip.open(test_path, "rt") as f:
         test = json.load(f)
     model.eval()
@@ -167,8 +178,19 @@ def train_score(train_path: str, test_path: str, out_path: str, batch_groups: in
                     out += model(**enc).logits.view(-1).float().tolist()
             scores[p["patient_id"]] = out
     Path(out_path).write_text(json.dumps({"train": train_path, "test": test_path,
-                                          "n_groups": len(groups), "scores": scores}))
+                                          "n_groups": n_groups, "scores": scores}))
     print(f"wrote {out_path}")
+
+
+def train_final(out_dir: str, batch_groups: int = 4) -> None:
+    """The serving model: same recipe, trained on both TREC cohorts, saved for
+    settings.retrieval_ce_model. Cross-cohort runs measured it; this one is not
+    evaluable on TREC, since it has seen every TREC topic."""
+    paths = [str(EXPORT_DIR / f"{c}.json.gz") for c in ("trec_2021", "trec_2022")]
+    tok, model, *_ = _train(paths, batch_groups)
+    model.save_pretrained(out_dir)
+    tok.save_pretrained(out_dir)
+    print(f"saved {out_dir}")
 
 
 # ---- evaluate (local) ------------------------------------------------------
@@ -253,12 +275,13 @@ def write_orders(tag: str = "") -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["export", "train-score", "evaluate", "orders"])
+    ap.add_argument("cmd", choices=["export", "train-score", "train-final", "evaluate", "orders"])
     ap.add_argument("--train")
     ap.add_argument("--test")
     ap.add_argument("--dir", default=str(EXPORT_DIR))
     ap.add_argument("--extra", help="R3 synthetic groups (.json.gz)")
     ap.add_argument("--tag", default="", help="prefix for score files and report")
+    ap.add_argument("--out", default="data/models/r2_ce", help="train-final output dir")
     args = ap.parse_args()
     if args.cmd == "export":
         export()
@@ -268,6 +291,8 @@ def main() -> None:
         train_score(str(d / f"{args.train}.json.gz"), str(d / f"{args.test}.json.gz"),
                     str(d / f"scores_{prefix}{args.train}_to_{args.test}.json"),
                     extra_path=args.extra)
+    elif args.cmd == "train-final":
+        train_final(args.out)
     elif args.cmd == "orders":
         write_orders(args.tag)
     else:
