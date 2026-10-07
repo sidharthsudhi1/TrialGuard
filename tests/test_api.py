@@ -1047,3 +1047,127 @@ def test_a_preset_assess_does_not_skip_the_cache_write(client):
             "".join(stream.iter_text())
 
     assert seen["skip"] is False
+
+
+def test_search_deep_raises_the_result_cap(client, monkeypatch):
+    monkeypatch.setattr("trialguard.config.settings.api_max_search_results", 25)
+    monkeypatch.setattr("trialguard.config.settings.api_max_assess_trials_deep", 100)
+    seen = []
+
+    def fake_retrieve(note, top_k=10, **kwargs):
+        seen.append(top_k)
+        return [], STUB_LATENCY
+
+    with (
+        patch("trialguard.retrieval.pipeline.retrieve", side_effect=fake_retrieve),
+        patch("trialguard.db.queries.get_trials", return_value={}),
+        patch("trialguard.agent.sanitize.detect_injection", return_value=False),
+    ):
+        client.post("/api/search", json={"note": "synthetic note", "top_k": 100})
+        client.post("/api/search", json={"note": "synthetic note", "top_k": 100, "deep": True})
+        client.post("/api/search", json={"note": "synthetic note", "top_k": 500, "deep": True})
+
+    assert seen == [25, 100, 100]
+
+
+def _deep_rows(ids):
+    return {n: {**STUB_ROWS["NCT0001"], "nct_id": n} for n in ids}
+
+
+def _run_deep_job(client, ids, assess_fn):
+    rows = _deep_rows(ids)
+    with (
+        patch("trialguard.agent.sanitize.detect_injection", return_value=False),
+        patch("trialguard.db.queries.get_trial", side_effect=lambda nct, source=None: rows.get(nct)),
+        patch("trialguard.agent.graph.assess", side_effect=assess_fn),
+        patch("trialguard.llm.cost.active_ledger") as ledger,
+    ):
+        ledger.return_value.exhausted.return_value = False
+        ledger.return_value.summary.return_value = {"usd": 2.0, "usd_cap": 2.0, "calls": 1, "date": "x"}
+        ledger.return_value.remaining_usd.return_value = 0.0
+        created = client.post(
+            "/api/assess", json={"note": "synthetic note", "nct_ids": ids, "deep": True}
+        )
+        job_id = created.json()["job_id"]
+        with client.stream("GET", f"/api/assess/{job_id}") as stream:
+            raw = "".join(stream.iter_text())
+    events = []
+    for block in raw.split("\n\n"):
+        data = [ln[6:] for ln in block.splitlines() if ln.startswith("data: ")]
+        if data:
+            events.append(json.loads(data[0]))
+    return events
+
+
+def test_deep_job_signals_when_the_head_is_done(client, monkeypatch):
+    monkeypatch.setattr("trialguard.config.settings.api_deep_head", 2)
+    ids = [f"NCT{i:04d}" for i in range(1, 6)]
+
+    def assess_fn(note, nct_id, criteria, source_text, **kwargs):
+        if nct_id not in ids[:2]:
+            time.sleep(0.2)
+        return {**STUB_ASSESS, "trial_tier": "eligible", "n_unknown": 0}
+
+    events = _run_deep_job(client, ids, assess_fn)
+    kinds = [e["type"] for e in events]
+    assert kinds.count("head") == 1
+    at = kinds.index("head")
+    assert {e["nct_id"] for e in events[:at] if e["type"] == "trial"} >= set(ids[:2])
+    assert events[at]["n"] == 2 and events[at]["of"] == 5
+    assert kinds[-1] == "summary" and events[-1]["n_assessed"] == 5
+    assert all(e.get("trial_tier") == "eligible" for e in events if e["type"] == "trial")
+
+
+def test_budget_stop_after_the_head_keeps_the_head(client, monkeypatch):
+    from trialguard.agent.ratelimit import BudgetExhausted
+
+    monkeypatch.setattr("trialguard.config.settings.api_deep_head", 2)
+    ids = [f"NCT{i:04d}" for i in range(1, 6)]
+
+    def assess_fn(note, nct_id, criteria, source_text, **kwargs):
+        if nct_id in ids[:2]:
+            return STUB_ASSESS
+        time.sleep(0.2)
+        raise BudgetExhausted("daily cap reached")
+
+    events = _run_deep_job(client, ids, assess_fn)
+    kinds = [e["type"] for e in events]
+    assert "error" not in kinds
+    assert "head" in kinds
+    assert events[-1]["type"] == "summary"
+    assert events[-1]["status"] == "partial" and events[-1]["n_assessed"] == 2
+
+
+def test_standard_job_never_emits_a_head(client):
+    def assess_fn(note, nct_id, criteria, source_text, **kwargs):
+        return STUB_ASSESS
+
+    events = _run_deep_job(client, ["NCT0001", "NCT0002"], assess_fn)
+    assert "head" not in [e["type"] for e in events]
+
+
+def test_deep_job_caps_in_flight_trials_and_queueing_never_times_out(client, monkeypatch):
+    import threading
+
+    monkeypatch.setattr("trialguard.config.settings.api_deep_head", 2)
+    monkeypatch.setattr("trialguard.config.settings.api_deep_job_workers", 2)
+    # Eight 0.15 s trials two at a time take ~0.6 s; a deadline counted from
+    # submission would fire on the last ones.
+    monkeypatch.setattr("trialguard.config.settings.api_assess_trial_deadline_seconds", 0.4)
+    ids = [f"NCT{i:04d}" for i in range(1, 9)]
+    live, peak, lock = {"n": 0}, [], threading.Lock()
+
+    def assess_fn(note, nct_id, criteria, source_text, **kwargs):
+        with lock:
+            live["n"] += 1
+            peak.append(live["n"])
+        time.sleep(0.15)
+        with lock:
+            live["n"] -= 1
+        return STUB_ASSESS
+
+    events = _run_deep_job(client, ids, assess_fn)
+    trials = [e for e in events if e["type"] == "trial"]
+    assert len(trials) == 8
+    assert not any(e.get("timed_out") for e in trials)
+    assert max(peak) <= 2

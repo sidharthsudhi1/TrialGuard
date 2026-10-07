@@ -151,7 +151,23 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
 
     deadline = settings.api_assess_trial_deadline_seconds
 
+    # A deep job holds at most this many trials in the shared executor at once.
+    # Two reasons. The per-trial deadline starts at submission, so 100 trials
+    # queued at once would spend the deadline waiting: trial ~80 of 100 times out
+    # before it starts. And a deep job queueing 100 trials would put every other
+    # user's job behind all of them. The slot is taken outside the deadline, so
+    # only real work counts against it, and acquisition is FIFO, so rank order
+    # still decides what runs first.
+    deep_job = len(job.nct_ids) > settings.api_deep_head
+    slots = asyncio.Semaphore(
+        settings.api_deep_job_workers if deep_job else max(1, len(job.nct_ids))
+    )
+
     async def _one(nct_id: str) -> dict[str, Any]:
+        async with slots:
+            return await _one_in_slot(nct_id)
+
+    async def _one_in_slot(nct_id: str) -> dict[str, Any]:
         """One trial. Only BudgetExhausted escapes; everything else is an event."""
         # Set when the deadline fires, so the abandoned worker stops emitting
         # provisional criteria for a trial the client has already been told timed
@@ -213,18 +229,47 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
         _heartbeat(store, job_id, settings.api_job_heartbeat_seconds, tasks)
     )
     tally = _Faithfulness()
+    # Progressive deep jobs. Trials are submitted in rank order to a FIFO pool, so
+    # the head finishes first; once all of it has, a `head` event lets the client
+    # say "top N done" while the tail keeps landing.
+    head_n = settings.api_deep_head
+    head = set(job.nct_ids[:head_n]) if len(job.nct_ids) > head_n else set()
+    landed: set[str] = set()
+    head_sent = False
     try:
         try:
             for completed in asyncio.as_completed(tasks):
                 event = await completed
                 tally.add(event.get("assessments") or [])
                 store.append(job_id, event)
+                landed.add(event["nct_id"])
+                if head and not head_sent and head <= landed:
+                    head_sent = True
+                    store.append(
+                        job_id,
+                        {"type": "head", "n": head_n, "of": len(job.nct_ids),
+                         "faithfulness": tally.summary()},
+                    )
         except BudgetExhausted as e:
             # Cancel the rest: work still queued in the executor has not started
             # and must not be paid for once the cap is hit.
             for t in tasks:
                 t.cancel()
-            store.fail(job_id, json.dumps(_budget_exhausted_detail(e)))
+            if not head_sent:
+                store.fail(job_id, json.dumps(_budget_exhausted_detail(e)))
+                return
+            # The head is a complete answer on its own; failing the job would
+            # discard it. Close it as partial and say why.
+            store.complete(
+                job_id,
+                {
+                    "n_trials": len(job.nct_ids),
+                    "n_assessed": len(landed),
+                    "status": "partial",
+                    "stopped": _budget_exhausted_detail(e),
+                    "faithfulness": tally.summary(),
+                },
+            )
             return
         except asyncio.CancelledError:
             # The beat cancelled the work because the job is no longer ours. It
@@ -234,6 +279,7 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
             job_id,
             {
                 "n_trials": len(job.nct_ids),
+                "n_assessed": len(landed),
                 "status": "done",
                 # WS-5c. The served monitor is a nightly batch, so a run that
                 # starts producing ungrounded verdicts at 09:00 is caught at
@@ -348,6 +394,10 @@ def _assess_one(
         "title": trial.get("title"),
         "status": trial.get("status"),
         "trial_verdict": state.get("trial_verdict", "cannot_determine"),
+        # The tiered contract: needs_review ranks by how many facts are unstated,
+        # which a deep job's client needs to order 100 results usefully.
+        "trial_tier": state.get("trial_tier", "needs_review"),
+        "n_unknown": state.get("n_unknown", 0),
         "criteria_truncated": truncated,
         # True when every assessed criterion passed and the only thing standing
         # between this trial and `eligible` is the criteria the cap dropped. It
