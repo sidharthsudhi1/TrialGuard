@@ -171,7 +171,12 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd", choices=["pick", "generate", "export"])
     args = ap.parse_args()
-    {"pick": pick, "generate": generate, "export": export}[args.cmd]()
+    if args.cmd == "pick":
+        pick()
+    elif args.cmd == "generate":
+        generate()
+    else:
+        export()
 
 
 if __name__ == "__main__":
