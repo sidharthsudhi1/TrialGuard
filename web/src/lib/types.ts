@@ -43,11 +43,30 @@ export interface TrialEvent {
   title?: string | null;
   status?: string | null;
   trial_verdict: TrialVerdict;
+  /** Tiered contract: needs_review means no disqualifier and n_unknown unstated facts. */
+  trial_tier?: "eligible" | "needs_review" | "excluded";
+  n_unknown?: number;
   criteria_truncated?: boolean;
   /** Every assessed criterion passed; only the dropped ones are unresolved. */
   truncated_block?: boolean;
   assessments: Assessment[];
   error?: string;
+}
+
+/** Deep jobs only: every one of the top `n` ranked trials has landed. */
+export interface HeadEvent {
+  type: "head";
+  n: number;
+  of: number;
+}
+
+export interface SummaryEvent {
+  type: "summary";
+  n_trials: number;
+  n_assessed: number;
+  /** "partial" when the daily budget stopped a deep job after its head. */
+  status: "done" | "partial";
+  stopped?: { message?: string };
 }
 
 /** Provisional progress event: one criterion as the analyst emits it.
@@ -92,6 +111,9 @@ export interface Limits {
   presets?: Preset[];
   max_assess_trials: number;
   max_assess_trials_deep: number;
+  deep_head: number;
+  /** In-flight trials per deep job; deep quotes use this, not assess_workers. */
+  deep_job_workers: number;
   assess_workers: number;
   usd_per_trial: number;
   seconds_per_trial: number;
