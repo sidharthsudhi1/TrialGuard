@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import time
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 
+import psycopg2
 from psycopg2 import pool
 
 from trialguard.config import settings
@@ -230,6 +232,38 @@ def _get_pool() -> pool.ThreadedConnectionPool:
     return _pool
 
 
+# A connection idle longer than this is pinged before it is handed out. Neon
+# suspends an idle compute after ~5 min and drops its connections, and the pool
+# cannot see that: the corpus refresh embeds for minutes between DB calls, got a
+# dead connection back on its next lease, and failed 277 hourly runs in a row
+# (2026-09-26 to 10-07, all "connection already closed"). Busy connections skip
+# the ping, so the served path pays nothing.
+_IDLE_PING_S = 60.0
+_last_used: dict[int, float] = {}
+
+
+def _alive(conn) -> bool:
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1")
+        conn.rollback()
+        return True
+    except psycopg2.Error:
+        return False
+
+
+def _lease(p: pool.ThreadedConnectionPool):
+    """A live connection: dead ones are closed and replaced, never handed out."""
+    for _ in range(_POOL_MAX + 1):
+        conn = p.getconn()
+        idle = time.monotonic() - _last_used.get(id(conn), 0.0)
+        if not conn.closed and (idle < _IDLE_PING_S or _alive(conn)):
+            return conn
+        _last_used.pop(id(conn), None)
+        p.putconn(conn, close=True)
+    raise psycopg2.OperationalError("no live database connection could be leased")
+
+
 @contextmanager
 def get_conn() -> Iterator:
     """Lease a pooled connection; commit on success, return to the pool on exit.
@@ -238,15 +272,23 @@ def get_conn() -> Iterator:
     leaked TCP sessions under concurrent retrieve().
     """
     p = _get_pool()
-    conn = p.getconn()
+    conn = _lease(p)
     try:
         yield conn
         conn.commit()
     except Exception:
-        conn.rollback()
+        # A connection the server already dropped cannot roll back, and the
+        # InterfaceError that raises would replace the error worth reporting.
+        with suppress(psycopg2.Error):
+            conn.rollback()
         raise
     finally:
-        p.putconn(conn)
+        if conn.closed:
+            _last_used.pop(id(conn), None)
+            p.putconn(conn, close=True)
+        else:
+            _last_used[id(conn)] = time.monotonic()
+            p.putconn(conn)
 
 
 def close_pool() -> None:
