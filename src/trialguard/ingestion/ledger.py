@@ -121,26 +121,37 @@ def last(source: str, outcomes: tuple[str, ...] | None = None) -> dict | None:
     return _row(r) if r else None
 
 
+def _streak(cur, source: str) -> int:
+    """Failed or gate-aborted runs since the last run that ended any other way.
+
+    Counted, not scanned: the earlier versions walked the newest 20 (health) or
+    50 rows and stopped there, so 277 hourly failures read as 19 on
+    /api/health. Running and lease-skipped rows are neither, as before.
+    """
+    cur.execute(
+        "SELECT count(*) FROM refresh_runs WHERE source = %s AND outcome = ANY(%s) "
+        "AND started_at > COALESCE((SELECT max(started_at) FROM refresh_runs "
+        "WHERE source = %s AND outcome <> ALL(%s)), '-infinity')",
+        (source, list(FAILURE_OUTCOMES), source,
+         [*FAILURE_OUTCOMES, "running", "skipped_locked"]),
+    )
+    return int(cur.fetchone()[0])
+
+
 def health(source: str) -> dict | None:
-    """Last attempt and failure streak for /api/health, from one indexed read."""
+    """Last attempt and failure streak for /api/health."""
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute(
             "SELECT outcome, reason, started_at, finished_at FROM refresh_runs "
             "WHERE source = %s AND outcome <> 'skipped_locked' "
-            "ORDER BY started_at DESC LIMIT 20",
+            "ORDER BY started_at DESC LIMIT 1",
             (source,),
         )
-        rows = cur.fetchall()
-    if not rows:
-        return None
-    streak = 0
-    for outcome, *_ in rows:
-        if outcome == "running":
-            continue
-        if outcome not in FAILURE_OUTCOMES:
-            break
-        streak += 1
-    outcome, reason, started, finished = rows[0]
+        row = cur.fetchone()
+        if row is None:
+            return None
+        streak = _streak(cur, source)
+    outcome, reason, started, finished = row
     return {
         "last_attempt": {
             "outcome": outcome,
@@ -155,14 +166,4 @@ def health(source: str) -> dict | None:
 def consecutive_failures(source: str) -> int:
     """Failed or gate-aborted runs since the last success (locked skips ignored)."""
     with get_conn() as conn, conn.cursor() as cur:
-        cur.execute(
-            "SELECT outcome FROM refresh_runs WHERE source = %s AND outcome <> ALL(%s) "
-            "ORDER BY started_at DESC LIMIT 50",
-            (source, ["running", "skipped_locked"]),
-        )
-        n = 0
-        for (outcome,) in cur.fetchall():
-            if outcome not in FAILURE_OUTCOMES:
-                break
-            n += 1
-    return n
+        return _streak(cur, source)

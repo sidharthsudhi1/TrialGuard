@@ -34,6 +34,10 @@ from trialguard.ingestion.provenance import content_hash, doc_hash
 
 SCOPE_MISSING_RUNS = 3
 PUBLISH_CHUNK = 500
+# Embedding heartbeats the ledger once per chunk, and that write is the run's
+# only DB traffic while it embeds. 500 trials took ~8 min on the 2-CPU refresh
+# machine, past Neon's ~5 min idle suspend; 100 keeps a beat every ~2 min.
+EMBED_CHUNK = 100
 UNKNOWN = "unknown"
 
 
@@ -147,7 +151,7 @@ def confirm(
 
 
 def embed(trials: list[dict], on_chunk: Callable[[], None] | None = None,
-          chunk: int = PUBLISH_CHUNK) -> None:
+          chunk: int = EMBED_CHUNK) -> None:
     """Attach float32 embeddings in place, chunked so progress can heartbeat."""
     from trialguard.ingestion.embed import eligibility_text_for_embedding, embed_matrix
 

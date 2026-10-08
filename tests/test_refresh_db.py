@@ -309,3 +309,19 @@ def test_health_reports_the_failure_streak(world):
 def test_the_vector_index_waits_for_data(pg_db):
     assert schema.ensure_vector_index() is False
     assert _q("SELECT to_regclass('trials_embedding_idx')")[0][0] is None
+
+
+def test_failure_streak_is_counted_past_the_old_scan_window(pg_db):
+    from trialguard.ingestion import ledger
+
+    for _ in range(25):
+        run_id, acquired = ledger.start("ctgov_live", "tag", "v")
+        assert acquired
+        ledger.finish(run_id, "failed", reason="InterfaceError: connection already closed")
+
+    assert ledger.health("ctgov_live")["consecutive_failures"] == 25
+    assert ledger.consecutive_failures("ctgov_live") == 25
+
+    run_id, _ = ledger.start("ctgov_live", "tag", "v")
+    ledger.finish(run_id, "published")
+    assert ledger.health("ctgov_live")["consecutive_failures"] == 0
