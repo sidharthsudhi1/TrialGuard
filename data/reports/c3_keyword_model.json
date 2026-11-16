@@ -1,0 +1,77 @@
+{
+  "small": "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+  "big": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+  "cohorts": {
+    "trec_2021": {
+      "70b": {
+        "n": 75,
+        "recall@100": 0.4905,
+        "recall@200": 0.6678,
+        "keyword_p50_ms": null,
+        "raw_note_fallbacks": 0
+      },
+      "8b": {
+        "n": 75,
+        "recall@100": 0.4594,
+        "recall@200": 0.6288,
+        "keyword_p50_ms": 1.0,
+        "raw_note_fallbacks": 0
+      },
+      "delta_8b_minus_70b": {
+        "recall@100": {
+          "delta": -0.0312,
+          "ci": [
+            -0.0507,
+            -0.0142
+          ],
+          "noninferior": false
+        },
+        "recall@200": {
+          "delta": -0.0391,
+          "ci": [
+            -0.0603,
+            -0.0211
+          ],
+          "noninferior": false
+        }
+      },
+      "p50_under_2s": true
+    },
+    "trec_2022": {
+      "70b": {
+        "n": 50,
+        "recall@100": 0.5202,
+        "recall@200": 0.6743,
+        "keyword_p50_ms": null,
+        "raw_note_fallbacks": 0
+      },
+      "8b": {
+        "n": 50,
+        "recall@100": 0.4565,
+        "recall@200": 0.6112,
+        "keyword_p50_ms": 11689.5,
+        "raw_note_fallbacks": 1
+      },
+      "delta_8b_minus_70b": {
+        "recall@100": {
+          "delta": -0.0637,
+          "ci": [
+            -0.1073,
+            -0.0253
+          ],
+          "noninferior": false
+        },
+        "recall@200": {
+          "delta": -0.0631,
+          "ci": [
+            -0.1038,
+            -0.0298
+          ],
+          "noninferior": false
+        }
+      },
+      "p50_under_2s": false
+    }
+  },
+  "adopt": false
+}

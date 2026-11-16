@@ -53,6 +53,13 @@ class Settings(BaseSettings):
     # surfaced recall +0.032 / +0.040 on TREC 2021 / 2022, unverifiable flat
     # (data/reports/r2e2e_findings.md). Costs ~7-8 s/patient on CPU.
     retrieval_ce_model: str = ""
+    # Cap BLAS threads inside one dense product. 0 leaves the library default.
+    # S1 measures whether a cap of 1 raises throughput once searches overlap.
+    retrieval_blas_threads: int = 0
+    # Non-empty only on a staging app. A matching X-Staging-Token skips the
+    # per-IP limiter so a load test measures the machine rather than the limiter.
+    # Empty here, and never set on the production app.
+    api_staging_bypass_token: str = ""
 
     # Serve dense retrieval from an in-memory matrix instead of pgvector. At 26k
     # rows the planner declines the ivfflat index anyway and scans the table, so

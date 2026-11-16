@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SyntheticNotice } from "../components/SyntheticNotice";
-import { ApiError, fetchLimits, searchTrials, startAssess } from "../lib/api";
+import { ApiError, fetchLimits, searchTrials, searchTrialsStream, startAssess } from "../lib/api";
 import type { Limits, Preset, SearchTrial } from "../lib/types";
 import { freshness } from "@/lib/freshness";
 
@@ -31,6 +31,7 @@ export default function SearchPage() {
   const [cooldown, setCooldown] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [latency, setLatency] = useState<string | null>(null);
+  const [provisional, setProvisional] = useState(false);
   // Depth is opt-in: assessing a wider pool is what raises how many eligible
   // trials surface (measured 6x from top-10 to top-100), and it is also what
   // costs money and minutes. The user makes that trade explicitly.
@@ -74,11 +75,10 @@ export default function SearchPage() {
     setError(null);
     setBusy("search");
     setSelected(new Set());
-    try {
-      const res = await searchTrials(note, searchTopK, deep);
+    setProvisional(false);
+    const applyFinal = (res: { trials: SearchTrial[]; latency_ms?: Record<string, number> }) => {
       setTrials(res.trials);
-      // Deep is a progressive run over the whole ranked pool, so it starts with
-      // everything selected; the user can still drop trials before starting.
+      setProvisional(false);
       if (deep) setSelected(new Set(res.trials.map((t) => t.nct_id)));
       setLatency(
         res.latency_ms?.total_ms != null
@@ -86,7 +86,29 @@ export default function SearchPage() {
           : null
       );
       if (!res.trials.length) setError("No candidate trials returned for this note.");
+    };
+    try {
+      await searchTrialsStream(note, searchTopK, deep, (ev) => {
+        if (ev.type === "provisional" && ev.trials) {
+          setTrials(ev.trials);
+          setProvisional(true);
+          setLatency("preliminary, from the note text");
+        } else if (ev.type === "final" && ev.trials) {
+          applyFinal({ trials: ev.trials, latency_ms: ev.latency_ms });
+        }
+      });
     } catch (e) {
+      if (e instanceof ApiError && e.status === 404) {
+        try {
+          applyFinal(await searchTrials(note, searchTopK, deep));
+          return;
+        } catch (again) {
+          setTrials([]);
+          setProvisional(false);
+          setError(again instanceof Error ? again.message : String(again));
+          return;
+        }
+      }
       setTrials([]);
       setError(e instanceof Error ? e.message : String(e));
       setCooldown(e instanceof ApiError && e.isRateLimited ? e.retryAfter ?? 60 : 0);
@@ -203,7 +225,7 @@ export default function SearchPage() {
             <button
               type="button"
               className="btn-primary"
-              disabled={busy !== null || selected.size === 0}
+              disabled={busy !== null || provisional || selected.size === 0}
               onClick={onAssess}
             >
               {busy === "assess"
@@ -211,6 +233,12 @@ export default function SearchPage() {
                 : `Assess selected (${selected.size})`}
             </button>
           </div>
+          {provisional && (
+            <p className="muted">
+              Preliminary matches from the note text. The keyword ranking replaces
+              this list, and nothing is assessed until it does.
+            </p>
+          )}
           {quote && (
             <p className="muted">
               {selected.size} trial{selected.size === 1 ? "" : "s"} ≈ $

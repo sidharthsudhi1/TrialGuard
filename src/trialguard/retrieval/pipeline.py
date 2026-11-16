@@ -40,45 +40,12 @@ def _apply_demographics(query, rankings, fused, top_k, source, wide=None):
         return fused, 0
 
 
-def retrieve(
-    query: str,
-    top_k: int = 10,
-    source: str | None = None,
-    dense_pool: int | None = None,
-    bm25_pool: int | None = None,
-    use_keywords: bool = False,
-    handler=None,
-) -> tuple[list[tuple[str, float]], dict[str, float]]:
-    """Run hybrid retrieval. Returns (results, latency_ms_breakdown).
-
-    results: list of (nct_id, rrf_score) sorted descending, length top_k.
-    latency: {"dense_ms", "bm25_ms", "fanout_ms", "fusion_ms", "ce_ms", "keyword_ms", "total_ms"}
-    """
-    t0 = time.perf_counter()
-    dense_pool = dense_pool or list_pool(top_k)
-    bm25_pool = bm25_pool or list_pool(top_k)
-
-    if use_keywords:
-        from trialguard.retrieval.query_transform import generate_keywords
-        tk = time.perf_counter()
-        queries = generate_keywords(query, handler=handler)
-        keyword_ms = (time.perf_counter() - tk) * 1000
-    else:
-        queries = [query]
-        keyword_ms = 0.0
-
-    # One task per (keyword, backend). Run concurrently: every task is a blocking
-    # round trip to Postgres, so the sequential loop spent its time waiting rather
-    # than working — 12 keywords meant 24 round trips end to end.
+def _fanout(queries, dense_pool, bm25_pool, source):
+    """Per-keyword dense and lexical lists, position-indexed so ties stay stable."""
     tasks: list[tuple[str, str]] = []
     for q in queries:
         tasks.append(("dense", q))
         tasks.append(("bm25", q))
-
-    # Position-indexed, not appended on completion. RRF sums over lists so order
-    # cannot change a score, but sorted() is stable, so completion order would
-    # decide exact ties — and a ranking that depends on thread scheduling is not
-    # reproducible.
     rankings: list[list[tuple[str, float]]] = [[] for _ in tasks]
     elapsed = [0.0] * len(tasks)
 
@@ -97,16 +64,108 @@ def retrieve(
     else:
         from trialguard.config import settings
 
-        # Bounded by the connection pool: psycopg2's pool raises rather than waits
-        # when every connection is leased, so more workers than connections turns
-        # a slow search into a failed one.
         workers = min(len(tasks), max(1, settings.retrieval_fanout_workers))
         with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="tg-retrieve") as pool:
             list(pool.map(_run, range(len(tasks))))
     fanout_ms = (time.perf_counter() - tf) * 1000
+    dense_ms = sum(e for e, (kind, _) in zip(elapsed, tasks, strict=True) if kind == "dense")
+    bm25_ms = sum(e for e, (kind, _) in zip(elapsed, tasks, strict=True) if kind == "bm25")
+    return rankings, dense_ms, bm25_ms, fanout_ms
 
-    dense_ms_total = sum(e for e, (kind, _) in zip(elapsed, tasks, strict=True) if kind == "dense")
-    bm25_ms_total = sum(e for e, (kind, _) in zip(elapsed, tasks, strict=True) if kind == "bm25")
+
+def _dense_batch(queries, dense_pool, source):
+    """One GEMM when the in-memory matrix is resident, else None."""
+    from trialguard.ingestion.embed import embed_matrix
+    from trialguard.retrieval.vector_cache import cached_search_queries
+
+    vecs = embed_matrix(queries, is_query=True)
+    return cached_search_queries(vecs, dense_pool, source)
+
+
+def retrieve(
+    query: str,
+    top_k: int = 10,
+    source: str | None = None,
+    dense_pool: int | None = None,
+    bm25_pool: int | None = None,
+    use_keywords: bool = False,
+    handler=None,
+    on_provisional=None,
+) -> tuple[list[tuple[str, float]], dict[str, float]]:
+    """Run hybrid retrieval. Returns (results, latency_ms_breakdown).
+
+    results: list of (nct_id, rrf_score) sorted descending, length top_k.
+    latency: {"dense_ms", "bm25_ms", "fanout_ms", "fusion_ms", "ce_ms", "keyword_ms", "total_ms"}
+    """
+    t0 = time.perf_counter()
+    dense_pool = dense_pool or list_pool(top_k)
+    bm25_pool = bm25_pool or list_pool(top_k)
+
+    keyword_first_ms = None
+    if use_keywords and on_provisional is not None:
+        # Raw-note list, shown while keywords are still being written. It is not
+        # the ranking that gets assessed.
+        prov_rankings, _, _, _ = _fanout([query], dense_pool, bm25_pool, source)
+        on_provisional(
+            rrf(prov_rankings, top_k=top_k, weights=importance_weights(len(prov_rankings)))
+        )
+
+    if use_keywords:
+        import os
+
+        from trialguard.retrieval.query_transform import generate_keywords
+
+        tk = time.perf_counter()
+        stream = os.environ.get("TG_KEYWORD_STREAM", "1") != "0"
+        started: list[str] = []
+        bm25_futs = []
+        pool = None
+        if stream:
+            from trialguard.config import settings
+
+            pool = ThreadPoolExecutor(
+                max_workers=max(1, settings.retrieval_fanout_workers),
+                thread_name_prefix="tg-kw",
+            )
+
+            def _on_kw(kw: str) -> None:
+                nonlocal keyword_first_ms
+                if keyword_first_ms is None:
+                    keyword_first_ms = (time.perf_counter() - tk) * 1000
+                started.append(kw)
+                bm25_futs.append(pool.submit(bm25_search, kw, bm25_pool, source))
+
+        queries = generate_keywords(
+            query, handler=handler, on_keyword=_on_kw if stream else None
+        )
+        keyword_ms = (time.perf_counter() - tk) * 1000
+        if stream and started == queries and bm25_futs:
+            dense_lists = _dense_batch(queries, dense_pool, source)
+            if dense_lists is None:
+                dense_lists = [
+                    dense_search(q, top_k=dense_pool, source=source) for q in queries
+                ]
+            rankings = []
+            for i, dense in enumerate(dense_lists):
+                rankings.append(dense)
+                rankings.append(bm25_futs[i].result())
+            if pool is not None:
+                pool.shutdown(wait=True)
+            dense_ms_total = 0.0
+            bm25_ms_total = 0.0
+            fanout_ms = (time.perf_counter() - tk) * 1000 - keyword_ms
+        else:
+            if pool is not None:
+                pool.shutdown(wait=False, cancel_futures=True)
+            rankings, dense_ms_total, bm25_ms_total, fanout_ms = _fanout(
+                queries, dense_pool, bm25_pool, source
+            )
+    else:
+        queries = [query]
+        keyword_ms = 0.0
+        rankings, dense_ms_total, bm25_ms_total, fanout_ms = _fanout(
+            queries, dense_pool, bm25_pool, source
+        )
 
     from trialguard.retrieval import ce_rerank as rerank
 
@@ -139,6 +198,7 @@ def retrieve(
 
     latency = {
         "keyword_ms": round(keyword_ms, 1),
+        "keyword_first_ms": None if keyword_first_ms is None else round(keyword_first_ms, 1),
         # Cumulative query work, not elapsed time: the searches overlap now, so
         # these sum to more than the wall clock they actually cost. fanout_ms is
         # the elapsed figure; keeping both is what makes "is the DB slow, or are

@@ -1,4 +1,4 @@
-import type { BudgetInfo, Limits, SearchResponse, TrialDetail } from "./types";
+import type { BudgetInfo, Limits, SearchResponse, SearchTrial, TrialDetail } from "./types";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(
   /\/$/,
@@ -58,6 +58,47 @@ export async function searchTrials(
   });
   if (!res.ok) throw await parseError(res);
   return res.json();
+}
+
+export async function searchTrialsStream(
+  note: string,
+  topK: number,
+  deep: boolean,
+  onEvent: (ev: { type: string; trials?: SearchTrial[]; latency_ms?: Record<string, number> }) => void
+): Promise<void> {
+  const res = await fetch(`${API_URL}/api/search/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ note, top_k: topK, deep }),
+  });
+  if (!res.ok || !res.body) throw await parseError(res);
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    let cut = buf.indexOf("\n\n");
+    while (cut >= 0) {
+      const block = buf.slice(0, cut);
+      buf = buf.slice(cut + 2);
+      const line = block.split("\n").find((l) => l.startsWith("data:"));
+      if (line) {
+        const ev = JSON.parse(line.slice(5).trim());
+        if (ev.type === "error") {
+          const detail = ev.detail;
+          const message =
+            typeof detail === "string"
+              ? detail
+              : detail?.message || "Search failed";
+          throw new ApiError(message, ev.status || 500, null);
+        }
+        onEvent(ev);
+      }
+      cut = buf.indexOf("\n\n");
+    }
+  }
 }
 
 export async function startAssess(

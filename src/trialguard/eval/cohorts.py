@@ -19,7 +19,7 @@ EVAL_DIR = Path("data/eval")
 # Non-negotiable: no real patient data, ever. Patient notes may only come from
 # these vetted, published, synthetic cohorts. Every patient/label loader validates
 # against this allowlist so a real-PHI source cannot be loaded even by mistake.
-SYNTHETIC_COHORTS = frozenset({"sigir", "trec_2021", "trec_2022"})
+SYNTHETIC_COHORTS = frozenset({"sigir", "trec_2021", "trec_2022", "trec_2023"})
 
 
 def _require_synthetic(cohort: str) -> None:

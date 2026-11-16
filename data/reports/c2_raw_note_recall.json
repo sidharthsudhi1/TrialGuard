@@ -1,0 +1,17 @@
+{
+  "trec_2021": {
+    "n": 75,
+    "raw_recall": 0.2004,
+    "keyword_recall": 0.4905
+  },
+  "trec_2022": {
+    "n": 50,
+    "raw_recall": 0.1107,
+    "keyword_recall": 0.5202
+  },
+  "sigir": {
+    "n": 52,
+    "raw_recall": 0.3156,
+    "keyword_recall": 0.7658
+  }
+}

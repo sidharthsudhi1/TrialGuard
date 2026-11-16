@@ -1,0 +1,68 @@
+{
+  "human": {
+    "e1": {
+      "n": 50,
+      "flagged": 10,
+      "sound_citations_damaged": 6,
+      "unsound_caught": 4,
+      "unsound": 18,
+      "precision": 0.4,
+      "recall": 0.2222,
+      "badge": false
+    },
+    "e2": {
+      "n": 50,
+      "flagged": 0,
+      "sound_citations_damaged": 0,
+      "unsound_caught": 0,
+      "unsound": 18,
+      "precision": null,
+      "recall": 0.0,
+      "badge": false
+    },
+    "e3": {
+      "n": 50,
+      "flagged": 1,
+      "sound_citations_damaged": 1,
+      "unsound_caught": 0,
+      "unsound": 18,
+      "precision": 0.0,
+      "recall": 0.0,
+      "badge": false
+    }
+  },
+  "model_labelled_not_used": {
+    "e1": {
+      "n": 300,
+      "flagged": 49,
+      "sound_citations_damaged": 37,
+      "unsound_caught": 12,
+      "unsound": 86,
+      "precision": 0.2449,
+      "recall": 0.1395,
+      "badge": false
+    },
+    "e2": {
+      "n": 300,
+      "flagged": 1,
+      "sound_citations_damaged": 1,
+      "unsound_caught": 0,
+      "unsound": 86,
+      "precision": 0.0,
+      "recall": 0.0,
+      "badge": false
+    },
+    "e3": {
+      "n": 300,
+      "flagged": 11,
+      "sound_citations_damaged": 6,
+      "unsound_caught": 5,
+      "unsound": 86,
+      "precision": 0.4545,
+      "recall": 0.0581,
+      "badge": false
+    }
+  },
+  "n_human": 50,
+  "n_model": 300
+}

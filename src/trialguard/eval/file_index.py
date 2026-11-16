@@ -29,18 +29,6 @@ def _tokenize(text: str) -> list[str]:
     return text.split()
 
 
-def _cosine_search(
-    query_vec: np.ndarray,
-    matrix: np.ndarray,
-    nct_ids: list[str],
-    top_k: int,
-) -> list[tuple[str, float]]:
-    scores = matrix @ query_vec
-    top_idx = np.argpartition(scores, -top_k)[-top_k:]
-    top_idx = top_idx[np.argsort(scores[top_idx])[::-1]]
-    return [(nct_ids[i], float(scores[i])) for i in top_idx]
-
-
 class FileIndex:
     """Retrieval index built from corpus files, no DB required."""
 
@@ -146,7 +134,7 @@ class FileIndex:
             raise RuntimeError("FileIndex.build() must run before this call")
         return set(self._nct_ids)
 
-    def _dense(self, query_vec: np.ndarray, pool: int) -> list[tuple[str, float]]:
+    def _collapse(self, scores: np.ndarray, pool: int) -> list[tuple[str, float]]:
         """Dense hits as trials, not passages.
 
         A trial scores as its best-matching passage: max, not sum, because a long
@@ -154,18 +142,26 @@ class FileIndex:
         chances to match. Over-fetch before collapsing, since several passages of
         the same trial can occupy the head of the list.
         """
+        from trialguard.retrieval.gemm import topk
+
         over = pool * 4 if len(self._chunk_owners) > len(self._nct_ids) else pool
         # Never ask for more rows than exist: argpartition raises rather than
         # clamping, so a small corpus would take down the search.
-        if self._matrix is None:
-            raise RuntimeError("FileIndex.build() must run before searching")
-        over = min(over, self._matrix.shape[0])
-        hits = _cosine_search(query_vec, self._matrix, self._chunk_owners, over)
+        over = min(over, int(scores.shape[0]))
+        hits = topk(scores, self._chunk_owners, over)
         best: dict[str, float] = {}
         for nct, sc in hits:
             if sc > best.get(nct, float("-inf")):
                 best[nct] = sc
         return sorted(best.items(), key=lambda x: x[1], reverse=True)[:pool]
+
+    def _dense(self, query_vec: np.ndarray, pool: int) -> list[tuple[str, float]]:
+        if self._matrix is None:
+            raise RuntimeError("FileIndex.build() must run before searching")
+        from trialguard.retrieval.gemm import query_scores
+
+        scores = query_scores(self._matrix, query_vec, normalize=False)
+        return self._collapse(scores[:, 0], pool)
 
     def search(
         self,
@@ -175,8 +171,6 @@ class FileIndex:
         bm25_pool: int | None = None,
         use_keywords: bool = False,
     ) -> list[tuple[str, float]]:
-        from trialguard.ingestion.embed import embed_text
-
         dense_pool = dense_pool or list_pool(top_k)
         bm25_pool = bm25_pool or list_pool(top_k)
 
@@ -189,10 +183,18 @@ class FileIndex:
         else:
             queries = [query]
 
+        from trialguard.ingestion.embed import embed_matrix
+        from trialguard.retrieval.gemm import query_scores
+
+        # One encoder batch and one product, instead of a launch per keyword.
+        vecs = embed_matrix(queries, is_query=True)
+        if self._matrix is None:
+            raise RuntimeError("FileIndex.build() must run before searching")
+        dense_scores = query_scores(self._matrix, vecs, normalize=False)
+
         all_rankings: list[list[tuple[str, float]]] = []
-        for q in queries:
-            query_vec = np.array(embed_text(q, is_query=True), dtype=np.float32)
-            all_rankings.append(self._dense(query_vec, dense_pool))
+        for i, q in enumerate(queries):
+            all_rankings.append(self._collapse(dense_scores[:, i], dense_pool))
 
             tokens = _tokenize(q)
             if self._bm25 is None:
@@ -290,7 +292,7 @@ def get_index(source: str) -> FileIndex:
 
     if source == "sigir":
         trials = _load_sigir_trials()
-    elif source in ("trec_2021", "trec_2022"):
+    elif source in ("trec_2021", "trec_2022", "trec_2023"):
         trials = _load_trec_trials(source)
     else:
         raise ValueError(f"Unknown eval source: {source}")

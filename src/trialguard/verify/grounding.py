@@ -339,5 +339,21 @@ def ground_assessments(
         if verdict in ("met", "not_met") and not grounded:
             result["verdict"] = "unverifiable"
             result["grounding_failure"] = True
+        if (
+            result.get("grounded")
+            and result.get("verdict") in ("met", "not_met")
+            and patient_text is not None
+        ):
+            from trialguard.verify.entailment import badge_reasons, badges_enabled
+
+            if badges_enabled():
+                reasons = badge_reasons(
+                    str(a.get("criterion", "")),
+                    quote,
+                    str(result["verdict"]),
+                    patient_text,
+                )
+                if reasons:
+                    result["weak_entailment"] = reasons
         out.append(result)
     return out

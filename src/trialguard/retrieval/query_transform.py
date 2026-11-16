@@ -76,9 +76,23 @@ def _system_prompt(n_max: int) -> str:
     return _SYSTEM_PROMPT.replace("{n_max}", str(n_max))
 
 
+def _load_keyword_json(raw: str) -> dict:
+    """The object, even when a model wraps it in a sentence."""
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        start = raw.find("{")
+        if start < 0:
+            raise
+        data, _ = json.JSONDecoder().raw_decode(raw[start:])
+    if not isinstance(data, dict):
+        raise json.JSONDecodeError("keyword payload is not an object", raw, 0)
+    return data
+
+
 def _parse_keywords(raw: str, n_max: int) -> list[str]:
     raw = re.sub(r"```[a-z]*\n?", "", raw).strip("`").strip()
-    data = json.loads(raw)
+    data = _load_keyword_json(raw)
     kws = data.get("keywords", [])
     seen: set[str] = set()
     result = []
@@ -92,7 +106,72 @@ def _parse_keywords(raw: str, n_max: int) -> list[str]:
     return result
 
 
-def generate_keywords(patient_note: str, n_max: int = 12, handler=None) -> list[str]:
+def _closed_strings(body: str) -> list[str]:
+    """JSON strings that have already closed. An unfinished tail is dropped."""
+    out: list[str] = []
+    i = 0
+    n = len(body)
+    while i < n:
+        if body[i] != '"':
+            i += 1
+            continue
+        i += 1
+        chars: list[str] = []
+        closed = False
+        while i < n:
+            c = body[i]
+            if c == "\\":
+                if i + 1 >= n:
+                    break
+                chars.append(body[i + 1])
+                i += 2
+                continue
+            if c == '"':
+                closed = True
+                i += 1
+                break
+            chars.append(c)
+            i += 1
+        if not closed:
+            break
+        out.append("".join(chars))
+    return out
+
+
+def partial_keywords(raw: str, n_max: int) -> list[str]:
+    """Keywords whose strings have closed in a stream that may still be growing.
+
+    The same normalisation and cap as _parse_keywords, so a finished document
+    yields the same list either way.
+    """
+    idx = raw.find('"keywords"')
+    if idx < 0:
+        return []
+    strings = _closed_strings(raw[idx:])
+    if strings and strings[0] == "keywords":
+        strings = strings[1:]
+    seen: set[str] = set()
+    result = []
+    for kw in strings:
+        normalized = kw.strip().lower()
+        if normalized and normalized not in seen:
+            seen.add(normalized)
+            result.append(normalized)
+        if len(result) >= n_max:
+            break
+    return result
+
+
+def _emit(keywords: list[str], on_keyword) -> list[str]:
+    if on_keyword is not None:
+        for kw in keywords:
+            on_keyword(kw)
+    return keywords
+
+
+def generate_keywords(
+    patient_note: str, n_max: int = 12, handler=None, on_keyword=None
+) -> list[str]:
     """LLM-extract search keywords from patient note. Cached to disk by note hash.
 
     `handler` is optional and defaults to None so every existing caller keeps
@@ -110,13 +189,13 @@ def generate_keywords(patient_note: str, n_max: int = 12, handler=None) -> list[
     # replaced on every deploy — regenerated keywords change the queries that
     # drive ranking, so a lost cache silently changes what users are shown.
     if cache_path.exists():
-        return json.loads(cache_path.read_text())
+        return _emit(json.loads(cache_path.read_text()), on_keyword)
 
     from trialguard.db.cache import cache_get, cache_put
 
     stored = cache_get("keywords", note_key)
     if stored:
-        return stored
+        return _emit(stored, on_keyword)
 
     from trialguard.agent.ratelimit import estimate_tokens
     from trialguard.llm.cost import active_ledger
@@ -146,30 +225,60 @@ def generate_keywords(patient_note: str, n_max: int = 12, handler=None) -> list[
 
     try:
         llm = get_chat_model("keywords")
-        response = llm.invoke([
+        messages = [
             SystemMessage(content=_system_prompt(n_max)),
             HumanMessage(content=f"Patient summary:\n{patient_note}"),
-        ], config=trace_config(
-            handler, provider=provider, model=model, purpose="keywords"
-        ))
+        ]
+        config = trace_config(handler, provider=provider, model=model, purpose="keywords")
+        emitted: list[str] = []
+        if on_keyword is None:
+            response = llm.invoke(messages, config=config)
+            raw = str(response.content)
+            usage = extract_usage(response)
+        else:
+            # Streaming chunks do not carry usage. Bill from the assembled text,
+            # the same estimate the analyst stream uses, rather than a second call.
+            raw = ""
+            for chunk in llm.stream(messages, config=config):
+                text = getattr(chunk, "content", "") or ""
+                if not text:
+                    continue
+                raw += text
+                closed = partial_keywords(raw, n_max)
+                while len(emitted) < len(closed):
+                    kw = closed[len(emitted)]
+                    emitted.append(kw)
+                    on_keyword(kw)
+            in_tok = estimate_tokens(_system_prompt(n_max) + patient_note)
+            out_tok = estimate_tokens(raw)
+            usage = {
+                "input_tokens": in_tok,
+                "output_tokens": out_tok,
+                "total_tokens": in_tok + out_tok,
+                "provider_usd": None,
+            }
         # Bill before parsing: the tokens were spent whether or not the response
         # is usable. Guarded separately because the money is already gone by this
         # point — losing the keywords over a bookkeeping failure would degrade
         # retrieval for a reason the user cannot act on. Logged at error level
         # because unbilled spend is exactly what this path was added to stop.
         try:
-            ledger.record(extract_usage(response), provider, model)
+            ledger.record(usage, provider, model)
         except Exception as e:
             log.error(
                 "keyword call completed but was not billed (%s); the daily ledger "
                 "is now under-reporting", type(e).__name__
             )
-        keywords = _parse_keywords(str(response.content), n_max)
+        keywords = _parse_keywords(raw, n_max)
         if not keywords:
             raise ValueError("empty keyword list")
         cache_path.write_text(json.dumps(keywords))
         cache_put("keywords", note_key, keywords)
-        return keywords
+        if on_keyword is not None and emitted != keywords:
+            # The caller discards searches started from a list the full parse
+            # did not keep. Do not emit the parsed list on top of the partials.
+            return keywords
+        return _emit(keywords, None if emitted else on_keyword)
     except Exception as e:
         # Falling back to the raw note is a real quality cliff: AD-11 measured
         # keyword queries at +50% recall@10 over the narrative. Logged so the

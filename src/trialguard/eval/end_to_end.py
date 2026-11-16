@@ -218,6 +218,7 @@ def assess_retrieved(
                 "trial_verdict": state.get("trial_verdict", "cannot_determine"),
                 "trial_tier": state.get("trial_tier", "needs_review"),
                 "n_unknown": state.get("n_unknown", 0),
+                "n_disqualifying": len(state.get("disqualifying_criteria") or []),
                 "n_criteria": len(ass),
                 # What the analyst was asked for, against what came back. A prompt
                 # that silently answers fewer criteria than it was given produces a

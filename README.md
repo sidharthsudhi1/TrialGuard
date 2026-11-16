@@ -635,6 +635,10 @@ what it corrects.
 | [AD-33](docs/adr/0033-refresh-write-audit-publish.md) | The corpus refresh is write-audit-publish over content hashes |  |
 | [AD-34](docs/adr/0034-headlines-carry-intervals.md) | Headlines carry intervals, and lift uses one denominator |  |
 | [AD-35](docs/adr/0035-deeper-keyword-lists.md) | Per-keyword lists are 200 deep for deep pools, 50 for the head |  |
+| [AD-36](docs/adr/0036-entailment-badges-not-adopted.md) | Three deterministic entailment checks, none adopted as a badge |  |
+| [AD-37](docs/adr/0037-one-gemm-for-dense-fanout.md) | Dense fan-out is one GEMM, and the matrix stays float32 |  |
+| [AD-38](docs/adr/0038-keyword-stream-starts-search-early.md) | Keyword extraction streams, and the cold path is still the LLM |  |
+| [AD-39](docs/adr/0039-one-disqualifier-still-excludes.md) | One disqualifier still excludes |  |
 
 *When a decision is reversed during the build, the reversal and reason are recorded — not deleted.*
 

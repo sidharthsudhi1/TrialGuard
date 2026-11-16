@@ -1,0 +1,40 @@
+{
+  "matrix": [
+    26149,
+    768
+  ],
+  "top500_set_equal": true,
+  "float16_top500_set_equal": false,
+  "c1_loop_p95_ms": 56.14,
+  "c1_batch_p95_ms": 18.04,
+  "c1_batch_cap1_p95_ms": 16.76,
+  "c8_loop_p95_ms": 244.15,
+  "c8_batch_p95_ms": 96.28,
+  "c1_loop_ms": [
+    56.14,
+    46.43,
+    46.42,
+    45.57,
+    49.21
+  ],
+  "c1_batch_ms": [
+    15.95,
+    15.83,
+    17.56,
+    18.04,
+    17.43
+  ],
+  "c8_batch_ms": [
+    96.28,
+    83.78,
+    70.86
+  ],
+  "c8_loop_ms": [
+    240.67,
+    244.15,
+    238.0
+  ],
+  "c8_speedup": 2.536,
+  "c1_not_worse": true,
+  "adopt": true
+}
