@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager, suppress
@@ -203,6 +204,12 @@ CREATE TABLE IF NOT EXISTS eval_labels (
 # knob: too low turns a slow search into a failed one.
 _POOL_MIN = 1
 _POOL_MAX = 20
+# psycopg2's pool raises when every connection is out. Measured on staging
+# (s2_findings.md): eight concurrent searches on one machine exhaust it and the
+# caller gets a 500. A lease now waits for a free slot instead, and gives up
+# after _LEASE_WAIT_S so a caller that nests leases cannot hang forever.
+_LEASE_WAIT_S = 30.0
+_slots = threading.BoundedSemaphore(_POOL_MAX)
 
 _pool: pool.ThreadedConnectionPool | None = None
 
@@ -272,23 +279,30 @@ def get_conn() -> Iterator:
     leaked TCP sessions under concurrent retrieve().
     """
     p = _get_pool()
-    conn = _lease(p)
+    if not _slots.acquire(timeout=_LEASE_WAIT_S):
+        raise psycopg2.OperationalError(
+            f"no database connection came free within {_LEASE_WAIT_S:.0f}s"
+        )
     try:
-        yield conn
-        conn.commit()
-    except Exception:
-        # A connection the server already dropped cannot roll back, and the
-        # InterfaceError that raises would replace the error worth reporting.
-        with suppress(psycopg2.Error):
-            conn.rollback()
-        raise
+        conn = _lease(p)
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            # A connection the server already dropped cannot roll back, and the
+            # InterfaceError that raises would replace the error worth reporting.
+            with suppress(psycopg2.Error):
+                conn.rollback()
+            raise
+        finally:
+            if conn.closed:
+                _last_used.pop(id(conn), None)
+                p.putconn(conn, close=True)
+            else:
+                _last_used[id(conn)] = time.monotonic()
+                p.putconn(conn)
     finally:
-        if conn.closed:
-            _last_used.pop(id(conn), None)
-            p.putconn(conn, close=True)
-        else:
-            _last_used[id(conn)] = time.monotonic()
-            p.putconn(conn)
+        _slots.release()
 
 
 def close_pool() -> None:
