@@ -1,0 +1,6 @@
+{
+  "patients": 40,
+  "qrels": 33870,
+  "trials": 451538,
+  "empty_eligibility": 946
+}

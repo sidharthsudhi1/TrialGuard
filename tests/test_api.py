@@ -926,6 +926,7 @@ def test_a_timed_out_trial_contributes_no_criteria_to_the_rate(client):
         "decisive": 1,
         "note_only_grounded": 0,
         "weak_absence": 0,
+        "weak_entailment": 0,
     }
 
 
@@ -1171,3 +1172,66 @@ def test_deep_job_caps_in_flight_trials_and_queueing_never_times_out(client, mon
     assert len(trials) == 8
     assert not any(e.get("timed_out") for e in trials)
     assert max(peak) <= 2
+
+
+def test_search_stream_sends_provisional_then_final(client):
+    def _retrieve(note, top_k=5, source=None, use_keywords=False, handler=None, on_provisional=None):
+        if on_provisional:
+            on_provisional([("NCT0002", 0.2)])
+        return STUB_HITS, STUB_LATENCY
+
+    with (
+        patch("trialguard.agent.sanitize.detect_injection", return_value=False),
+        patch("trialguard.retrieval.pipeline.retrieve", side_effect=_retrieve),
+        patch("trialguard.db.queries.get_trials", return_value=STUB_ROWS),
+        patch("trialguard.tracing.get_langchain_handler", return_value=None),
+    ):
+        with client.stream("POST", "/api/search/stream", json={"note": "synthetic note", "top_k": 2}) as stream:
+            body = "".join(stream.iter_text())
+    events = [json.loads(line[5:]) for line in body.splitlines() if line.startswith("data:")]
+    assert [e["type"] for e in events] == ["provisional", "final"]
+    assert events[0]["trials"][0]["nct_id"] == "NCT0002"
+    assert events[1]["trials"][0]["nct_id"] == "NCT0001"
+
+
+def test_staging_token_skips_the_limiter_and_an_empty_token_does_not(monkeypatch):
+    monkeypatch.setattr("trialguard.config.settings.api_search_rate_per_min", 1)
+    monkeypatch.setattr("trialguard.config.settings.api_staging_bypass_token", "")
+    from trialguard.api.app import create_app
+
+    with (
+        patch("trialguard.agent.sanitize.detect_injection", return_value=False),
+        patch("trialguard.retrieval.pipeline.retrieve", return_value=(STUB_HITS, STUB_LATENCY)),
+        patch("trialguard.db.queries.get_trials", return_value=STUB_ROWS),
+        patch("trialguard.tracing.get_langchain_handler", return_value=None),
+    ):
+        with TestClient(create_app()) as c:
+            assert c.post("/api/search", json={"note": "synthetic note"}).status_code == 200
+            assert c.post("/api/search", json={"note": "synthetic note"}).status_code == 429
+            denied = c.post(
+                "/api/search",
+                json={"note": "synthetic note"},
+                headers={"X-Staging-Token": "secret"},
+            )
+            assert denied.status_code == 429
+
+    monkeypatch.setattr("trialguard.config.settings.api_staging_bypass_token", "secret")
+    with (
+        patch("trialguard.agent.sanitize.detect_injection", return_value=False),
+        patch("trialguard.retrieval.pipeline.retrieve", return_value=(STUB_HITS, STUB_LATENCY)),
+        patch("trialguard.db.queries.get_trials", return_value=STUB_ROWS),
+        patch("trialguard.tracing.get_langchain_handler", return_value=None),
+    ):
+        with TestClient(create_app()) as c:
+            ok = c.post(
+                "/api/search",
+                json={"note": "synthetic note"},
+                headers={"X-Staging-Token": "secret"},
+            )
+            assert ok.status_code == 200
+            again = c.post(
+                "/api/search",
+                json={"note": "synthetic note"},
+                headers={"X-Staging-Token": "secret"},
+            )
+            assert again.status_code == 200

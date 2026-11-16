@@ -1,0 +1,3210 @@
+{
+  "n": 200,
+  "agree": 200,
+  "agree_rate": 1.0,
+  "digest": "19bba404d5aed68e",
+  "reproducible": true,
+  "seed": 20261110,
+  "rows": [
+    {
+      "nct_id": "NCT03167112",
+      "attr": "creatinine",
+      "criterion": "5 \u00d7 the upper limits of normal (ULN) or creatinine clearance (Ccr) \u2265 40 mL/min",
+      "facts": {
+        "age": 65.0,
+        "creatinine": 0.73,
+        "bilirubin": 1.41,
+        "platelets": 83.0,
+        "anc": 670.0,
+        "hemoglobin": 8.1,
+        "ecog": 1.0
+      },
+      "note": "A 65-year-old man. Creatinine 0.73 mg/dL. Bilirubin 1.41 mg/dL. Platelets 83. ANC 670. Hemoglobin 8.1 g/dL. ECOG 1.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT04294186",
+      "attr": "age",
+      "criterion": "age > 2 years",
+      "facts": {
+        "age": 62.0,
+        "creatinine": 0.91,
+        "bilirubin": 2.84,
+        "platelets": 335.0,
+        "anc": 920.0,
+        "hemoglobin": 8.8,
+        "ecog": 3.0
+      },
+      "note": "A 62-year-old woman. Creatinine 0.91 mg/dL. Bilirubin 2.84 mg/dL. Platelets 335. ANC 920. Hemoglobin 8.8 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT02941185",
+      "attr": "age",
+      "criterion": "Preterm infants with gestational age 24 to 32 weeks who achieved at least 75% of total nutrition by enteral feedings in postnatal 2 weeks",
+      "facts": {
+        "age": 57.0,
+        "creatinine": 1.45,
+        "bilirubin": 1.42,
+        "platelets": 329.0,
+        "anc": 888.0,
+        "hemoglobin": 15.4,
+        "ecog": 2.0
+      },
+      "note": "A 57-year-old man. Creatinine 1.45 mg/dL. Bilirubin 1.42 mg/dL. Platelets 329. ANC 888. Hemoglobin 15.4 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT00662454",
+      "attr": "age",
+      "criterion": "age 18 to 35",
+      "facts": {
+        "age": 80.0,
+        "creatinine": 1.17,
+        "bilirubin": 1.29,
+        "platelets": 135.0,
+        "anc": 2787.0,
+        "hemoglobin": 7.9,
+        "ecog": 2.0
+      },
+      "note": "A 80-year-old woman. Creatinine 1.17 mg/dL. Bilirubin 1.29 mg/dL. Platelets 135. ANC 2787. Hemoglobin 7.9 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT00041938",
+      "attr": "platelets",
+      "criterion": "active peptic ulcer disease, active bleeding diathesis, platelets <100,000*, hematocrit <30, INR >1",
+      "facts": {
+        "age": 62.0,
+        "creatinine": 1.27,
+        "bilirubin": 0.68,
+        "platelets": 357.0,
+        "anc": 7188.0,
+        "hemoglobin": 11.8,
+        "ecog": 0.0
+      },
+      "note": "A 62-year-old woman. Creatinine 1.27 mg/dL. Bilirubin 0.68 mg/dL. Platelets 357. ANC 7188. Hemoglobin 11.8 g/dL. ECOG 0.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03998293",
+      "attr": "age",
+      "criterion": "Age < 25 or > 65 years (to avoid studying subjects who could have latent type 1 diabetes, or the effects of age extremes in subjects with normal or impaired fasting glucose)",
+      "facts": {
+        "age": 58.0,
+        "creatinine": 3.21,
+        "bilirubin": 2.92,
+        "platelets": 341.0,
+        "anc": 5440.0,
+        "hemoglobin": 14.9,
+        "ecog": 0.0
+      },
+      "note": "A 58-year-old woman. Creatinine 3.21 mg/dL. Bilirubin 2.92 mg/dL. Platelets 341. ANC 5440. Hemoglobin 14.9 g/dL. ECOG 0.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03350217",
+      "attr": "age",
+      "criterion": "Age: Subjects is under 18 years old",
+      "facts": {
+        "age": 26.0,
+        "creatinine": 1.0,
+        "bilirubin": 0.49,
+        "platelets": 268.0,
+        "anc": 3035.0,
+        "hemoglobin": 12.2,
+        "ecog": 0.0
+      },
+      "note": "A 26-year-old woman. Creatinine 1.0 mg/dL. Bilirubin 0.49 mg/dL. Platelets 268. ANC 3035. Hemoglobin 12.2 g/dL. ECOG 0.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03238638",
+      "attr": "bilirubin",
+      "criterion": "2 X ULN OR in case of Gilbert's disease an elevated total Bilirubin is allowed if direct Bilirubin is \u226440% of total AST (SGOT) and ALT (SGPT) \u2264 2",
+      "facts": {
+        "age": 19.0,
+        "creatinine": 2.72,
+        "bilirubin": 1.06,
+        "platelets": 351.0,
+        "anc": 7002.0,
+        "hemoglobin": 11.0,
+        "ecog": 0.0
+      },
+      "note": "A 19-year-old man. Creatinine 2.72 mg/dL. Bilirubin 1.06 mg/dL. Platelets 351. ANC 7002. Hemoglobin 11.0 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT02954601",
+      "attr": "hemoglobin",
+      "criterion": "Hemoglobin A1c (HbA1c) between \u22657",
+      "facts": {
+        "age": 61.0,
+        "creatinine": 2.17,
+        "bilirubin": 2.75,
+        "platelets": 282.0,
+        "anc": 2064.0,
+        "hemoglobin": 12.1,
+        "ecog": 2.0
+      },
+      "note": "A 61-year-old man. Creatinine 2.17 mg/dL. Bilirubin 2.75 mg/dL. Platelets 282. ANC 2064. Hemoglobin 12.1 g/dL. ECOG 2.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT03239613",
+      "attr": "ecog",
+      "criterion": "ECOG performance status 0 or 1",
+      "facts": {
+        "age": 24.0,
+        "creatinine": 0.82,
+        "bilirubin": 0.82,
+        "platelets": 276.0,
+        "anc": 3304.0,
+        "hemoglobin": 12.7,
+        "ecog": 2.0
+      },
+      "note": "A 24-year-old woman. Creatinine 0.82 mg/dL. Bilirubin 0.82 mg/dL. Platelets 276. ANC 3304. Hemoglobin 12.7 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03496545",
+      "attr": "age",
+      "criterion": "age \u226518 years old",
+      "facts": {
+        "age": 31.0,
+        "creatinine": 1.1,
+        "bilirubin": 0.91,
+        "platelets": 182.0,
+        "anc": 1254.0,
+        "hemoglobin": 13.2,
+        "ecog": 2.0
+      },
+      "note": "A 31-year-old man. Creatinine 1.1 mg/dL. Bilirubin 0.91 mg/dL. Platelets 182. ANC 1254. Hemoglobin 13.2 g/dL. ECOG 2.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01950429",
+      "attr": "bilirubin",
+      "criterion": "Evidence of SCD liver dysfunction by abnormal liver laboratory parameters in at least 2 of the following; alanine aminotransferase (ALT), aspartate aminotransferase (AST), alkaline phosphatase (ALP), direct and total serum bilirubin > 1 ti",
+      "facts": {
+        "age": 41.0,
+        "creatinine": 2.27,
+        "bilirubin": 0.57,
+        "platelets": 350.0,
+        "anc": 2980.0,
+        "hemoglobin": 14.7,
+        "ecog": 2.0
+      },
+      "note": "A 41-year-old man. Creatinine 2.27 mg/dL. Bilirubin 0.57 mg/dL. Platelets 350. ANC 2980. Hemoglobin 14.7 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT01933022",
+      "attr": "creatinine",
+      "criterion": "Creatinine > 177 \u03bcmol/L (2 mg/dL) at screening",
+      "facts": {
+        "age": 19.0,
+        "creatinine": 2.94,
+        "bilirubin": 0.75,
+        "platelets": 256.0,
+        "anc": 2219.0,
+        "hemoglobin": 14.8,
+        "ecog": 1.0
+      },
+      "note": "A 19-year-old man. Creatinine 2.94 mg/dL. Bilirubin 0.75 mg/dL. Platelets 256. ANC 2219. Hemoglobin 14.8 g/dL. ECOG 1.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03558165",
+      "attr": "age",
+      "criterion": "Age \u2265 18 years of age",
+      "facts": {
+        "age": 48.0,
+        "creatinine": 2.52,
+        "bilirubin": 1.83,
+        "platelets": 169.0,
+        "anc": 5575.0,
+        "hemoglobin": 15.1,
+        "ecog": 1.0
+      },
+      "note": "A 48-year-old woman. Creatinine 2.52 mg/dL. Bilirubin 1.83 mg/dL. Platelets 169. ANC 5575. Hemoglobin 15.1 g/dL. ECOG 1.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT02882945",
+      "attr": "age",
+      "criterion": "age > 60 years",
+      "facts": {
+        "age": 19.0,
+        "creatinine": 1.99,
+        "bilirubin": 0.44,
+        "platelets": 122.0,
+        "anc": 4541.0,
+        "hemoglobin": 7.1,
+        "ecog": 1.0
+      },
+      "note": "A 19-year-old man. Creatinine 1.99 mg/dL. Bilirubin 0.44 mg/dL. Platelets 122. ANC 4541. Hemoglobin 7.1 g/dL. ECOG 1.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT02560350",
+      "attr": "age",
+      "criterion": "They were aged 28 to 45 years (mean, 32",
+      "facts": {
+        "age": 29.0,
+        "creatinine": 1.32,
+        "bilirubin": 0.46,
+        "platelets": 394.0,
+        "anc": 4357.0,
+        "hemoglobin": 13.9,
+        "ecog": 1.0
+      },
+      "note": "A 29-year-old man. Creatinine 1.32 mg/dL. Bilirubin 0.46 mg/dL. Platelets 394. ANC 4357. Hemoglobin 13.9 g/dL. ECOG 1.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT03134690",
+      "attr": "age",
+      "criterion": "advanced maternal age (\u226540 years) or any other risk factors for POR (e",
+      "facts": {
+        "age": 33.0,
+        "creatinine": 2.28,
+        "bilirubin": 1.33,
+        "platelets": 89.0,
+        "anc": 4443.0,
+        "hemoglobin": 15.6,
+        "ecog": 2.0
+      },
+      "note": "A 33-year-old man. Creatinine 2.28 mg/dL. Bilirubin 1.33 mg/dL. Platelets 89. ANC 4443. Hemoglobin 15.6 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03047239",
+      "attr": "age",
+      "criterion": "Aged 22 to 80 years",
+      "facts": {
+        "age": 67.0,
+        "creatinine": 2.81,
+        "bilirubin": 0.98,
+        "platelets": 71.0,
+        "anc": 2296.0,
+        "hemoglobin": 8.1,
+        "ecog": 1.0
+      },
+      "note": "A 67-year-old man. Creatinine 2.81 mg/dL. Bilirubin 0.98 mg/dL. Platelets 71. ANC 2296. Hemoglobin 8.1 g/dL. ECOG 1.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01405417",
+      "attr": "age",
+      "criterion": "persons of age > 18 years with medical indication for surgical myotomy or Endoscopic balloon dilatation",
+      "facts": {
+        "age": 21.0,
+        "creatinine": 2.23,
+        "bilirubin": 0.31,
+        "platelets": 51.0,
+        "anc": 3645.0,
+        "hemoglobin": 13.8,
+        "ecog": 0.0
+      },
+      "note": "A 21-year-old man. Creatinine 2.23 mg/dL. Bilirubin 0.31 mg/dL. Platelets 51. ANC 3645. Hemoglobin 13.8 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT04456192",
+      "attr": "age",
+      "criterion": "Initial inclusion criteria for both study groups were as follows: age: 30 to 65 years and stable body weight in the month prior to the trial (permissible deviation \u00b1 1 kg)",
+      "facts": {
+        "age": 30.0,
+        "creatinine": 2.06,
+        "bilirubin": 2.02,
+        "platelets": 72.0,
+        "anc": 3015.0,
+        "hemoglobin": 10.5,
+        "ecog": 3.0
+      },
+      "note": "A 30-year-old woman. Creatinine 2.06 mg/dL. Bilirubin 2.02 mg/dL. Platelets 72. ANC 3015. Hemoglobin 10.5 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT03013010",
+      "attr": "bilirubin",
+      "criterion": "5 x 109 /L, Platelet count >=100 x 109 /L; Hepatic: Serum bilirubin <=1",
+      "facts": {
+        "age": 23.0,
+        "creatinine": 1.87,
+        "bilirubin": 2.54,
+        "platelets": 174.0,
+        "anc": 7677.0,
+        "hemoglobin": 12.7,
+        "ecog": 3.0
+      },
+      "note": "A 23-year-old man. Creatinine 1.87 mg/dL. Bilirubin 2.54 mg/dL. Platelets 174. ANC 7677. Hemoglobin 12.7 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT01954524",
+      "attr": "hemoglobin",
+      "criterion": "Hemoglobin level \u2265 8 mg/dl within 4 weeks before enrollment",
+      "facts": {
+        "age": 70.0,
+        "creatinine": 1.98,
+        "bilirubin": 2.56,
+        "platelets": 281.0,
+        "anc": 1031.0,
+        "hemoglobin": 9.4,
+        "ecog": 3.0
+      },
+      "note": "A 70-year-old woman. Creatinine 1.98 mg/dL. Bilirubin 2.56 mg/dL. Platelets 281. ANC 1031. Hemoglobin 9.4 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT00520481",
+      "attr": "bilirubin",
+      "criterion": "0 grams per deciliter (g/dL); bilirubin \u2264 1",
+      "facts": {
+        "age": 43.0,
+        "creatinine": 2.8,
+        "bilirubin": 1.8,
+        "platelets": 194.0,
+        "anc": 4598.0,
+        "hemoglobin": 9.1,
+        "ecog": 3.0
+      },
+      "note": "A 43-year-old man. Creatinine 2.8 mg/dL. Bilirubin 1.8 mg/dL. Platelets 194. ANC 4598. Hemoglobin 9.1 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT02216084",
+      "attr": "age",
+      "criterion": "Subjects \u226518 years of age have a Karnofsky score \u2265 60%, and subjects < 18 years of age have a Lansky score \u2265 70%",
+      "facts": {
+        "age": 79.0,
+        "creatinine": 2.55,
+        "bilirubin": 2.09,
+        "platelets": 94.0,
+        "anc": 6099.0,
+        "hemoglobin": 11.3,
+        "ecog": 1.0
+      },
+      "note": "A 79-year-old man. Creatinine 2.55 mg/dL. Bilirubin 2.09 mg/dL. Platelets 94. ANC 6099. Hemoglobin 11.3 g/dL. ECOG 1.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01558869",
+      "attr": "ecog",
+      "criterion": "ECOG performance status 0 to 2",
+      "facts": {
+        "age": 72.0,
+        "creatinine": 3.47,
+        "bilirubin": 1.47,
+        "platelets": 148.0,
+        "anc": 6823.0,
+        "hemoglobin": 11.2,
+        "ecog": 3.0
+      },
+      "note": "A 72-year-old woman. Creatinine 3.47 mg/dL. Bilirubin 1.47 mg/dL. Platelets 148. ANC 6823. Hemoglobin 11.2 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT01824459",
+      "attr": "hemoglobin",
+      "criterion": "Hemoglobin \u2265 80g / L",
+      "facts": {
+        "age": 38.0,
+        "creatinine": 2.45,
+        "bilirubin": 2.18,
+        "platelets": 104.0,
+        "anc": 5503.0,
+        "hemoglobin": 11.3,
+        "ecog": 1.0
+      },
+      "note": "A 38-year-old woman. Creatinine 2.45 mg/dL. Bilirubin 2.18 mg/dL. Platelets 104. ANC 5503. Hemoglobin 11.3 g/dL. ECOG 1.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT00417781",
+      "attr": "age",
+      "criterion": "ast one sibling aged 6-18 and live with at least one biological parent; and (4) subjects and their family consent to participate in this study",
+      "facts": {
+        "age": 74.0,
+        "creatinine": 1.71,
+        "bilirubin": 2.81,
+        "platelets": 311.0,
+        "anc": 3098.0,
+        "hemoglobin": 7.5,
+        "ecog": 3.0
+      },
+      "note": "A 74-year-old woman. Creatinine 1.71 mg/dL. Bilirubin 2.81 mg/dL. Platelets 311. ANC 3098. Hemoglobin 7.5 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT04117698",
+      "attr": "age",
+      "criterion": "Age\u226518 years",
+      "facts": {
+        "age": 61.0,
+        "creatinine": 1.45,
+        "bilirubin": 1.51,
+        "platelets": 330.0,
+        "anc": 714.0,
+        "hemoglobin": 8.3,
+        "ecog": 1.0
+      },
+      "note": "A 61-year-old man. Creatinine 1.45 mg/dL. Bilirubin 1.51 mg/dL. Platelets 330. ANC 714. Hemoglobin 8.3 g/dL. ECOG 1.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01323218",
+      "attr": "age",
+      "criterion": "aged 30-75 years",
+      "facts": {
+        "age": 46.0,
+        "creatinine": 2.84,
+        "bilirubin": 1.49,
+        "platelets": 231.0,
+        "anc": 3606.0,
+        "hemoglobin": 9.2,
+        "ecog": 2.0
+      },
+      "note": "A 46-year-old woman. Creatinine 2.84 mg/dL. Bilirubin 1.49 mg/dL. Platelets 231. ANC 3606. Hemoglobin 9.2 g/dL. ECOG 2.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT04539678",
+      "attr": "hemoglobin",
+      "criterion": "Normal blood cell count not suggestive of polycythemia vera (hematocrit<48% and hemoglobin<16g/dL for women; hematocrit<49% and hemoglobin<16",
+      "facts": {
+        "age": 30.0,
+        "creatinine": 0.85,
+        "bilirubin": 0.37,
+        "platelets": 270.0,
+        "anc": 5851.0,
+        "hemoglobin": 14.4,
+        "ecog": 1.0
+      },
+      "note": "A 30-year-old woman. Creatinine 0.85 mg/dL. Bilirubin 0.37 mg/dL. Platelets 270. ANC 5851. Hemoglobin 14.4 g/dL. ECOG 1.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01517659",
+      "attr": "age",
+      "criterion": "Male or female subjects > 18 years of age and < 65 years of age",
+      "facts": {
+        "age": 20.0,
+        "creatinine": 3.32,
+        "bilirubin": 1.87,
+        "platelets": 139.0,
+        "anc": 4594.0,
+        "hemoglobin": 10.1,
+        "ecog": 1.0
+      },
+      "note": "A 20-year-old woman. Creatinine 3.32 mg/dL. Bilirubin 1.87 mg/dL. Platelets 139. ANC 4594. Hemoglobin 10.1 g/dL. ECOG 1.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01546987",
+      "attr": "platelets",
+      "criterion": "Platelets \u2265 100,000 cells/mm3",
+      "facts": {
+        "age": 27.0,
+        "creatinine": 1.35,
+        "bilirubin": 1.71,
+        "platelets": 203.0,
+        "anc": 2977.0,
+        "hemoglobin": 9.6,
+        "ecog": 2.0
+      },
+      "note": "A 27-year-old man. Creatinine 1.35 mg/dL. Bilirubin 1.71 mg/dL. Platelets 203. ANC 2977. Hemoglobin 9.6 g/dL. ECOG 2.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01824459",
+      "attr": "creatinine",
+      "criterion": "The estimated creatinine clearance \u2265 60 mL/min (Cockcroft-Gault formula)",
+      "facts": {
+        "age": 52.0,
+        "creatinine": 3.14,
+        "bilirubin": 2.25,
+        "platelets": 361.0,
+        "anc": 3971.0,
+        "hemoglobin": 10.7,
+        "ecog": 3.0
+      },
+      "note": "A 52-year-old woman. Creatinine 3.14 mg/dL. Bilirubin 2.25 mg/dL. Platelets 361. ANC 3971. Hemoglobin 10.7 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT00944879",
+      "attr": "age",
+      "criterion": "Youth age 12-17 years",
+      "facts": {
+        "age": 71.0,
+        "creatinine": 2.86,
+        "bilirubin": 2.38,
+        "platelets": 233.0,
+        "anc": 5929.0,
+        "hemoglobin": 13.3,
+        "ecog": 0.0
+      },
+      "note": "A 71-year-old man. Creatinine 2.86 mg/dL. Bilirubin 2.38 mg/dL. Platelets 233. ANC 5929. Hemoglobin 13.3 g/dL. ECOG 0.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03058094",
+      "attr": "ecog",
+      "criterion": "ECOG performance status 0 to1",
+      "facts": {
+        "age": 65.0,
+        "creatinine": 0.64,
+        "bilirubin": 1.29,
+        "platelets": 168.0,
+        "anc": 1061.0,
+        "hemoglobin": 12.1,
+        "ecog": 1.0
+      },
+      "note": "A 65-year-old man. Creatinine 0.64 mg/dL. Bilirubin 1.29 mg/dL. Platelets 168. ANC 1061. Hemoglobin 12.1 g/dL. ECOG 1.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT03727360",
+      "attr": "age",
+      "criterion": "cognitively healthy and physically inactive older adults (ages 60-80)",
+      "facts": {
+        "age": 50.0,
+        "creatinine": 1.15,
+        "bilirubin": 0.84,
+        "platelets": 289.0,
+        "anc": 7936.0,
+        "hemoglobin": 15.8,
+        "ecog": 2.0
+      },
+      "note": "A 50-year-old woman. Creatinine 1.15 mg/dL. Bilirubin 0.84 mg/dL. Platelets 289. ANC 7936. Hemoglobin 15.8 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT01933022",
+      "attr": "hemoglobin",
+      "criterion": "Absolute neutrophil count < 1,500/\u03bcL, platelet count < 100,000/\u03bcL, and hemoglobin < 5",
+      "facts": {
+        "age": 65.0,
+        "creatinine": 2.16,
+        "bilirubin": 1.21,
+        "platelets": 311.0,
+        "anc": 5954.0,
+        "hemoglobin": 14.5,
+        "ecog": 2.0
+      },
+      "note": "A 65-year-old man. Creatinine 2.16 mg/dL. Bilirubin 1.21 mg/dL. Platelets 311. ANC 5954. Hemoglobin 14.5 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT01702610",
+      "attr": "age",
+      "criterion": "Thirty five patients, 15 females and 20 males with a median age of 63 (range 31-78) were treated with a median KPS of 90 (range 50-100)",
+      "facts": {
+        "age": 71.0,
+        "creatinine": 3.22,
+        "bilirubin": 2.98,
+        "platelets": 216.0,
+        "anc": 2970.0,
+        "hemoglobin": 7.7,
+        "ecog": 3.0
+      },
+      "note": "A 71-year-old man. Creatinine 3.22 mg/dL. Bilirubin 2.98 mg/dL. Platelets 216. ANC 2970. Hemoglobin 7.7 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT02628951",
+      "attr": "creatinine",
+      "criterion": "5 times the ULN, or creatinine clearance (measured via 24-hour urine collection) \u226540 mL/minute (that is, if serum creatinine is >1",
+      "facts": {
+        "age": 44.0,
+        "creatinine": 3.44,
+        "bilirubin": 1.48,
+        "platelets": 349.0,
+        "anc": 550.0,
+        "hemoglobin": 15.0,
+        "ecog": 0.0
+      },
+      "note": "A 44-year-old woman. Creatinine 3.44 mg/dL. Bilirubin 1.48 mg/dL. Platelets 349. ANC 550. Hemoglobin 15.0 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01678690",
+      "attr": "creatinine",
+      "criterion": "Subject has adequate renal function: serum creatinine \u2264 1",
+      "facts": {
+        "age": 39.0,
+        "creatinine": 1.14,
+        "bilirubin": 1.7,
+        "platelets": 319.0,
+        "anc": 3896.0,
+        "hemoglobin": 13.1,
+        "ecog": 3.0
+      },
+      "note": "A 39-year-old man. Creatinine 1.14 mg/dL. Bilirubin 1.7 mg/dL. Platelets 319. ANC 3896. Hemoglobin 13.1 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT01420133",
+      "attr": "age",
+      "criterion": "Age > 18 years",
+      "facts": {
+        "age": 50.0,
+        "creatinine": 2.44,
+        "bilirubin": 0.7,
+        "platelets": 72.0,
+        "anc": 5704.0,
+        "hemoglobin": 7.7,
+        "ecog": 0.0
+      },
+      "note": "A 50-year-old woman. Creatinine 2.44 mg/dL. Bilirubin 0.7 mg/dL. Platelets 72. ANC 5704. Hemoglobin 7.7 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT02428530",
+      "attr": "age",
+      "criterion": "Pregnant women between the ages of 18 - 44 years old and their partners were surveyed in the outpatient OB/GYN offices of Thomas Jefferson University",
+      "facts": {
+        "age": 77.0,
+        "creatinine": 1.57,
+        "bilirubin": 1.76,
+        "platelets": 179.0,
+        "anc": 7805.0,
+        "hemoglobin": 15.8,
+        "ecog": 3.0
+      },
+      "note": "A 77-year-old man. Creatinine 1.57 mg/dL. Bilirubin 1.76 mg/dL. Platelets 179. ANC 7805. Hemoglobin 15.8 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT00342121",
+      "attr": "age",
+      "criterion": "Limit the age criteria for inclusion to 40 to 60 years",
+      "facts": {
+        "age": 78.0,
+        "creatinine": 1.77,
+        "bilirubin": 0.9,
+        "platelets": 86.0,
+        "anc": 2245.0,
+        "hemoglobin": 13.5,
+        "ecog": 3.0
+      },
+      "note": "A 78-year-old woman. Creatinine 1.77 mg/dL. Bilirubin 0.9 mg/dL. Platelets 86. ANC 2245. Hemoglobin 13.5 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT02109354",
+      "attr": "age",
+      "criterion": "Body mass index (BMI) \u2265 40; or BMI \u2265 35 with 2 or more of the following: age > 45, systolic blood pressure > 140 mm Hg, diastolic blood pressure > 90 mm Hg, current smoker, known hyperlipidemia",
+      "facts": {
+        "age": 82.0,
+        "creatinine": 1.97,
+        "bilirubin": 1.59,
+        "platelets": 102.0,
+        "anc": 2439.0,
+        "hemoglobin": 15.2,
+        "ecog": 1.0
+      },
+      "note": "A 82-year-old woman. Creatinine 1.97 mg/dL. Bilirubin 1.59 mg/dL. Platelets 102. ANC 2439. Hemoglobin 15.2 g/dL. ECOG 1.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT00042991",
+      "attr": "anc",
+      "criterion": "ANC > 1,000/ul",
+      "facts": {
+        "age": 57.0,
+        "creatinine": 0.99,
+        "bilirubin": 2.21,
+        "platelets": 228.0,
+        "anc": 7914.0,
+        "hemoglobin": 10.1,
+        "ecog": 3.0
+      },
+      "note": "A 57-year-old man. Creatinine 0.99 mg/dL. Bilirubin 2.21 mg/dL. Platelets 228. ANC 7914. Hemoglobin 10.1 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01702610",
+      "attr": "hemoglobin",
+      "criterion": "hemoglobin > 10g/dl",
+      "facts": {
+        "age": 37.0,
+        "creatinine": 1.85,
+        "bilirubin": 0.41,
+        "platelets": 245.0,
+        "anc": 1719.0,
+        "hemoglobin": 14.3,
+        "ecog": 0.0
+      },
+      "note": "A 37-year-old man. Creatinine 1.85 mg/dL. Bilirubin 0.41 mg/dL. Platelets 245. ANC 1719. Hemoglobin 14.3 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT03696030",
+      "attr": "creatinine",
+      "criterion": "ELIGIBILITY TO PROCEED WITH RICKHAM RESERVOIR PLACEMENT: Creatinine < 1",
+      "facts": {
+        "age": 30.0,
+        "creatinine": 1.93,
+        "bilirubin": 1.09,
+        "platelets": 388.0,
+        "anc": 588.0,
+        "hemoglobin": 14.3,
+        "ecog": 1.0
+      },
+      "note": "A 30-year-old woman. Creatinine 1.93 mg/dL. Bilirubin 1.09 mg/dL. Platelets 388. ANC 588. Hemoglobin 14.3 g/dL. ECOG 1.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT00304356",
+      "attr": "creatinine",
+      "criterion": "Patients with renal insufficiency (BUN or creatinine >2 times baseline)",
+      "facts": {
+        "age": 30.0,
+        "creatinine": 2.52,
+        "bilirubin": 2.95,
+        "platelets": 144.0,
+        "anc": 7191.0,
+        "hemoglobin": 15.6,
+        "ecog": 3.0
+      },
+      "note": "A 30-year-old woman. Creatinine 2.52 mg/dL. Bilirubin 2.95 mg/dL. Platelets 144. ANC 7191. Hemoglobin 15.6 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT04019197",
+      "attr": "hemoglobin",
+      "criterion": "Hemoglobin <10 g/dL",
+      "facts": {
+        "age": 81.0,
+        "creatinine": 2.6,
+        "bilirubin": 1.03,
+        "platelets": 60.0,
+        "anc": 6174.0,
+        "hemoglobin": 15.5,
+        "ecog": 2.0
+      },
+      "note": "A 81-year-old man. Creatinine 2.6 mg/dL. Bilirubin 1.03 mg/dL. Platelets 60. ANC 6174. Hemoglobin 15.5 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT00002908",
+      "attr": "anc",
+      "criterion": "PATIENT CHARACTERISTICS: Age: 18 and over Performance status: Zubrod 0-2 Life expectancy: At least 12 weeks Hematopoietic: ANC at least 1,500/mm3 (at least 1,000/mm3 in CLL patients with at least 30% marrow involvement) Platelets at least",
+      "facts": {
+        "age": 63.0,
+        "creatinine": 2.92,
+        "bilirubin": 2.12,
+        "platelets": 294.0,
+        "anc": 2157.0,
+        "hemoglobin": 11.8,
+        "ecog": 0.0
+      },
+      "note": "A 63-year-old man. Creatinine 2.92 mg/dL. Bilirubin 2.12 mg/dL. Platelets 294. ANC 2157. Hemoglobin 11.8 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT00756379",
+      "attr": "age",
+      "criterion": "Men and women age \u226540",
+      "facts": {
+        "age": 52.0,
+        "creatinine": 0.98,
+        "bilirubin": 2.89,
+        "platelets": 50.0,
+        "anc": 2633.0,
+        "hemoglobin": 8.7,
+        "ecog": 1.0
+      },
+      "note": "A 52-year-old woman. Creatinine 0.98 mg/dL. Bilirubin 2.89 mg/dL. Platelets 50. ANC 2633. Hemoglobin 8.7 g/dL. ECOG 1.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01266694",
+      "attr": "creatinine",
+      "criterion": "renal failure, which we define as a serum creatinine level > 250micromol/l or clairance < 30 ml/mn",
+      "facts": {
+        "age": 78.0,
+        "creatinine": 3.23,
+        "bilirubin": 2.72,
+        "platelets": 54.0,
+        "anc": 7126.0,
+        "hemoglobin": 10.0,
+        "ecog": 2.0
+      },
+      "note": "A 78-year-old woman. Creatinine 3.23 mg/dL. Bilirubin 2.72 mg/dL. Platelets 54. ANC 7126. Hemoglobin 10.0 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT04115059",
+      "attr": "hemoglobin",
+      "criterion": "Hemoglobin <10 g/dL",
+      "facts": {
+        "age": 76.0,
+        "creatinine": 1.45,
+        "bilirubin": 1.64,
+        "platelets": 146.0,
+        "anc": 5227.0,
+        "hemoglobin": 15.3,
+        "ecog": 2.0
+      },
+      "note": "A 76-year-old woman. Creatinine 1.45 mg/dL. Bilirubin 1.64 mg/dL. Platelets 146. ANC 5227. Hemoglobin 15.3 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03496233",
+      "attr": "platelets",
+      "criterion": "Platelets < 75,000/\u03bcL",
+      "facts": {
+        "age": 32.0,
+        "creatinine": 2.3,
+        "bilirubin": 1.33,
+        "platelets": 111.0,
+        "anc": 3750.0,
+        "hemoglobin": 11.3,
+        "ecog": 1.0
+      },
+      "note": "A 32-year-old woman. Creatinine 2.3 mg/dL. Bilirubin 1.33 mg/dL. Platelets 111. ANC 3750. Hemoglobin 11.3 g/dL. ECOG 1.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT00929006",
+      "attr": "platelets",
+      "criterion": "Severe thrombocytopenia (platelets < 50,000 cells/microliter) or leukopenia (total white blood count < 4,000 cells/microliter)",
+      "facts": {
+        "age": 31.0,
+        "creatinine": 0.69,
+        "bilirubin": 2.56,
+        "platelets": 109.0,
+        "anc": 2459.0,
+        "hemoglobin": 10.0,
+        "ecog": 1.0
+      },
+      "note": "A 31-year-old man. Creatinine 0.69 mg/dL. Bilirubin 2.56 mg/dL. Platelets 109. ANC 2459. Hemoglobin 10.0 g/dL. ECOG 1.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03799445",
+      "attr": "hemoglobin",
+      "criterion": "Hemoglobin >= 8",
+      "facts": {
+        "age": 26.0,
+        "creatinine": 3.03,
+        "bilirubin": 1.58,
+        "platelets": 349.0,
+        "anc": 7844.0,
+        "hemoglobin": 9.1,
+        "ecog": 3.0
+      },
+      "note": "A 26-year-old woman. Creatinine 3.03 mg/dL. Bilirubin 1.58 mg/dL. Platelets 349. ANC 7844. Hemoglobin 9.1 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT02263898",
+      "attr": "ecog",
+      "criterion": "Eastern Cooperative Oncology Group (ECOG) performance status < 3",
+      "facts": {
+        "age": 19.0,
+        "creatinine": 3.41,
+        "bilirubin": 1.15,
+        "platelets": 296.0,
+        "anc": 7715.0,
+        "hemoglobin": 8.5,
+        "ecog": 3.0
+      },
+      "note": "A 19-year-old man. Creatinine 3.41 mg/dL. Bilirubin 1.15 mg/dL. Platelets 296. ANC 7715. Hemoglobin 8.5 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT04592692",
+      "attr": "hemoglobin",
+      "criterion": "Adequate hematologic function, defined as platelet count \u2265 100,000/\u03bcL and hemoglobin \u2265 8 g/dL (\u2265 4",
+      "facts": {
+        "age": 21.0,
+        "creatinine": 1.26,
+        "bilirubin": 1.59,
+        "platelets": 99.0,
+        "anc": 4989.0,
+        "hemoglobin": 7.1,
+        "ecog": 3.0
+      },
+      "note": "A 21-year-old man. Creatinine 1.26 mg/dL. Bilirubin 1.59 mg/dL. Platelets 99. ANC 4989. Hemoglobin 7.1 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03799445",
+      "attr": "platelets",
+      "criterion": "Platelets >= 100,000 cells/mm^3 (within 2 weeks prior to registration)",
+      "facts": {
+        "age": 41.0,
+        "creatinine": 1.65,
+        "bilirubin": 1.97,
+        "platelets": 76.0,
+        "anc": 5471.0,
+        "hemoglobin": 9.2,
+        "ecog": 2.0
+      },
+      "note": "A 41-year-old man. Creatinine 1.65 mg/dL. Bilirubin 1.97 mg/dL. Platelets 76. ANC 5471. Hemoglobin 9.2 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT02005822",
+      "attr": "age",
+      "criterion": "Age at time of inclusion is \u2264 12 weeks after birth",
+      "facts": {
+        "age": 24.0,
+        "creatinine": 0.98,
+        "bilirubin": 0.66,
+        "platelets": 123.0,
+        "anc": 1218.0,
+        "hemoglobin": 12.8,
+        "ecog": 0.0
+      },
+      "note": "A 24-year-old woman. Creatinine 0.98 mg/dL. Bilirubin 0.66 mg/dL. Platelets 123. ANC 1218. Hemoglobin 12.8 g/dL. ECOG 0.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT01551706",
+      "attr": "creatinine",
+      "criterion": "Serum creatinine >1",
+      "facts": {
+        "age": 52.0,
+        "creatinine": 1.36,
+        "bilirubin": 1.27,
+        "platelets": 230.0,
+        "anc": 1955.0,
+        "hemoglobin": 7.3,
+        "ecog": 3.0
+      },
+      "note": "A 52-year-old woman. Creatinine 1.36 mg/dL. Bilirubin 1.27 mg/dL. Platelets 230. ANC 1955. Hemoglobin 7.3 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01822275",
+      "attr": "bilirubin",
+      "criterion": "Bilirubin \u2264 2",
+      "facts": {
+        "age": 77.0,
+        "creatinine": 2.74,
+        "bilirubin": 0.97,
+        "platelets": 264.0,
+        "anc": 7355.0,
+        "hemoglobin": 7.6,
+        "ecog": 0.0
+      },
+      "note": "A 77-year-old man. Creatinine 2.74 mg/dL. Bilirubin 0.97 mg/dL. Platelets 264. ANC 7355. Hemoglobin 7.6 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT04105543",
+      "attr": "hemoglobin",
+      "criterion": "hemoglobin \u22659 g/dL (5",
+      "facts": {
+        "age": 75.0,
+        "creatinine": 0.67,
+        "bilirubin": 0.68,
+        "platelets": 388.0,
+        "anc": 531.0,
+        "hemoglobin": 8.9,
+        "ecog": 2.0
+      },
+      "note": "A 75-year-old man. Creatinine 0.67 mg/dL. Bilirubin 0.68 mg/dL. Platelets 388. ANC 531. Hemoglobin 8.9 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT04377178",
+      "attr": "age",
+      "criterion": "Systemically healthy individuals within the age group of 20-50 years with presence of teeth with hopeless prognosis requiring extraction",
+      "facts": {
+        "age": 83.0,
+        "creatinine": 2.38,
+        "bilirubin": 1.39,
+        "platelets": 282.0,
+        "anc": 5492.0,
+        "hemoglobin": 8.5,
+        "ecog": 3.0
+      },
+      "note": "A 83-year-old man. Creatinine 2.38 mg/dL. Bilirubin 1.39 mg/dL. Platelets 282. ANC 5492. Hemoglobin 8.5 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT00693784",
+      "attr": "age",
+      "criterion": "Age 18-75 (inclusive) and skeletally mature",
+      "facts": {
+        "age": 28.0,
+        "creatinine": 1.4,
+        "bilirubin": 2.15,
+        "platelets": 299.0,
+        "anc": 3872.0,
+        "hemoglobin": 13.1,
+        "ecog": 3.0
+      },
+      "note": "A 28-year-old woman. Creatinine 1.4 mg/dL. Bilirubin 2.15 mg/dL. Platelets 299. ANC 3872. Hemoglobin 13.1 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT02112799",
+      "attr": "age",
+      "criterion": "Patients enrolling in Part II of the study, may be male or female between 18 and 65 years of age, with a BMI of 18-35kg/m2",
+      "facts": {
+        "age": 75.0,
+        "creatinine": 2.14,
+        "bilirubin": 2.68,
+        "platelets": 224.0,
+        "anc": 6900.0,
+        "hemoglobin": 14.6,
+        "ecog": 3.0
+      },
+      "note": "A 75-year-old man. Creatinine 2.14 mg/dL. Bilirubin 2.68 mg/dL. Platelets 224. ANC 6900. Hemoglobin 14.6 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT04153552",
+      "attr": "age",
+      "criterion": "Age <18 years old",
+      "facts": {
+        "age": 74.0,
+        "creatinine": 0.75,
+        "bilirubin": 2.75,
+        "platelets": 248.0,
+        "anc": 7700.0,
+        "hemoglobin": 14.4,
+        "ecog": 3.0
+      },
+      "note": "A 74-year-old woman. Creatinine 0.75 mg/dL. Bilirubin 2.75 mg/dL. Platelets 248. ANC 7700. Hemoglobin 14.4 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT01362010",
+      "attr": "age",
+      "criterion": "Patient is male or female between the ages of 12 to 25",
+      "facts": {
+        "age": 83.0,
+        "creatinine": 1.67,
+        "bilirubin": 0.66,
+        "platelets": 308.0,
+        "anc": 6256.0,
+        "hemoglobin": 13.4,
+        "ecog": 1.0
+      },
+      "note": "A 83-year-old man. Creatinine 1.67 mg/dL. Bilirubin 0.66 mg/dL. Platelets 308. ANC 6256. Hemoglobin 13.4 g/dL. ECOG 1.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03296982",
+      "attr": "age",
+      "criterion": "Healthy male and female subjects aged 18 to 65 years (inclusive) with suitable veins for venipuncture -",
+      "facts": {
+        "age": 61.0,
+        "creatinine": 1.49,
+        "bilirubin": 2.48,
+        "platelets": 302.0,
+        "anc": 5324.0,
+        "hemoglobin": 8.6,
+        "ecog": 2.0
+      },
+      "note": "A 61-year-old man. Creatinine 1.49 mg/dL. Bilirubin 2.48 mg/dL. Platelets 302. ANC 5324. Hemoglobin 8.6 g/dL. ECOG 2.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT03689439",
+      "attr": "ecog",
+      "criterion": "ECOG score \u2264 2 points;",
+      "facts": {
+        "age": 80.0,
+        "creatinine": 0.98,
+        "bilirubin": 2.77,
+        "platelets": 85.0,
+        "anc": 1934.0,
+        "hemoglobin": 8.1,
+        "ecog": 3.0
+      },
+      "note": "A 80-year-old woman. Creatinine 0.98 mg/dL. Bilirubin 2.77 mg/dL. Platelets 85. ANC 1934. Hemoglobin 8.1 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03520998",
+      "attr": "hemoglobin",
+      "criterion": "Hemoglobin <10 g/dL in women; and <11 g/dL in men",
+      "facts": {
+        "age": 60.0,
+        "creatinine": 1.64,
+        "bilirubin": 0.7,
+        "platelets": 105.0,
+        "anc": 3249.0,
+        "hemoglobin": 9.0,
+        "ecog": 1.0
+      },
+      "note": "A 60-year-old woman. Creatinine 1.64 mg/dL. Bilirubin 0.7 mg/dL. Platelets 105. ANC 3249. Hemoglobin 9.0 g/dL. ECOG 1.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01864733",
+      "attr": "age",
+      "criterion": "Age \u2265 18 years, informed, having given their consent",
+      "facts": {
+        "age": 84.0,
+        "creatinine": 2.62,
+        "bilirubin": 2.03,
+        "platelets": 184.0,
+        "anc": 5605.0,
+        "hemoglobin": 13.8,
+        "ecog": 3.0
+      },
+      "note": "A 84-year-old woman. Creatinine 2.62 mg/dL. Bilirubin 2.03 mg/dL. Platelets 184. ANC 5605. Hemoglobin 13.8 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01850030",
+      "attr": "age",
+      "criterion": "Premenopausal females, age > 18 years < 42 years",
+      "facts": {
+        "age": 43.0,
+        "creatinine": 2.18,
+        "bilirubin": 1.8,
+        "platelets": 364.0,
+        "anc": 2230.0,
+        "hemoglobin": 7.1,
+        "ecog": 0.0
+      },
+      "note": "A 43-year-old man. Creatinine 2.18 mg/dL. Bilirubin 1.8 mg/dL. Platelets 364. ANC 2230. Hemoglobin 7.1 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT03212261",
+      "attr": "age",
+      "criterion": "Aged 18-64",
+      "facts": {
+        "age": 71.0,
+        "creatinine": 0.84,
+        "bilirubin": 0.43,
+        "platelets": 206.0,
+        "anc": 1888.0,
+        "hemoglobin": 10.9,
+        "ecog": 2.0
+      },
+      "note": "A 71-year-old man. Creatinine 0.84 mg/dL. Bilirubin 0.43 mg/dL. Platelets 206. ANC 1888. Hemoglobin 10.9 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03799445",
+      "attr": "creatinine",
+      "criterion": "Serum creatinine < 1",
+      "facts": {
+        "age": 21.0,
+        "creatinine": 3.08,
+        "bilirubin": 2.75,
+        "platelets": 309.0,
+        "anc": 771.0,
+        "hemoglobin": 15.5,
+        "ecog": 3.0
+      },
+      "note": "A 21-year-old man. Creatinine 3.08 mg/dL. Bilirubin 2.75 mg/dL. Platelets 309. ANC 771. Hemoglobin 15.5 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT01596257",
+      "attr": "age",
+      "criterion": "Age includes from birth to < 75 years old",
+      "facts": {
+        "age": 24.0,
+        "creatinine": 1.09,
+        "bilirubin": 1.09,
+        "platelets": 238.0,
+        "anc": 3716.0,
+        "hemoglobin": 8.0,
+        "ecog": 1.0
+      },
+      "note": "A 24-year-old woman. Creatinine 1.09 mg/dL. Bilirubin 1.09 mg/dL. Platelets 238. ANC 3716. Hemoglobin 8.0 g/dL. ECOG 1.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT04449510",
+      "attr": "age",
+      "criterion": "Age: > 21 years old and < 70 years old",
+      "facts": {
+        "age": 50.0,
+        "creatinine": 2.48,
+        "bilirubin": 0.31,
+        "platelets": 84.0,
+        "anc": 3856.0,
+        "hemoglobin": 12.5,
+        "ecog": 3.0
+      },
+      "note": "A 50-year-old woman. Creatinine 2.48 mg/dL. Bilirubin 0.31 mg/dL. Platelets 84. ANC 3856. Hemoglobin 12.5 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01707966",
+      "attr": "platelets",
+      "criterion": "5 x 109/L; Platelets \u2265 100 x 10x9/L",
+      "facts": {
+        "age": 23.0,
+        "creatinine": 1.25,
+        "bilirubin": 0.6,
+        "platelets": 346.0,
+        "anc": 1351.0,
+        "hemoglobin": 8.1,
+        "ecog": 3.0
+      },
+      "note": "A 23-year-old man. Creatinine 1.25 mg/dL. Bilirubin 0.6 mg/dL. Platelets 346. ANC 1351. Hemoglobin 8.1 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT04502680",
+      "attr": "creatinine",
+      "criterion": "Renal function: serum creatinine (Cr) \u2264 ULN; endogenous creatinine clearance (Ccr) \u2265 60 ml / min (calculated using the Cockcroft-Gault formula)",
+      "facts": {
+        "age": 53.0,
+        "creatinine": 1.31,
+        "bilirubin": 1.47,
+        "platelets": 182.0,
+        "anc": 6006.0,
+        "hemoglobin": 15.3,
+        "ecog": 3.0
+      },
+      "note": "A 53-year-old man. Creatinine 1.31 mg/dL. Bilirubin 1.47 mg/dL. Platelets 182. ANC 6006. Hemoglobin 15.3 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03350217",
+      "attr": "age",
+      "criterion": "Sex and age: men and women > 18 years old",
+      "facts": {
+        "age": 64.0,
+        "creatinine": 0.61,
+        "bilirubin": 1.75,
+        "platelets": 238.0,
+        "anc": 2861.0,
+        "hemoglobin": 9.2,
+        "ecog": 2.0
+      },
+      "note": "A 64-year-old woman. Creatinine 0.61 mg/dL. Bilirubin 1.75 mg/dL. Platelets 238. ANC 2861. Hemoglobin 9.2 g/dL. ECOG 2.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT03078530",
+      "attr": "age",
+      "criterion": "First GW veterans, Men and women age 35-75 years,",
+      "facts": {
+        "age": 18.0,
+        "creatinine": 3.25,
+        "bilirubin": 1.5,
+        "platelets": 312.0,
+        "anc": 1361.0,
+        "hemoglobin": 12.1,
+        "ecog": 3.0
+      },
+      "note": "A 18-year-old woman. Creatinine 3.25 mg/dL. Bilirubin 1.5 mg/dL. Platelets 312. ANC 1361. Hemoglobin 12.1 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT02685904",
+      "attr": "creatinine",
+      "criterion": "Patients with any of the following laboratory abnormalities: ALT/AST > 3 times ULN, creatinine > 2 mg/dl, WBC < 3,000/mm3, Hemoglobin < 8",
+      "facts": {
+        "age": 72.0,
+        "creatinine": 1.06,
+        "bilirubin": 0.66,
+        "platelets": 76.0,
+        "anc": 5381.0,
+        "hemoglobin": 7.8,
+        "ecog": 0.0
+      },
+      "note": "A 72-year-old woman. Creatinine 1.06 mg/dL. Bilirubin 0.66 mg/dL. Platelets 76. ANC 5381. Hemoglobin 7.8 g/dL. ECOG 0.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT01409811",
+      "attr": "creatinine",
+      "criterion": "Renal impairment as determined by a creatinine clearance < 60 ml/min as calculated by the Cockcroft-Gault formula using the patient's actual weight",
+      "facts": {
+        "age": 63.0,
+        "creatinine": 3.39,
+        "bilirubin": 1.19,
+        "platelets": 358.0,
+        "anc": 6223.0,
+        "hemoglobin": 11.1,
+        "ecog": 3.0
+      },
+      "note": "A 63-year-old man. Creatinine 3.39 mg/dL. Bilirubin 1.19 mg/dL. Platelets 358. ANC 6223. Hemoglobin 11.1 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01425541",
+      "attr": "age",
+      "criterion": "Girls ages 8 to 18",
+      "facts": {
+        "age": 78.0,
+        "creatinine": 0.71,
+        "bilirubin": 1.41,
+        "platelets": 291.0,
+        "anc": 3166.0,
+        "hemoglobin": 12.5,
+        "ecog": 1.0
+      },
+      "note": "A 78-year-old woman. Creatinine 0.71 mg/dL. Bilirubin 1.41 mg/dL. Platelets 291. ANC 3166. Hemoglobin 12.5 g/dL. ECOG 1.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT02651116",
+      "attr": "age",
+      "criterion": "Subjects will be otherwise healthy males and females aged 6-11 inclusive who are experiencing acute cough as a symptom of common cold or upper respiratory tract infection",
+      "facts": {
+        "age": 28.0,
+        "creatinine": 2.69,
+        "bilirubin": 1.37,
+        "platelets": 139.0,
+        "anc": 3717.0,
+        "hemoglobin": 7.8,
+        "ecog": 2.0
+      },
+      "note": "A 28-year-old woman. Creatinine 2.69 mg/dL. Bilirubin 1.37 mg/dL. Platelets 139. ANC 3717. Hemoglobin 7.8 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT04808752",
+      "attr": "age",
+      "criterion": "Age from 18 to 75 years old",
+      "facts": {
+        "age": 70.0,
+        "creatinine": 3.47,
+        "bilirubin": 0.92,
+        "platelets": 387.0,
+        "anc": 1278.0,
+        "hemoglobin": 9.0,
+        "ecog": 3.0
+      },
+      "note": "A 70-year-old woman. Creatinine 3.47 mg/dL. Bilirubin 0.92 mg/dL. Platelets 387. ANC 1278. Hemoglobin 9.0 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01703806",
+      "attr": "age",
+      "criterion": "patients who were not candidates for early surgery based on age > 80 years and coexisting malignancies",
+      "facts": {
+        "age": 42.0,
+        "creatinine": 1.53,
+        "bilirubin": 1.01,
+        "platelets": 394.0,
+        "anc": 5351.0,
+        "hemoglobin": 7.3,
+        "ecog": 2.0
+      },
+      "note": "A 42-year-old woman. Creatinine 1.53 mg/dL. Bilirubin 1.01 mg/dL. Platelets 394. ANC 5351. Hemoglobin 7.3 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03181100",
+      "attr": "bilirubin",
+      "criterion": "Total bilirubin =< 1",
+      "facts": {
+        "age": 26.0,
+        "creatinine": 0.98,
+        "bilirubin": 1.15,
+        "platelets": 296.0,
+        "anc": 2122.0,
+        "hemoglobin": 13.2,
+        "ecog": 0.0
+      },
+      "note": "A 26-year-old woman. Creatinine 0.98 mg/dL. Bilirubin 1.15 mg/dL. Platelets 296. ANC 2122. Hemoglobin 13.2 g/dL. ECOG 0.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT00757393",
+      "attr": "age",
+      "criterion": "Age range 5-16 years",
+      "facts": {
+        "age": 38.0,
+        "creatinine": 1.73,
+        "bilirubin": 1.9,
+        "platelets": 253.0,
+        "anc": 6265.0,
+        "hemoglobin": 14.5,
+        "ecog": 3.0
+      },
+      "note": "A 38-year-old woman. Creatinine 1.73 mg/dL. Bilirubin 1.9 mg/dL. Platelets 253. ANC 6265. Hemoglobin 14.5 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03696030",
+      "attr": "creatinine",
+      "criterion": "ELIGIBILITY FOR ENROLLMENT AND TO PROCEED WITH INTRAVENTRICULAR ADMINISTRATION OF HER2-CAR T CELLS: Serum creatinine < 1",
+      "facts": {
+        "age": 47.0,
+        "creatinine": 2.24,
+        "bilirubin": 2.38,
+        "platelets": 310.0,
+        "anc": 1163.0,
+        "hemoglobin": 13.9,
+        "ecog": 3.0
+      },
+      "note": "A 47-year-old man. Creatinine 2.24 mg/dL. Bilirubin 2.38 mg/dL. Platelets 310. ANC 1163. Hemoglobin 13.9 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT04592692",
+      "attr": "bilirubin",
+      "criterion": "Adequate hepatic function, defined as total bilirubin \u2264 1",
+      "facts": {
+        "age": 67.0,
+        "creatinine": 2.57,
+        "bilirubin": 0.84,
+        "platelets": 301.0,
+        "anc": 1217.0,
+        "hemoglobin": 8.9,
+        "ecog": 1.0
+      },
+      "note": "A 67-year-old man. Creatinine 2.57 mg/dL. Bilirubin 0.84 mg/dL. Platelets 301. ANC 1217. Hemoglobin 8.9 g/dL. ECOG 1.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT03915704",
+      "attr": "age",
+      "criterion": "being aged between 6-12,",
+      "facts": {
+        "age": 69.0,
+        "creatinine": 1.25,
+        "bilirubin": 2.78,
+        "platelets": 304.0,
+        "anc": 4063.0,
+        "hemoglobin": 14.3,
+        "ecog": 2.0
+      },
+      "note": "A 69-year-old man. Creatinine 1.25 mg/dL. Bilirubin 2.78 mg/dL. Platelets 304. ANC 4063. Hemoglobin 14.3 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT02466906",
+      "attr": "anc",
+      "criterion": "0 g/dL\u3001ANC<1",
+      "facts": {
+        "age": 76.0,
+        "creatinine": 3.45,
+        "bilirubin": 2.58,
+        "platelets": 346.0,
+        "anc": 3344.0,
+        "hemoglobin": 13.5,
+        "ecog": 2.0
+      },
+      "note": "A 76-year-old woman. Creatinine 3.45 mg/dL. Bilirubin 2.58 mg/dL. Platelets 346. ANC 3344. Hemoglobin 13.5 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT04752384",
+      "attr": "age",
+      "criterion": "Patients aged 18-80 years",
+      "facts": {
+        "age": 73.0,
+        "creatinine": 0.85,
+        "bilirubin": 2.23,
+        "platelets": 280.0,
+        "anc": 5368.0,
+        "hemoglobin": 10.8,
+        "ecog": 2.0
+      },
+      "note": "A 73-year-old man. Creatinine 0.85 mg/dL. Bilirubin 2.23 mg/dL. Platelets 280. ANC 5368. Hemoglobin 10.8 g/dL. ECOG 2.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT00775723",
+      "attr": "age",
+      "criterion": "Age < 9 months, Age > 9 months month at onset of study",
+      "facts": {
+        "age": 83.0,
+        "creatinine": 1.75,
+        "bilirubin": 2.93,
+        "platelets": 381.0,
+        "anc": 676.0,
+        "hemoglobin": 10.0,
+        "ecog": 2.0
+      },
+      "note": "A 83-year-old man. Creatinine 1.75 mg/dL. Bilirubin 2.93 mg/dL. Platelets 381. ANC 676. Hemoglobin 10.0 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03181100",
+      "attr": "platelets",
+      "criterion": "Platelets (PLT) >= 100 x 10^9 /L",
+      "facts": {
+        "age": 43.0,
+        "creatinine": 1.66,
+        "bilirubin": 1.96,
+        "platelets": 167.0,
+        "anc": 741.0,
+        "hemoglobin": 15.8,
+        "ecog": 3.0
+      },
+      "note": "A 43-year-old man. Creatinine 1.66 mg/dL. Bilirubin 1.96 mg/dL. Platelets 167. ANC 741. Hemoglobin 15.8 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT03058094",
+      "attr": "creatinine",
+      "criterion": "Kidney function: Creatinine \u22641",
+      "facts": {
+        "age": 78.0,
+        "creatinine": 2.97,
+        "bilirubin": 2.15,
+        "platelets": 238.0,
+        "anc": 7725.0,
+        "hemoglobin": 7.3,
+        "ecog": 0.0
+      },
+      "note": "A 78-year-old woman. Creatinine 2.97 mg/dL. Bilirubin 2.15 mg/dL. Platelets 238. ANC 7725. Hemoglobin 7.3 g/dL. ECOG 0.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03044353",
+      "attr": "bilirubin",
+      "criterion": "5xULN (isolated bilirubin >1",
+      "facts": {
+        "age": 20.0,
+        "creatinine": 2.21,
+        "bilirubin": 1.0,
+        "platelets": 215.0,
+        "anc": 2924.0,
+        "hemoglobin": 11.1,
+        "ecog": 2.0
+      },
+      "note": "A 20-year-old woman. Creatinine 2.21 mg/dL. Bilirubin 1.0 mg/dL. Platelets 215. ANC 2924. Hemoglobin 11.1 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT04752384",
+      "attr": "ecog",
+      "criterion": "Eastern Cooperative Oncology Group (ECOG) Performance status \u2264 2",
+      "facts": {
+        "age": 18.0,
+        "creatinine": 3.33,
+        "bilirubin": 2.52,
+        "platelets": 75.0,
+        "anc": 5054.0,
+        "hemoglobin": 12.2,
+        "ecog": 0.0
+      },
+      "note": "A 18-year-old woman. Creatinine 3.33 mg/dL. Bilirubin 2.52 mg/dL. Platelets 75. ANC 5054. Hemoglobin 12.2 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT02535650",
+      "attr": "anc",
+      "criterion": "ANC(absolute neutrophil count )>1500 cells/\u03bcL",
+      "facts": {
+        "age": 64.0,
+        "creatinine": 3.4,
+        "bilirubin": 0.84,
+        "platelets": 93.0,
+        "anc": 6665.0,
+        "hemoglobin": 8.0,
+        "ecog": 3.0
+      },
+      "note": "A 64-year-old woman. Creatinine 3.4 mg/dL. Bilirubin 0.84 mg/dL. Platelets 93. ANC 6665. Hemoglobin 8.0 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT00042991",
+      "attr": "age",
+      "criterion": "Creatinine < 2 x normal for age or GFR > 70 ml/min/1",
+      "facts": {
+        "age": 25.0,
+        "creatinine": 1.3,
+        "bilirubin": 2.19,
+        "platelets": 242.0,
+        "anc": 1473.0,
+        "hemoglobin": 12.1,
+        "ecog": 3.0
+      },
+      "note": "A 25-year-old man. Creatinine 1.3 mg/dL. Bilirubin 2.19 mg/dL. Platelets 242. ANC 1473. Hemoglobin 12.1 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT02628951",
+      "attr": "ecog",
+      "criterion": "The patient has an Eastern Cooperative Oncology Group performance status (ECOG PS) score of 0 or 1",
+      "facts": {
+        "age": 52.0,
+        "creatinine": 2.93,
+        "bilirubin": 2.62,
+        "platelets": 149.0,
+        "anc": 3857.0,
+        "hemoglobin": 8.1,
+        "ecog": 3.0
+      },
+      "note": "A 52-year-old woman. Creatinine 2.93 mg/dL. Bilirubin 2.62 mg/dL. Platelets 149. ANC 3857. Hemoglobin 8.1 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT01822275",
+      "attr": "ecog",
+      "criterion": "5 Karnofsky performance status \u2265 70 or ECOG performance status \u2264 2",
+      "facts": {
+        "age": 39.0,
+        "creatinine": 1.26,
+        "bilirubin": 1.55,
+        "platelets": 87.0,
+        "anc": 4464.0,
+        "hemoglobin": 10.2,
+        "ecog": 3.0
+      },
+      "note": "A 39-year-old man. Creatinine 1.26 mg/dL. Bilirubin 1.55 mg/dL. Platelets 87. ANC 4464. Hemoglobin 10.2 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT01933022",
+      "attr": "creatinine",
+      "criterion": "Creatinine > 177 \u03bcmol/L (2 mg/dL) at screening",
+      "facts": {
+        "age": 32.0,
+        "creatinine": 3.03,
+        "bilirubin": 1.23,
+        "platelets": 123.0,
+        "anc": 7513.0,
+        "hemoglobin": 13.0,
+        "ecog": 2.0
+      },
+      "note": "A 32-year-old woman. Creatinine 3.03 mg/dL. Bilirubin 1.23 mg/dL. Platelets 123. ANC 7513. Hemoglobin 13.0 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT02975570",
+      "attr": "bilirubin",
+      "criterion": "Serum ALT and total bilirubin <3 times upper limit of normal",
+      "facts": {
+        "age": 83.0,
+        "creatinine": 1.07,
+        "bilirubin": 0.9,
+        "platelets": 326.0,
+        "anc": 5153.0,
+        "hemoglobin": 15.5,
+        "ecog": 3.0
+      },
+      "note": "A 83-year-old man. Creatinine 1.07 mg/dL. Bilirubin 0.9 mg/dL. Platelets 326. ANC 5153. Hemoglobin 15.5 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01342627",
+      "attr": "age",
+      "criterion": "Age \u2265 65years",
+      "facts": {
+        "age": 75.0,
+        "creatinine": 2.17,
+        "bilirubin": 0.72,
+        "platelets": 350.0,
+        "anc": 3302.0,
+        "hemoglobin": 11.5,
+        "ecog": 1.0
+      },
+      "note": "A 75-year-old man. Creatinine 2.17 mg/dL. Bilirubin 0.72 mg/dL. Platelets 350. ANC 3302. Hemoglobin 11.5 g/dL. ECOG 1.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT00123630",
+      "attr": "age",
+      "criterion": "Male or female subjects aged 12-60 years of age with EE as defined above",
+      "facts": {
+        "age": 59.0,
+        "creatinine": 1.04,
+        "bilirubin": 1.69,
+        "platelets": 252.0,
+        "anc": 5980.0,
+        "hemoglobin": 12.4,
+        "ecog": 0.0
+      },
+      "note": "A 59-year-old man. Creatinine 1.04 mg/dL. Bilirubin 1.69 mg/dL. Platelets 252. ANC 5980. Hemoglobin 12.4 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01145781",
+      "attr": "age",
+      "criterion": "Inclusion criteria: inclusion criteria Apparently healthy women aged 25 to 64 yrs with following criteria will be eligible to participate in the study",
+      "facts": {
+        "age": 26.0,
+        "creatinine": 0.79,
+        "bilirubin": 1.69,
+        "platelets": 230.0,
+        "anc": 4370.0,
+        "hemoglobin": 14.8,
+        "ecog": 0.0
+      },
+      "note": "A 26-year-old woman. Creatinine 0.79 mg/dL. Bilirubin 1.69 mg/dL. Platelets 230. ANC 4370. Hemoglobin 14.8 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT00001761",
+      "attr": "age",
+      "criterion": "Age between 18 to 65 years",
+      "facts": {
+        "age": 25.0,
+        "creatinine": 2.81,
+        "bilirubin": 2.11,
+        "platelets": 354.0,
+        "anc": 1679.0,
+        "hemoglobin": 11.8,
+        "ecog": 2.0
+      },
+      "note": "A 25-year-old man. Creatinine 2.81 mg/dL. Bilirubin 2.11 mg/dL. Platelets 354. ANC 1679. Hemoglobin 11.8 g/dL. ECOG 2.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT03367715",
+      "attr": "creatinine",
+      "criterion": "5 x upper limit of normal (ULN) or creatinine clearance (CrCl) \u2265 40 mL/min according to the Cockcroft-Gault formula or local institutional standard method",
+      "facts": {
+        "age": 57.0,
+        "creatinine": 0.61,
+        "bilirubin": 1.83,
+        "platelets": 245.0,
+        "anc": 4940.0,
+        "hemoglobin": 7.8,
+        "ecog": 3.0
+      },
+      "note": "A 57-year-old man. Creatinine 0.61 mg/dL. Bilirubin 1.83 mg/dL. Platelets 245. ANC 4940. Hemoglobin 7.8 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT01933022",
+      "attr": "ecog",
+      "criterion": "Eastern Cooperative Oncology Group (ECOG) score of 0-2",
+      "facts": {
+        "age": 57.0,
+        "creatinine": 3.14,
+        "bilirubin": 1.47,
+        "platelets": 264.0,
+        "anc": 5695.0,
+        "hemoglobin": 14.9,
+        "ecog": 3.0
+      },
+      "note": "A 57-year-old man. Creatinine 3.14 mg/dL. Bilirubin 1.47 mg/dL. Platelets 264. ANC 5695. Hemoglobin 14.9 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT00148122",
+      "attr": "creatinine",
+      "criterion": "A calculated creatinine clearance of > 50 ml/min",
+      "facts": {
+        "age": 47.0,
+        "creatinine": 1.64,
+        "bilirubin": 2.11,
+        "platelets": 379.0,
+        "anc": 7971.0,
+        "hemoglobin": 11.9,
+        "ecog": 0.0
+      },
+      "note": "A 47-year-old man. Creatinine 1.64 mg/dL. Bilirubin 2.11 mg/dL. Platelets 379. ANC 7971. Hemoglobin 11.9 g/dL. ECOG 0.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT00042991",
+      "attr": "bilirubin",
+      "criterion": "Bilirubin < 1",
+      "facts": {
+        "age": 20.0,
+        "creatinine": 1.44,
+        "bilirubin": 1.11,
+        "platelets": 231.0,
+        "anc": 3386.0,
+        "hemoglobin": 8.9,
+        "ecog": 0.0
+      },
+      "note": "A 20-year-old woman. Creatinine 1.44 mg/dL. Bilirubin 1.11 mg/dL. Platelets 231. ANC 3386. Hemoglobin 8.9 g/dL. ECOG 0.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03392935",
+      "attr": "age",
+      "criterion": "female or male, age 18-65, have at least one dermatofibroma of the skin, on the trunk or extremities, diagnosed by dermatologist, dermatofibroma is either itchy, painful or unattractive to the patient",
+      "facts": {
+        "age": 37.0,
+        "creatinine": 2.23,
+        "bilirubin": 1.87,
+        "platelets": 303.0,
+        "anc": 3825.0,
+        "hemoglobin": 13.4,
+        "ecog": 3.0
+      },
+      "note": "A 37-year-old man. Creatinine 2.23 mg/dL. Bilirubin 1.87 mg/dL. Platelets 303. ANC 3825. Hemoglobin 13.4 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT04800783",
+      "attr": "age",
+      "criterion": "Age > 18 years old;",
+      "facts": {
+        "age": 49.0,
+        "creatinine": 1.12,
+        "bilirubin": 0.26,
+        "platelets": 210.0,
+        "anc": 7946.0,
+        "hemoglobin": 10.7,
+        "ecog": 0.0
+      },
+      "note": "A 49-year-old man. Creatinine 1.12 mg/dL. Bilirubin 0.26 mg/dL. Platelets 210. ANC 7946. Hemoglobin 10.7 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT00005636",
+      "attr": "hemoglobin",
+      "criterion": "PATIENT CHARACTERISTICS: Age: 18 and over Performance status: Karnofsky 70-100% Life expectancy: At least 12 weeks Hematopoietic: Absolute neutrophil count at least 1,500/mm3 Platelet count at least 100,000/mm3 Hemoglobin at least 9 g/dL H",
+      "facts": {
+        "age": 76.0,
+        "creatinine": 2.84,
+        "bilirubin": 2.85,
+        "platelets": 237.0,
+        "anc": 5270.0,
+        "hemoglobin": 14.7,
+        "ecog": 2.0
+      },
+      "note": "A 76-year-old woman. Creatinine 2.84 mg/dL. Bilirubin 2.85 mg/dL. Platelets 237. ANC 5270. Hemoglobin 14.7 g/dL. ECOG 2.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01546987",
+      "attr": "anc",
+      "criterion": "Absolute neutrophil count (ANC) \u2265 1,800 cells/mm3",
+      "facts": {
+        "age": 31.0,
+        "creatinine": 1.36,
+        "bilirubin": 1.99,
+        "platelets": 167.0,
+        "anc": 4822.0,
+        "hemoglobin": 14.0,
+        "ecog": 0.0
+      },
+      "note": "A 31-year-old man. Creatinine 1.36 mg/dL. Bilirubin 1.99 mg/dL. Platelets 167. ANC 4822. Hemoglobin 14.0 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01104987",
+      "attr": "creatinine",
+      "criterion": "Renal insufficiency, creatinine clearance < 35 ml/min",
+      "facts": {
+        "age": 25.0,
+        "creatinine": 2.23,
+        "bilirubin": 1.66,
+        "platelets": 318.0,
+        "anc": 4489.0,
+        "hemoglobin": 15.9,
+        "ecog": 0.0
+      },
+      "note": "A 25-year-old man. Creatinine 2.23 mg/dL. Bilirubin 1.66 mg/dL. Platelets 318. ANC 4489. Hemoglobin 15.9 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01003379",
+      "attr": "age",
+      "criterion": "Age 18 - 60, male or female",
+      "facts": {
+        "age": 33.0,
+        "creatinine": 1.8,
+        "bilirubin": 1.4,
+        "platelets": 315.0,
+        "anc": 3638.0,
+        "hemoglobin": 11.1,
+        "ecog": 2.0
+      },
+      "note": "A 33-year-old man. Creatinine 1.8 mg/dL. Bilirubin 1.4 mg/dL. Platelets 315. ANC 3638. Hemoglobin 11.1 g/dL. ECOG 2.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01425541",
+      "attr": "hemoglobin",
+      "criterion": "Hemoglobin <12 mg/dL or hematocrit < 36% (Subjects will be offered the opportunity to take iron supplementation for 60 days if their hematocrit is slightly low (33-36%) (suggestive of iron deficiency anemia) and will then return for retest",
+      "facts": {
+        "age": 62.0,
+        "creatinine": 1.58,
+        "bilirubin": 2.2,
+        "platelets": 320.0,
+        "anc": 1835.0,
+        "hemoglobin": 15.7,
+        "ecog": 0.0
+      },
+      "note": "A 62-year-old woman. Creatinine 1.58 mg/dL. Bilirubin 2.2 mg/dL. Platelets 320. ANC 1835. Hemoglobin 15.7 g/dL. ECOG 0.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03238638",
+      "attr": "creatinine",
+      "criterion": "5 X upper limit of normal (ULN) OR (GFR can also be used in place of creatinine or CrCl) \u226540 mL/min for subject with creatinine levels > 2",
+      "facts": {
+        "age": 22.0,
+        "creatinine": 2.75,
+        "bilirubin": 2.3,
+        "platelets": 237.0,
+        "anc": 2409.0,
+        "hemoglobin": 15.8,
+        "ecog": 0.0
+      },
+      "note": "A 22-year-old woman. Creatinine 2.75 mg/dL. Bilirubin 2.3 mg/dL. Platelets 237. ANC 2409. Hemoglobin 15.8 g/dL. ECOG 0.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT00530075",
+      "attr": "age",
+      "criterion": "Age 18 - 80",
+      "facts": {
+        "age": 19.0,
+        "creatinine": 2.57,
+        "bilirubin": 1.24,
+        "platelets": 202.0,
+        "anc": 682.0,
+        "hemoglobin": 8.3,
+        "ecog": 3.0
+      },
+      "note": "A 19-year-old man. Creatinine 2.57 mg/dL. Bilirubin 1.24 mg/dL. Platelets 202. ANC 682. Hemoglobin 8.3 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT04115059",
+      "attr": "platelets",
+      "criterion": "Platelets \u226550,000/ uL (Platelet transfusion not permitted)",
+      "facts": {
+        "age": 33.0,
+        "creatinine": 1.91,
+        "bilirubin": 2.0,
+        "platelets": 50.0,
+        "anc": 5405.0,
+        "hemoglobin": 15.9,
+        "ecog": 0.0
+      },
+      "note": "A 33-year-old man. Creatinine 1.91 mg/dL. Bilirubin 2.0 mg/dL. Platelets 50. ANC 5405. Hemoglobin 15.9 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT00005112",
+      "attr": "age",
+      "criterion": "CF patients ages 5-12 who are less than the 25th percentile for age and sex normal values for height and/or weight",
+      "facts": {
+        "age": 47.0,
+        "creatinine": 1.26,
+        "bilirubin": 0.79,
+        "platelets": 88.0,
+        "anc": 4321.0,
+        "hemoglobin": 12.5,
+        "ecog": 3.0
+      },
+      "note": "A 47-year-old man. Creatinine 1.26 mg/dL. Bilirubin 0.79 mg/dL. Platelets 88. ANC 4321. Hemoglobin 12.5 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT02383407",
+      "attr": "age",
+      "criterion": "Participants are between the ages of 18 -65 years of age",
+      "facts": {
+        "age": 41.0,
+        "creatinine": 2.37,
+        "bilirubin": 2.99,
+        "platelets": 52.0,
+        "anc": 7005.0,
+        "hemoglobin": 11.0,
+        "ecog": 3.0
+      },
+      "note": "A 41-year-old man. Creatinine 2.37 mg/dL. Bilirubin 2.99 mg/dL. Platelets 52. ANC 7005. Hemoglobin 11.0 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT02263898",
+      "attr": "hemoglobin",
+      "criterion": "Hemoglobin (Hgb) >= 9 g/dL without transfusions",
+      "facts": {
+        "age": 47.0,
+        "creatinine": 3.05,
+        "bilirubin": 1.81,
+        "platelets": 157.0,
+        "anc": 2619.0,
+        "hemoglobin": 8.2,
+        "ecog": 1.0
+      },
+      "note": "A 47-year-old man. Creatinine 3.05 mg/dL. Bilirubin 1.81 mg/dL. Platelets 157. ANC 2619. Hemoglobin 8.2 g/dL. ECOG 1.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT01163214",
+      "attr": "age",
+      "criterion": "Age 18-79 years",
+      "facts": {
+        "age": 23.0,
+        "creatinine": 1.8,
+        "bilirubin": 2.54,
+        "platelets": 100.0,
+        "anc": 5678.0,
+        "hemoglobin": 11.0,
+        "ecog": 1.0
+      },
+      "note": "A 23-year-old man. Creatinine 1.8 mg/dL. Bilirubin 2.54 mg/dL. Platelets 100. ANC 5678. Hemoglobin 11.0 g/dL. ECOG 1.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01316042",
+      "attr": "hemoglobin",
+      "criterion": "Significant anemia (Hemoglobin < 10 mg/dL)",
+      "facts": {
+        "age": 69.0,
+        "creatinine": 1.9,
+        "bilirubin": 2.04,
+        "platelets": 311.0,
+        "anc": 5689.0,
+        "hemoglobin": 12.0,
+        "ecog": 3.0
+      },
+      "note": "A 69-year-old man. Creatinine 1.9 mg/dL. Bilirubin 2.04 mg/dL. Platelets 311. ANC 5689. Hemoglobin 12.0 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT02503709",
+      "attr": "ecog",
+      "criterion": "Eastern Cooperative Oncology Group (ECOG) performance status 0-1",
+      "facts": {
+        "age": 36.0,
+        "creatinine": 2.43,
+        "bilirubin": 2.65,
+        "platelets": 219.0,
+        "anc": 5623.0,
+        "hemoglobin": 8.3,
+        "ecog": 1.0
+      },
+      "note": "A 36-year-old woman. Creatinine 2.43 mg/dL. Bilirubin 2.65 mg/dL. Platelets 219. ANC 5623. Hemoglobin 8.3 g/dL. ECOG 1.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT03841526",
+      "attr": "age",
+      "criterion": "Age 18 to < 65 years",
+      "facts": {
+        "age": 71.0,
+        "creatinine": 0.8,
+        "bilirubin": 1.04,
+        "platelets": 382.0,
+        "anc": 7741.0,
+        "hemoglobin": 9.2,
+        "ecog": 0.0
+      },
+      "note": "A 71-year-old man. Creatinine 0.8 mg/dL. Bilirubin 1.04 mg/dL. Platelets 382. ANC 7741. Hemoglobin 9.2 g/dL. ECOG 0.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT01998724",
+      "attr": "age",
+      "criterion": "Age > 40 years",
+      "facts": {
+        "age": 53.0,
+        "creatinine": 1.63,
+        "bilirubin": 2.98,
+        "platelets": 396.0,
+        "anc": 5730.0,
+        "hemoglobin": 15.0,
+        "ecog": 2.0
+      },
+      "note": "A 53-year-old man. Creatinine 1.63 mg/dL. Bilirubin 2.98 mg/dL. Platelets 396. ANC 5730. Hemoglobin 15.0 g/dL. ECOG 2.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT04105543",
+      "attr": "creatinine",
+      "criterion": "serum creatinine \u2264 1",
+      "facts": {
+        "age": 20.0,
+        "creatinine": 1.23,
+        "bilirubin": 1.46,
+        "platelets": 213.0,
+        "anc": 5010.0,
+        "hemoglobin": 14.7,
+        "ecog": 0.0
+      },
+      "note": "A 20-year-old woman. Creatinine 1.23 mg/dL. Bilirubin 1.46 mg/dL. Platelets 213. ANC 5010. Hemoglobin 14.7 g/dL. ECOG 0.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT00462475",
+      "attr": "age",
+      "criterion": "age >50 yrs;",
+      "facts": {
+        "age": 57.0,
+        "creatinine": 1.48,
+        "bilirubin": 0.37,
+        "platelets": 134.0,
+        "anc": 7490.0,
+        "hemoglobin": 13.3,
+        "ecog": 2.0
+      },
+      "note": "A 57-year-old man. Creatinine 1.48 mg/dL. Bilirubin 0.37 mg/dL. Platelets 134. ANC 7490. Hemoglobin 13.3 g/dL. ECOG 2.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01125176",
+      "attr": "creatinine",
+      "criterion": "Creatinine clearance of at least 30 mL/min by Cockroft-Gault formula",
+      "facts": {
+        "age": 26.0,
+        "creatinine": 1.52,
+        "bilirubin": 2.03,
+        "platelets": 139.0,
+        "anc": 2340.0,
+        "hemoglobin": 12.3,
+        "ecog": 0.0
+      },
+      "note": "A 26-year-old woman. Creatinine 1.52 mg/dL. Bilirubin 2.03 mg/dL. Platelets 139. ANC 2340. Hemoglobin 12.3 g/dL. ECOG 0.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03872778",
+      "attr": "ecog",
+      "criterion": "Patient Eastern Cooperative Oncology Group (ECOG) performance status =< 2",
+      "facts": {
+        "age": 26.0,
+        "creatinine": 3.24,
+        "bilirubin": 2.33,
+        "platelets": 391.0,
+        "anc": 5805.0,
+        "hemoglobin": 12.0,
+        "ecog": 0.0
+      },
+      "note": "A 26-year-old woman. Creatinine 3.24 mg/dL. Bilirubin 2.33 mg/dL. Platelets 391. ANC 5805. Hemoglobin 12.0 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT00210119",
+      "attr": "creatinine",
+      "criterion": "tudy period)\u00b7 Dementia or altered mental status that would prohibit the understanding or rendering of informed consent \u00b7 Abnormal renal function with creatinine clearance < 30 ml/ minuteAccording to Cockcroft-Gault : CrCl= [[140-age (years)",
+      "facts": {
+        "age": 22.0,
+        "creatinine": 1.59,
+        "bilirubin": 1.25,
+        "platelets": 141.0,
+        "anc": 4086.0,
+        "hemoglobin": 13.6,
+        "ecog": 3.0
+      },
+      "note": "A 22-year-old woman. Creatinine 1.59 mg/dL. Bilirubin 1.25 mg/dL. Platelets 141. ANC 4086. Hemoglobin 13.6 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT02925650",
+      "attr": "age",
+      "criterion": "Male or female aged 55 to 89 years (inclusive), in good health, no frailty",
+      "facts": {
+        "age": 55.0,
+        "creatinine": 1.05,
+        "bilirubin": 0.49,
+        "platelets": 337.0,
+        "anc": 1973.0,
+        "hemoglobin": 14.9,
+        "ecog": 2.0
+      },
+      "note": "A 55-year-old man. Creatinine 1.05 mg/dL. Bilirubin 0.49 mg/dL. Platelets 337. ANC 1973. Hemoglobin 14.9 g/dL. ECOG 2.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT03566433",
+      "attr": "age",
+      "criterion": "Clinical diagnosis of symptomatic inguinal hernia Age 18-80",
+      "facts": {
+        "age": 67.0,
+        "creatinine": 0.97,
+        "bilirubin": 0.75,
+        "platelets": 299.0,
+        "anc": 5536.0,
+        "hemoglobin": 15.7,
+        "ecog": 0.0
+      },
+      "note": "A 67-year-old man. Creatinine 0.97 mg/dL. Bilirubin 0.75 mg/dL. Platelets 299. ANC 5536. Hemoglobin 15.7 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT02275936",
+      "attr": "age",
+      "criterion": "Male or female, age \u2265 18 years with confirmed diagnosis of CF, homozygous for the F508del-CFTR mutation based on historical results generated by Ambry Genetics within the past two years or if unavailable, confirmed by testing done within t",
+      "facts": {
+        "age": 69.0,
+        "creatinine": 1.39,
+        "bilirubin": 2.44,
+        "platelets": 131.0,
+        "anc": 522.0,
+        "hemoglobin": 9.1,
+        "ecog": 3.0
+      },
+      "note": "A 69-year-old man. Creatinine 1.39 mg/dL. Bilirubin 2.44 mg/dL. Platelets 131. ANC 522. Hemoglobin 9.1 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT03238638",
+      "attr": "ecog",
+      "criterion": "ECOG performance status 0 or 1",
+      "facts": {
+        "age": 19.0,
+        "creatinine": 2.67,
+        "bilirubin": 2.03,
+        "platelets": 291.0,
+        "anc": 1981.0,
+        "hemoglobin": 9.4,
+        "ecog": 2.0
+      },
+      "note": "A 19-year-old man. Creatinine 2.67 mg/dL. Bilirubin 2.03 mg/dL. Platelets 291. ANC 1981. Hemoglobin 9.4 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT02014025",
+      "attr": "age",
+      "criterion": "(1) age <18 years or> 70 years , pregnant or lactating women; (2) tumor size \u226510 cm, or tumor location that would interfere with intraoperative exposure and isolation of the hepatic hilum; (3) tumor encroaching on the hepatic hilum , the p",
+      "facts": {
+        "age": 50.0,
+        "creatinine": 2.32,
+        "bilirubin": 1.99,
+        "platelets": 296.0,
+        "anc": 3206.0,
+        "hemoglobin": 8.1,
+        "ecog": 3.0
+      },
+      "note": "A 50-year-old woman. Creatinine 2.32 mg/dL. Bilirubin 1.99 mg/dL. Platelets 296. ANC 3206. Hemoglobin 8.1 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT02628951",
+      "attr": "anc",
+      "criterion": "The patient has adequate hematologic function, as evidenced by an absolute neutrophil count (ANC) \u22651000/\u00b5L, hemoglobin \u22659 g/dL (5",
+      "facts": {
+        "age": 38.0,
+        "creatinine": 1.58,
+        "bilirubin": 1.99,
+        "platelets": 254.0,
+        "anc": 7542.0,
+        "hemoglobin": 9.2,
+        "ecog": 0.0
+      },
+      "note": "A 38-year-old woman. Creatinine 1.58 mg/dL. Bilirubin 1.99 mg/dL. Platelets 254. ANC 7542. Hemoglobin 9.2 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT02235402",
+      "attr": "bilirubin",
+      "criterion": "Liver impairment (abnormal Liver function test (LFT) with aspartate-amino transferase (AST) / alanine-amino transferase (ALT) > 2x upper normal limit or bilirubin > 2x upper normal limit)",
+      "facts": {
+        "age": 70.0,
+        "creatinine": 1.52,
+        "bilirubin": 1.16,
+        "platelets": 276.0,
+        "anc": 3049.0,
+        "hemoglobin": 13.5,
+        "ecog": 1.0
+      },
+      "note": "A 70-year-old woman. Creatinine 1.52 mg/dL. Bilirubin 1.16 mg/dL. Platelets 276. ANC 3049. Hemoglobin 13.5 g/dL. ECOG 1.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03696030",
+      "attr": "platelets",
+      "criterion": "ELIGIBILITY FOR ENROLLMENT AND TO PROCEED WITH INTRAVENTRICULAR ADMINISTRATION OF HER2-CAR T CELLS: Platelets > 100,000/uL",
+      "facts": {
+        "age": 28.0,
+        "creatinine": 3.15,
+        "bilirubin": 2.0,
+        "platelets": 382.0,
+        "anc": 684.0,
+        "hemoglobin": 8.8,
+        "ecog": 1.0
+      },
+      "note": "A 28-year-old woman. Creatinine 3.15 mg/dL. Bilirubin 2.0 mg/dL. Platelets 382. ANC 684. Hemoglobin 8.8 g/dL. ECOG 1.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT02309047",
+      "attr": "age",
+      "criterion": "POI: defined as secondary amenorrhea before the age of 40 years and basal FSH > 40 IU/L",
+      "facts": {
+        "age": 77.0,
+        "creatinine": 1.02,
+        "bilirubin": 2.47,
+        "platelets": 309.0,
+        "anc": 4440.0,
+        "hemoglobin": 11.5,
+        "ecog": 1.0
+      },
+      "note": "A 77-year-old man. Creatinine 1.02 mg/dL. Bilirubin 2.47 mg/dL. Platelets 309. ANC 4440. Hemoglobin 11.5 g/dL. ECOG 1.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT03367715",
+      "attr": "hemoglobin",
+      "criterion": "Hemoglobin > 9 g/dL",
+      "facts": {
+        "age": 82.0,
+        "creatinine": 2.88,
+        "bilirubin": 1.75,
+        "platelets": 269.0,
+        "anc": 3437.0,
+        "hemoglobin": 8.7,
+        "ecog": 0.0
+      },
+      "note": "A 82-year-old woman. Creatinine 2.88 mg/dL. Bilirubin 1.75 mg/dL. Platelets 269. ANC 3437. Hemoglobin 8.7 g/dL. ECOG 0.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03220113",
+      "attr": "age",
+      "criterion": "\u2022 Age: 10-90 years",
+      "facts": {
+        "age": 61.0,
+        "creatinine": 1.13,
+        "bilirubin": 2.7,
+        "platelets": 80.0,
+        "anc": 2741.0,
+        "hemoglobin": 10.9,
+        "ecog": 1.0
+      },
+      "note": "A 61-year-old man. Creatinine 1.13 mg/dL. Bilirubin 2.7 mg/dL. Platelets 80. ANC 2741. Hemoglobin 10.9 g/dL. ECOG 1.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01795131",
+      "attr": "age",
+      "criterion": "Age: 22-35 years",
+      "facts": {
+        "age": 29.0,
+        "creatinine": 3.5,
+        "bilirubin": 0.99,
+        "platelets": 353.0,
+        "anc": 6227.0,
+        "hemoglobin": 10.8,
+        "ecog": 3.0
+      },
+      "note": "A 29-year-old man. Creatinine 3.5 mg/dL. Bilirubin 0.99 mg/dL. Platelets 353. ANC 6227. Hemoglobin 10.8 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT04637373",
+      "attr": "age",
+      "criterion": "incomplete and complete abortions, gestational age>13 weeks of gestation, suspected molar pregnancy and patients' contraindications for general anesthesia",
+      "facts": {
+        "age": 57.0,
+        "creatinine": 2.39,
+        "bilirubin": 0.36,
+        "platelets": 363.0,
+        "anc": 4567.0,
+        "hemoglobin": 9.1,
+        "ecog": 2.0
+      },
+      "note": "A 57-year-old man. Creatinine 2.39 mg/dL. Bilirubin 0.36 mg/dL. Platelets 363. ANC 4567. Hemoglobin 9.1 g/dL. ECOG 2.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT04851067",
+      "attr": "age",
+      "criterion": "Age > 18 years old",
+      "facts": {
+        "age": 31.0,
+        "creatinine": 2.07,
+        "bilirubin": 0.28,
+        "platelets": 91.0,
+        "anc": 1833.0,
+        "hemoglobin": 12.4,
+        "ecog": 3.0
+      },
+      "note": "A 31-year-old man. Creatinine 2.07 mg/dL. Bilirubin 0.28 mg/dL. Platelets 91. ANC 1833. Hemoglobin 12.4 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT02144181",
+      "attr": "age",
+      "criterion": "Male or female, age 18 to 65 years",
+      "facts": {
+        "age": 42.0,
+        "creatinine": 1.1,
+        "bilirubin": 0.82,
+        "platelets": 344.0,
+        "anc": 2649.0,
+        "hemoglobin": 14.8,
+        "ecog": 0.0
+      },
+      "note": "A 42-year-old woman. Creatinine 1.1 mg/dL. Bilirubin 0.82 mg/dL. Platelets 344. ANC 2649. Hemoglobin 14.8 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT02055157",
+      "attr": "creatinine",
+      "criterion": "Renal insufficiency, defined as creatinine > 2 mg/dl",
+      "facts": {
+        "age": 31.0,
+        "creatinine": 2.12,
+        "bilirubin": 0.46,
+        "platelets": 148.0,
+        "anc": 5120.0,
+        "hemoglobin": 12.3,
+        "ecog": 0.0
+      },
+      "note": "A 31-year-old man. Creatinine 2.12 mg/dL. Bilirubin 0.46 mg/dL. Platelets 148. ANC 5120. Hemoglobin 12.3 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01172925",
+      "attr": "creatinine",
+      "criterion": "Calculated or urine creatinine clearance \u2264 50 mL/min (see Appendix 5 for calculation)",
+      "facts": {
+        "age": 59.0,
+        "creatinine": 2.11,
+        "bilirubin": 1.95,
+        "platelets": 226.0,
+        "anc": 929.0,
+        "hemoglobin": 10.8,
+        "ecog": 3.0
+      },
+      "note": "A 59-year-old man. Creatinine 2.11 mg/dL. Bilirubin 1.95 mg/dL. Platelets 226. ANC 929. Hemoglobin 10.8 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT04502680",
+      "attr": "ecog",
+      "criterion": "Physical condition ECOG PS: 0-1;",
+      "facts": {
+        "age": 63.0,
+        "creatinine": 2.01,
+        "bilirubin": 2.2,
+        "platelets": 91.0,
+        "anc": 6559.0,
+        "hemoglobin": 7.2,
+        "ecog": 0.0
+      },
+      "note": "A 63-year-old man. Creatinine 2.01 mg/dL. Bilirubin 2.2 mg/dL. Platelets 91. ANC 6559. Hemoglobin 7.2 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT03357484",
+      "attr": "age",
+      "criterion": "Male and female patients with an age of 18 to 60 years;",
+      "facts": {
+        "age": 61.0,
+        "creatinine": 1.51,
+        "bilirubin": 0.36,
+        "platelets": 250.0,
+        "anc": 648.0,
+        "hemoglobin": 11.3,
+        "ecog": 0.0
+      },
+      "note": "A 61-year-old man. Creatinine 1.51 mg/dL. Bilirubin 0.36 mg/dL. Platelets 250. ANC 648. Hemoglobin 11.3 g/dL. ECOG 0.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT02954601",
+      "attr": "age",
+      "criterion": "The study will enroll approximately 30 adult subjects with T2DM from age 20 to 75 inclusive",
+      "facts": {
+        "age": 66.0,
+        "creatinine": 0.96,
+        "bilirubin": 2.24,
+        "platelets": 100.0,
+        "anc": 5790.0,
+        "hemoglobin": 9.4,
+        "ecog": 2.0
+      },
+      "note": "A 66-year-old woman. Creatinine 0.96 mg/dL. Bilirubin 2.24 mg/dL. Platelets 100. ANC 5790. Hemoglobin 9.4 g/dL. ECOG 2.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01062230",
+      "attr": "ecog",
+      "criterion": "Performance status of < 2 as per ECOG scale, unless PS of 3-4 based solely on bone pain",
+      "facts": {
+        "age": 19.0,
+        "creatinine": 2.45,
+        "bilirubin": 1.62,
+        "platelets": 254.0,
+        "anc": 7391.0,
+        "hemoglobin": 15.3,
+        "ecog": 3.0
+      },
+      "note": "A 19-year-old man. Creatinine 2.45 mg/dL. Bilirubin 1.62 mg/dL. Platelets 254. ANC 7391. Hemoglobin 15.3 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01230957",
+      "attr": "age",
+      "criterion": "Aged 40 to 75 years on the day of inclusion",
+      "facts": {
+        "age": 56.0,
+        "creatinine": 1.59,
+        "bilirubin": 2.59,
+        "platelets": 368.0,
+        "anc": 2764.0,
+        "hemoglobin": 9.0,
+        "ecog": 3.0
+      },
+      "note": "A 56-year-old woman. Creatinine 1.59 mg/dL. Bilirubin 2.59 mg/dL. Platelets 368. ANC 2764. Hemoglobin 9.0 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT04411134",
+      "attr": "age",
+      "criterion": "Because treatment for this disease is not recommended in patients <21 years of age, children and adolescents <21 years old are excluded from this study",
+      "facts": {
+        "age": 84.0,
+        "creatinine": 2.04,
+        "bilirubin": 2.06,
+        "platelets": 250.0,
+        "anc": 3271.0,
+        "hemoglobin": 8.0,
+        "ecog": 1.0
+      },
+      "note": "A 84-year-old woman. Creatinine 2.04 mg/dL. Bilirubin 2.06 mg/dL. Platelets 250. ANC 3271. Hemoglobin 8.0 g/dL. ECOG 1.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT02882945",
+      "attr": "age",
+      "criterion": "age < 20 years",
+      "facts": {
+        "age": 48.0,
+        "creatinine": 2.61,
+        "bilirubin": 0.99,
+        "platelets": 363.0,
+        "anc": 3426.0,
+        "hemoglobin": 12.1,
+        "ecog": 2.0
+      },
+      "note": "A 48-year-old woman. Creatinine 2.61 mg/dL. Bilirubin 0.99 mg/dL. Platelets 363. ANC 3426. Hemoglobin 12.1 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03316547",
+      "attr": "age",
+      "criterion": "-Parents (including emancipated minors age 12-17) of very preterm infants (VPT) born less than or equal to 32 weeks gestation at the St",
+      "facts": {
+        "age": 77.0,
+        "creatinine": 1.02,
+        "bilirubin": 1.31,
+        "platelets": 329.0,
+        "anc": 4250.0,
+        "hemoglobin": 10.7,
+        "ecog": 3.0
+      },
+      "note": "A 77-year-old man. Creatinine 1.02 mg/dL. Bilirubin 1.31 mg/dL. Platelets 329. ANC 4250. Hemoglobin 10.7 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03447782",
+      "attr": "age",
+      "criterion": "Adolescents ages 10-17 will be recruited from Boston Children's Hospital Pediatric Headache Program",
+      "facts": {
+        "age": 47.0,
+        "creatinine": 1.79,
+        "bilirubin": 1.1,
+        "platelets": 281.0,
+        "anc": 5795.0,
+        "hemoglobin": 11.2,
+        "ecog": 3.0
+      },
+      "note": "A 47-year-old man. Creatinine 1.79 mg/dL. Bilirubin 1.1 mg/dL. Platelets 281. ANC 5795. Hemoglobin 11.2 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT02667496",
+      "attr": "creatinine",
+      "criterion": "Known renal dysfunction or serum creatinine >150 \u00b5mol/L",
+      "facts": {
+        "age": 58.0,
+        "creatinine": 1.95,
+        "bilirubin": 0.29,
+        "platelets": 108.0,
+        "anc": 7138.0,
+        "hemoglobin": 12.1,
+        "ecog": 3.0
+      },
+      "note": "A 58-year-old woman. Creatinine 1.95 mg/dL. Bilirubin 0.29 mg/dL. Platelets 108. ANC 7138. Hemoglobin 12.1 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT04846803",
+      "attr": "age",
+      "criterion": "Malignancy in the urinary tract, kidney-, ureteral- or bladder stones, age < 18 years, pregnancy, breastfeeding",
+      "facts": {
+        "age": 38.0,
+        "creatinine": 2.61,
+        "bilirubin": 1.8,
+        "platelets": 225.0,
+        "anc": 1763.0,
+        "hemoglobin": 13.0,
+        "ecog": 3.0
+      },
+      "note": "A 38-year-old woman. Creatinine 2.61 mg/dL. Bilirubin 1.8 mg/dL. Platelets 225. ANC 1763. Hemoglobin 13.0 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03689439",
+      "attr": "age",
+      "criterion": "Age 18-80 years old;",
+      "facts": {
+        "age": 74.0,
+        "creatinine": 2.19,
+        "bilirubin": 0.44,
+        "platelets": 83.0,
+        "anc": 2255.0,
+        "hemoglobin": 14.0,
+        "ecog": 2.0
+      },
+      "note": "A 74-year-old woman. Creatinine 2.19 mg/dL. Bilirubin 0.44 mg/dL. Platelets 83. ANC 2255. Hemoglobin 14.0 g/dL. ECOG 2.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT03735849",
+      "attr": "age",
+      "criterion": "Age of 18 to 50 years",
+      "facts": {
+        "age": 51.0,
+        "creatinine": 1.6,
+        "bilirubin": 2.51,
+        "platelets": 355.0,
+        "anc": 3750.0,
+        "hemoglobin": 8.4,
+        "ecog": 0.0
+      },
+      "note": "A 51-year-old man. Creatinine 1.6 mg/dL. Bilirubin 2.51 mg/dL. Platelets 355. ANC 3750. Hemoglobin 8.4 g/dL. ECOG 0.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT04058158",
+      "attr": "anc",
+      "criterion": "ANC \u2264 500/mm3 or Platelet count < 70,000/mm3",
+      "facts": {
+        "age": 67.0,
+        "creatinine": 0.69,
+        "bilirubin": 0.58,
+        "platelets": 66.0,
+        "anc": 2264.0,
+        "hemoglobin": 15.1,
+        "ecog": 3.0
+      },
+      "note": "A 67-year-old man. Creatinine 0.69 mg/dL. Bilirubin 0.58 mg/dL. Platelets 66. ANC 2264. Hemoglobin 15.1 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT01179152",
+      "attr": "age",
+      "criterion": "age : 6-18 years suffering from asthma asthma exacerbation during 1/9/2009-15/10/2009",
+      "facts": {
+        "age": 68.0,
+        "creatinine": 1.79,
+        "bilirubin": 0.98,
+        "platelets": 334.0,
+        "anc": 5119.0,
+        "hemoglobin": 8.7,
+        "ecog": 2.0
+      },
+      "note": "A 68-year-old woman. Creatinine 1.79 mg/dL. Bilirubin 0.98 mg/dL. Platelets 334. ANC 5119. Hemoglobin 8.7 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT01327768",
+      "attr": "age",
+      "criterion": "Aged 35-70 year old Chronic Stroke Adult Patients,",
+      "facts": {
+        "age": 80.0,
+        "creatinine": 2.7,
+        "bilirubin": 2.92,
+        "platelets": 399.0,
+        "anc": 3732.0,
+        "hemoglobin": 9.4,
+        "ecog": 2.0
+      },
+      "note": "A 80-year-old woman. Creatinine 2.7 mg/dL. Bilirubin 2.92 mg/dL. Platelets 399. ANC 3732. Hemoglobin 9.4 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT04073290",
+      "attr": "creatinine",
+      "criterion": "Kidney insufficiency (Creatinine > 135 umol/L) induced by diuretics",
+      "facts": {
+        "age": 43.0,
+        "creatinine": 0.72,
+        "bilirubin": 0.93,
+        "platelets": 153.0,
+        "anc": 2187.0,
+        "hemoglobin": 12.9,
+        "ecog": 3.0
+      },
+      "note": "A 43-year-old man. Creatinine 0.72 mg/dL. Bilirubin 0.93 mg/dL. Platelets 153. ANC 2187. Hemoglobin 12.9 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT00303940",
+      "attr": "creatinine",
+      "criterion": "5 mg/dL (for patients > 15 years of age) NOTE: *For patients receiving carboplatin a nuclear glomerular filtration rate study, 24-hour urine collection, and serum creatinine for estimation of creatinine clearance is required if under 15 yea",
+      "facts": {
+        "age": 60.0,
+        "creatinine": 1.64,
+        "bilirubin": 1.21,
+        "platelets": 266.0,
+        "anc": 7043.0,
+        "hemoglobin": 8.8,
+        "ecog": 0.0
+      },
+      "note": "A 60-year-old woman. Creatinine 1.64 mg/dL. Bilirubin 1.21 mg/dL. Platelets 266. ANC 7043. Hemoglobin 8.8 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT04208464",
+      "attr": "creatinine",
+      "criterion": "Creatinine clearance <30ml/min",
+      "facts": {
+        "age": 63.0,
+        "creatinine": 2.57,
+        "bilirubin": 2.06,
+        "platelets": 234.0,
+        "anc": 3003.0,
+        "hemoglobin": 14.7,
+        "ecog": 3.0
+      },
+      "note": "A 63-year-old man. Creatinine 2.57 mg/dL. Bilirubin 2.06 mg/dL. Platelets 234. ANC 3003. Hemoglobin 14.7 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT02671188",
+      "attr": "bilirubin",
+      "criterion": "5x Upper Limit of Normal (ULN) (isolated bilirubin >1",
+      "facts": {
+        "age": 50.0,
+        "creatinine": 2.42,
+        "bilirubin": 1.03,
+        "platelets": 256.0,
+        "anc": 4910.0,
+        "hemoglobin": 14.3,
+        "ecog": 0.0
+      },
+      "note": "A 50-year-old woman. Creatinine 2.42 mg/dL. Bilirubin 1.03 mg/dL. Platelets 256. ANC 4910. Hemoglobin 14.3 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT03863496",
+      "attr": "age",
+      "criterion": "~It is expected to enroll 70 patients aged 6-25 years with NMD, all of whom will be subjected to thoracic and lumbar spinal deformity surgery",
+      "facts": {
+        "age": 39.0,
+        "creatinine": 3.01,
+        "bilirubin": 1.64,
+        "platelets": 217.0,
+        "anc": 5349.0,
+        "hemoglobin": 15.4,
+        "ecog": 0.0
+      },
+      "note": "A 39-year-old man. Creatinine 3.01 mg/dL. Bilirubin 1.64 mg/dL. Platelets 217. ANC 5349. Hemoglobin 15.4 g/dL. ECOG 0.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03269877",
+      "attr": "age",
+      "criterion": "Male and female patients aged between 18-60 years",
+      "facts": {
+        "age": 30.0,
+        "creatinine": 3.32,
+        "bilirubin": 2.99,
+        "platelets": 365.0,
+        "anc": 1440.0,
+        "hemoglobin": 7.9,
+        "ecog": 0.0
+      },
+      "note": "A 30-year-old woman. Creatinine 3.32 mg/dL. Bilirubin 2.99 mg/dL. Platelets 365. ANC 1440. Hemoglobin 7.9 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01342627",
+      "attr": "anc",
+      "criterion": "Absolute neutrophil count (ANC) \u2265 1,500/mm3",
+      "facts": {
+        "age": 59.0,
+        "creatinine": 2.74,
+        "bilirubin": 1.34,
+        "platelets": 280.0,
+        "anc": 5147.0,
+        "hemoglobin": 15.3,
+        "ecog": 0.0
+      },
+      "note": "A 59-year-old man. Creatinine 2.74 mg/dL. Bilirubin 1.34 mg/dL. Platelets 280. ANC 5147. Hemoglobin 15.3 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT02742558",
+      "attr": "age",
+      "criterion": "Informed consent from study participants and guardian in case of children (1-17 years) and assent from children aged 11-17 years",
+      "facts": {
+        "age": 26.0,
+        "creatinine": 2.14,
+        "bilirubin": 2.74,
+        "platelets": 244.0,
+        "anc": 6443.0,
+        "hemoglobin": 7.9,
+        "ecog": 1.0
+      },
+      "note": "A 26-year-old woman. Creatinine 2.14 mg/dL. Bilirubin 2.74 mg/dL. Platelets 244. ANC 6443. Hemoglobin 7.9 g/dL. ECOG 1.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT04059159",
+      "attr": "age",
+      "criterion": "Males age \u2265 18 with clinical diagnosis of significant urinary retention",
+      "facts": {
+        "age": 56.0,
+        "creatinine": 0.76,
+        "bilirubin": 0.81,
+        "platelets": 370.0,
+        "anc": 5551.0,
+        "hemoglobin": 10.0,
+        "ecog": 2.0
+      },
+      "note": "A 56-year-old woman. Creatinine 0.76 mg/dL. Bilirubin 0.81 mg/dL. Platelets 370. ANC 5551. Hemoglobin 10.0 g/dL. ECOG 2.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01316042",
+      "attr": "age",
+      "criterion": "Girls aged 4-10 with pubic hair prior to 8 years of age",
+      "facts": {
+        "age": 32.0,
+        "creatinine": 1.5,
+        "bilirubin": 1.36,
+        "platelets": 51.0,
+        "anc": 7917.0,
+        "hemoglobin": 11.5,
+        "ecog": 2.0
+      },
+      "note": "A 32-year-old woman. Creatinine 1.5 mg/dL. Bilirubin 1.36 mg/dL. Platelets 51. ANC 7917. Hemoglobin 11.5 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03193047",
+      "attr": "age",
+      "criterion": "Age \u226518 years or legal age of majority depending on regional law",
+      "facts": {
+        "age": 58.0,
+        "creatinine": 3.21,
+        "bilirubin": 2.43,
+        "platelets": 140.0,
+        "anc": 3479.0,
+        "hemoglobin": 9.7,
+        "ecog": 2.0
+      },
+      "note": "A 58-year-old woman. Creatinine 3.21 mg/dL. Bilirubin 2.43 mg/dL. Platelets 140. ANC 3479. Hemoglobin 9.7 g/dL. ECOG 2.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT03044353",
+      "attr": "age",
+      "criterion": "age appropriate, > 45 years, in the absence of hormone replacement therapy (HRT) or medical suppression of the menstrual cycle (e",
+      "facts": {
+        "age": 30.0,
+        "creatinine": 1.74,
+        "bilirubin": 0.25,
+        "platelets": 320.0,
+        "anc": 7913.0,
+        "hemoglobin": 11.0,
+        "ecog": 0.0
+      },
+      "note": "A 30-year-old woman. Creatinine 1.74 mg/dL. Bilirubin 0.25 mg/dL. Platelets 320. ANC 7913. Hemoglobin 11.0 g/dL. ECOG 0.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT00889226",
+      "attr": "creatinine",
+      "criterion": "Creatinine Kinase > 2",
+      "facts": {
+        "age": 31.0,
+        "creatinine": 2.78,
+        "bilirubin": 0.99,
+        "platelets": 391.0,
+        "anc": 5324.0,
+        "hemoglobin": 15.9,
+        "ecog": 3.0
+      },
+      "note": "A 31-year-old man. Creatinine 2.78 mg/dL. Bilirubin 0.99 mg/dL. Platelets 391. ANC 5324. Hemoglobin 15.9 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT00303940",
+      "attr": "ecog",
+      "criterion": "ECOG performance status 0-2",
+      "facts": {
+        "age": 41.0,
+        "creatinine": 0.92,
+        "bilirubin": 1.78,
+        "platelets": 155.0,
+        "anc": 3433.0,
+        "hemoglobin": 13.4,
+        "ecog": 2.0
+      },
+      "note": "A 41-year-old man. Creatinine 0.92 mg/dL. Bilirubin 1.78 mg/dL. Platelets 155. ANC 3433. Hemoglobin 13.4 g/dL. ECOG 2.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT03238638",
+      "attr": "anc",
+      "criterion": "System Laboratory Value Hematological Absolute neutrophil count (ANC) \u22651,500 /mcL Platelets \u2265100,000 / mcL Hemoglobin \u22659 g/dL or \u22655",
+      "facts": {
+        "age": 23.0,
+        "creatinine": 2.38,
+        "bilirubin": 2.5,
+        "platelets": 332.0,
+        "anc": 7545.0,
+        "hemoglobin": 9.0,
+        "ecog": 2.0
+      },
+      "note": "A 23-year-old man. Creatinine 2.38 mg/dL. Bilirubin 2.5 mg/dL. Platelets 332. ANC 7545. Hemoglobin 9.0 g/dL. ECOG 2.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT00003368",
+      "attr": "age",
+      "criterion": "PATIENT CHARACTERISTICS: Age: 18 and over Performance status: CALGB 0-2 Life expectancy: Not specified Hematopoietic: Granulocyte count at least 1,500/mm3 Platelet count at least 100,000/mm3 Hepatic and Renal: Albumin at least 2",
+      "facts": {
+        "age": 65.0,
+        "creatinine": 3.16,
+        "bilirubin": 0.64,
+        "platelets": 212.0,
+        "anc": 540.0,
+        "hemoglobin": 9.0,
+        "ecog": 2.0
+      },
+      "note": "A 65-year-old man. Creatinine 3.16 mg/dL. Bilirubin 0.64 mg/dL. Platelets 212. ANC 540. Hemoglobin 9.0 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT00530075",
+      "attr": "platelets",
+      "criterion": "WBC >= 4,000/mm3, haemoglobin >= 8g/dl, neutrophils >= 2,500/mm3, platelets >= 100,000/mm3",
+      "facts": {
+        "age": 78.0,
+        "creatinine": 3.02,
+        "bilirubin": 1.27,
+        "platelets": 260.0,
+        "anc": 7835.0,
+        "hemoglobin": 10.5,
+        "ecog": 3.0
+      },
+      "note": "A 78-year-old woman. Creatinine 3.02 mg/dL. Bilirubin 1.27 mg/dL. Platelets 260. ANC 7835. Hemoglobin 10.5 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT04537078",
+      "attr": "age",
+      "criterion": "5%, respectively, among women aged 20-44 years and attempting to conceive",
+      "facts": {
+        "age": 26.0,
+        "creatinine": 0.82,
+        "bilirubin": 1.07,
+        "platelets": 51.0,
+        "anc": 3679.0,
+        "hemoglobin": 14.5,
+        "ecog": 3.0
+      },
+      "note": "A 26-year-old woman. Creatinine 0.82 mg/dL. Bilirubin 1.07 mg/dL. Platelets 51. ANC 3679. Hemoglobin 14.5 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT04576247",
+      "attr": "age",
+      "criterion": "Age: 18 - 45 years",
+      "facts": {
+        "age": 20.0,
+        "creatinine": 3.09,
+        "bilirubin": 0.68,
+        "platelets": 280.0,
+        "anc": 1886.0,
+        "hemoglobin": 10.4,
+        "ecog": 3.0
+      },
+      "note": "A 20-year-old woman. Creatinine 3.09 mg/dL. Bilirubin 0.68 mg/dL. Platelets 280. ANC 1886. Hemoglobin 10.4 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT03689439",
+      "attr": "age",
+      "criterion": "Age 18-80 years old;",
+      "facts": {
+        "age": 54.0,
+        "creatinine": 0.81,
+        "bilirubin": 2.44,
+        "platelets": 164.0,
+        "anc": 5219.0,
+        "hemoglobin": 15.0,
+        "ecog": 3.0
+      },
+      "note": "A 54-year-old woman. Creatinine 0.81 mg/dL. Bilirubin 2.44 mg/dL. Platelets 164. ANC 5219. Hemoglobin 15.0 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT00952692",
+      "attr": "ecog",
+      "criterion": "The patient has ECOG status of 0 or 1",
+      "facts": {
+        "age": 66.0,
+        "creatinine": 2.34,
+        "bilirubin": 0.8,
+        "platelets": 376.0,
+        "anc": 3387.0,
+        "hemoglobin": 7.0,
+        "ecog": 2.0
+      },
+      "note": "A 66-year-old woman. Creatinine 2.34 mg/dL. Bilirubin 0.8 mg/dL. Platelets 376. ANC 3387. Hemoglobin 7.0 g/dL. ECOG 2.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT02371590",
+      "attr": "hemoglobin",
+      "criterion": "Progressive anemia (hemoglobin \u2264 11 g/dL)",
+      "facts": {
+        "age": 82.0,
+        "creatinine": 2.33,
+        "bilirubin": 0.71,
+        "platelets": 282.0,
+        "anc": 7465.0,
+        "hemoglobin": 11.2,
+        "ecog": 1.0
+      },
+      "note": "A 82-year-old woman. Creatinine 2.33 mg/dL. Bilirubin 0.71 mg/dL. Platelets 282. ANC 7465. Hemoglobin 11.2 g/dL. ECOG 1.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT03752567",
+      "attr": "age",
+      "criterion": "age> 18 years,",
+      "facts": {
+        "age": 48.0,
+        "creatinine": 2.1,
+        "bilirubin": 0.44,
+        "platelets": 369.0,
+        "anc": 4751.0,
+        "hemoglobin": 10.1,
+        "ecog": 0.0
+      },
+      "note": "A 48-year-old woman. Creatinine 2.1 mg/dL. Bilirubin 0.44 mg/dL. Platelets 369. ANC 4751. Hemoglobin 10.1 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT02671188",
+      "attr": "age",
+      "criterion": "Age>=18 years and <=75 years of age at the time of consent",
+      "facts": {
+        "age": 60.0,
+        "creatinine": 0.85,
+        "bilirubin": 0.35,
+        "platelets": 124.0,
+        "anc": 7013.0,
+        "hemoglobin": 13.2,
+        "ecog": 1.0
+      },
+      "note": "A 60-year-old woman. Creatinine 0.85 mg/dL. Bilirubin 0.35 mg/dL. Platelets 124. ANC 7013. Hemoglobin 13.2 g/dL. ECOG 1.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT03721952",
+      "attr": "age",
+      "criterion": "Acute illnesses and conditions also include: age >=80 years; acute respiratory distress syndrome (ARDS) with P/F ratio <=300; subarachnoid hemorrhage (SAH) Fisher grade 3/4 with Glasgow coma score (GCS) <=12; spontaneous hemorrhage (ICH, I",
+      "facts": {
+        "age": 82.0,
+        "creatinine": 2.6,
+        "bilirubin": 2.88,
+        "platelets": 208.0,
+        "anc": 5952.0,
+        "hemoglobin": 8.0,
+        "ecog": 3.0
+      },
+      "note": "A 82-year-old woman. Creatinine 2.6 mg/dL. Bilirubin 2.88 mg/dL. Platelets 208. ANC 5952. Hemoglobin 8.0 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT04456192",
+      "attr": "age",
+      "criterion": "~The study involved 31 obese or normal weight women aged 34-62",
+      "facts": {
+        "age": 71.0,
+        "creatinine": 2.7,
+        "bilirubin": 0.25,
+        "platelets": 131.0,
+        "anc": 1397.0,
+        "hemoglobin": 10.6,
+        "ecog": 3.0
+      },
+      "note": "A 71-year-old man. Creatinine 2.7 mg/dL. Bilirubin 0.25 mg/dL. Platelets 131. ANC 1397. Hemoglobin 10.6 g/dL. ECOG 3.",
+      "holds": false
+    },
+    {
+      "nct_id": "NCT01822275",
+      "attr": "anc",
+      "criterion": "Absolute neutrophil count (ANC) \u2265 1,800 cells/mm3",
+      "facts": {
+        "age": 26.0,
+        "creatinine": 3.26,
+        "bilirubin": 2.86,
+        "platelets": 386.0,
+        "anc": 6949.0,
+        "hemoglobin": 11.1,
+        "ecog": 0.0
+      },
+      "note": "A 26-year-old woman. Creatinine 3.26 mg/dL. Bilirubin 2.86 mg/dL. Platelets 386. ANC 6949. Hemoglobin 11.1 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT01797575",
+      "attr": "age",
+      "criterion": "Age 18 to 65 years",
+      "facts": {
+        "age": 34.0,
+        "creatinine": 0.99,
+        "bilirubin": 2.1,
+        "platelets": 312.0,
+        "anc": 4921.0,
+        "hemoglobin": 8.0,
+        "ecog": 2.0
+      },
+      "note": "A 34-year-old woman. Creatinine 0.99 mg/dL. Bilirubin 2.1 mg/dL. Platelets 312. ANC 4921. Hemoglobin 8.0 g/dL. ECOG 2.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT02517359",
+      "attr": "age",
+      "criterion": "Subject must be a man or woman aged between 18 to 65 years of age, inclusive: Women of non-childbearing potential only - defined as being amenorrhoeic for greater than 1 year with an appropriate clinical profile or permanently sterilised",
+      "facts": {
+        "age": 56.0,
+        "creatinine": 2.43,
+        "bilirubin": 0.69,
+        "platelets": 174.0,
+        "anc": 1597.0,
+        "hemoglobin": 15.7,
+        "ecog": 0.0
+      },
+      "note": "A 56-year-old woman. Creatinine 2.43 mg/dL. Bilirubin 0.69 mg/dL. Platelets 174. ANC 1597. Hemoglobin 15.7 g/dL. ECOG 0.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT03096782",
+      "attr": "age",
+      "criterion": "Performance score of at least 80% by Karnofsky or performance score (PS) < 3 (Eastern Cooperative Oncology Group [ECOG]) (age >= 12 years)",
+      "facts": {
+        "age": 69.0,
+        "creatinine": 0.81,
+        "bilirubin": 0.75,
+        "platelets": 239.0,
+        "anc": 5293.0,
+        "hemoglobin": 9.2,
+        "ecog": 3.0
+      },
+      "note": "A 69-year-old man. Creatinine 0.81 mg/dL. Bilirubin 0.75 mg/dL. Platelets 239. ANC 5293. Hemoglobin 9.2 g/dL. ECOG 3.",
+      "holds": true
+    },
+    {
+      "nct_id": "NCT00315679",
+      "attr": "age",
+      "criterion": "Age 16 to 65 years",
+      "facts": {
+        "age": 43.0,
+        "creatinine": 0.77,
+        "bilirubin": 1.26,
+        "platelets": 142.0,
+        "anc": 5148.0,
+        "hemoglobin": 9.3,
+        "ecog": 2.0
+      },
+      "note": "A 43-year-old man. Creatinine 0.77 mg/dL. Bilirubin 1.26 mg/dL. Platelets 142. ANC 5148. Hemoglobin 9.3 g/dL. ECOG 2.",
+      "holds": true
+    }
+  ]
+}

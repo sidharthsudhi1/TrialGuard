@@ -1,0 +1,59 @@
+{
+  "alpha": 0.1,
+  "cohorts": {
+    "trec_2021": {
+      "n_gold_eligible_assessed": 1880,
+      "fer_served": 0.3883,
+      "fer_t3": 0.0676,
+      "n_gold_excluded_assessed": 1622,
+      "gold_excluded_released_at_t3": 0.5339
+    },
+    "trec_2022": {
+      "n_gold_eligible_assessed": 1538,
+      "fer_served": 0.2958,
+      "fer_t3": 0.054,
+      "n_gold_excluded_assessed": 825,
+      "gold_excluded_released_at_t3": 0.5018
+    }
+  },
+  "trec_2021_to_trec_2022": {
+    "t": 3,
+    "holds": true
+  },
+  "trec_2022_to_trec_2021": {
+    "t": 3,
+    "holds": true
+  },
+  "adopt": true,
+  "r5_ndcg10": {
+    "trec_2021": {
+      "n": 75,
+      "mean_delta": -0.0241,
+      "better": 33,
+      "worse": 42,
+      "ties": 0,
+      "p": 0.1994,
+      "delta_ci": [
+        -0.0628,
+        0.0152
+      ],
+      "p_bh": 0.3988,
+      "significant_bh": false
+    },
+    "trec_2022": {
+      "n": 50,
+      "mean_delta": -0.0067,
+      "better": 26,
+      "worse": 24,
+      "ties": 0,
+      "p": 0.9314,
+      "delta_ci": [
+        -0.0554,
+        0.0399
+      ],
+      "p_bh": 0.9314,
+      "significant_bh": false
+    }
+  },
+  "r5_adopt": false
+}

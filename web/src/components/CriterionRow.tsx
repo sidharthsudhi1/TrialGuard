@@ -14,6 +14,15 @@ export function CriterionRow({ a }: { a: Assessment }) {
         <p className="quote-fail">
           Quote not verbatim in source — downgraded to unverifiable, never forced.
         </p>
+      ) : quote && a.grounded && a.weak_entailment?.length ? (
+        <p className="quote-weak">
+          Quote verified, but it does not establish the verdict:{" "}
+          <em>&ldquo;{quote}&rdquo;</em>
+          <br />
+          <span className="muted">
+            The quote is in the source. Read it before relying on this verdict.
+          </span>
+        </p>
       ) : quote && a.grounded && a.weak_absence ? (
         // The verdict claims the patient does NOT match this disqualifier, and a
         // verbatim quote cannot establish absence. It is still a real quote, so

@@ -34,6 +34,8 @@ export interface Assessment {
   grounding_failure?: boolean;
   /** Exclusion not_met whose quote does not establish absence. See grounding.py. */
   weak_absence?: boolean;
+  /** Grounded quote that does not establish the verdict. Badge only. */
+  weak_entailment?: string[];
   rationale?: string;
 }
 

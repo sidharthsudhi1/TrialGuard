@@ -65,7 +65,23 @@ def _client_ip(request: Request) -> str:
     return "unknown"
 
 
+def _staging_bypass(request: Request) -> bool:
+    """True only when this process was given a staging token and the caller has it.
+
+    The production app leaves the setting empty, so the header does nothing there.
+    """
+    import hmac
+
+    token = settings.api_staging_bypass_token
+    if not token:
+        return False
+    given = request.headers.get("x-staging-token", "")
+    return hmac.compare_digest(given, token)
+
+
 def _rate_or_429(request: Request, kind: str) -> None:
+    if _staging_bypass(request):
+        return
     limiters = request.app.state.rate_limiters
     limiter = limiters[kind]
     wait = limiter.take(_client_ip(request))
@@ -279,31 +295,9 @@ def budget() -> dict[str, Any]:
     }
 
 
-@router.post("/search")
-def search(body: SearchRequest, request: Request) -> dict[str, Any]:
-    """Ranked ctgov_live trials for a synthetic note. No assess."""
-    _rate_or_429(request, "search")
-    _reject_empty_or_injection(body.note)
-
-    top_k = _cap_top_k(body.top_k, body.deep)
-    from trialguard.agent.ratelimit import BudgetExhausted
+def _trial_payload(hits: list[tuple[str, float]]) -> list[dict[str, Any]]:
     from trialguard.db.queries import get_trials
-    from trialguard.retrieval.pipeline import retrieve
 
-    # A note that misses the keyword cache costs one LLM call, so search can trip
-    # the daily cap just as assess can. Notes already cached never reach the
-    # model, so they keep working after the budget is spent.
-    request_id = uuid.uuid4().hex[:12]
-    try:
-        hits, latency = retrieve(
-            body.note.strip(),
-            top_k=top_k,
-            source=SOURCE,
-            use_keywords=True,
-            handler=_trace_handler(request_id, "search"),
-        )
-    except BudgetExhausted as e:
-        raise HTTPException(status_code=402, detail=_budget_exhausted_detail(e)) from e
     rows = get_trials([nct for nct, _ in hits], source=SOURCE)
     trials = []
     for nct, score in hits:
@@ -323,13 +317,106 @@ def search(body: SearchRequest, request: Request) -> dict[str, Any]:
                 "score": round(float(score), 4),
             }
         )
+    return trials
+
+
+@router.post("/search")
+def search(body: SearchRequest, request: Request) -> dict[str, Any]:
+    """Ranked ctgov_live trials for a synthetic note. No assess."""
+    _rate_or_429(request, "search")
+    _reject_empty_or_injection(body.note)
+
+    top_k = _cap_top_k(body.top_k, body.deep)
+    from trialguard.agent.ratelimit import BudgetExhausted
+    from trialguard.retrieval.pipeline import retrieve
+
+    # A note that misses the keyword cache costs one LLM call, so search can trip
+    # the daily cap just as assess can. Notes already cached never reach the
+    # model, so they keep working after the budget is spent.
+    request_id = uuid.uuid4().hex[:12]
+    try:
+        hits, latency = retrieve(
+            body.note.strip(),
+            top_k=top_k,
+            source=SOURCE,
+            use_keywords=True,
+            handler=_trace_handler(request_id, "search"),
+        )
+    except BudgetExhausted as e:
+        raise HTTPException(status_code=402, detail=_budget_exhausted_detail(e)) from e
     return {
-        "trials": trials,
+        "trials": _trial_payload(hits),
         "top_k": top_k,
         "latency_ms": latency,
         "request_id": request_id,
         "notice": SYNTHETIC_NOTICE,
     }
+
+
+@router.post("/search/stream")
+def search_stream(body: SearchRequest, request: Request) -> StreamingResponse:
+    """Provisional raw-note hits, then the keyword ranking that replaces them."""
+    _rate_or_429(request, "search")
+    _reject_empty_or_injection(body.note)
+
+    top_k = _cap_top_k(body.top_k, body.deep)
+    from trialguard.agent.ratelimit import BudgetExhausted
+    from trialguard.retrieval.pipeline import retrieve
+
+    request_id = uuid.uuid4().hex[:12]
+    note = body.note.strip()
+
+    def events():
+        import queue
+        import threading
+
+        box: queue.Queue = queue.Queue()
+
+        def on_provisional(hits) -> None:
+            box.put(
+                {
+                    "type": "provisional",
+                    "trials": _trial_payload(hits),
+                    "request_id": request_id,
+                    "notice": SYNTHETIC_NOTICE,
+                }
+            )
+
+        def run() -> None:
+            try:
+                hits, latency = retrieve(
+                    note,
+                    top_k=top_k,
+                    source=SOURCE,
+                    use_keywords=True,
+                    handler=_trace_handler(request_id, "search"),
+                    on_provisional=on_provisional,
+                )
+                box.put(
+                    {
+                        "type": "final",
+                        "trials": _trial_payload(hits),
+                        "top_k": top_k,
+                        "latency_ms": latency,
+                        "request_id": request_id,
+                        "notice": SYNTHETIC_NOTICE,
+                    }
+                )
+            except BudgetExhausted as e:
+                box.put({"type": "error", "status": 402, "detail": _budget_exhausted_detail(e)})
+            except Exception as e:
+                box.put({"type": "error", "status": 500, "detail": type(e).__name__})
+            finally:
+                box.put(None)
+
+        threading.Thread(target=run, name="tg-search-stream", daemon=True).start()
+        while True:
+            item = box.get()
+            if item is None:
+                break
+            yield f"data: {json.dumps(item)}\n\n"
+
+    return StreamingResponse(events(), media_type="text/event-stream")
 
 
 @router.get("/trials/{nct_id}")

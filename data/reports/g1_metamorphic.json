@@ -1,0 +1,21 @@
+{
+  "n_items": 50,
+  "summary": {
+    "directional": {
+      "attempted": 47,
+      "scored": 46,
+      "success": 30,
+      "rate": 0.6522,
+      "skipped_unlocatable": 3,
+      "errors": 1
+    },
+    "invariance": {
+      "attempted": 43,
+      "scored": 43,
+      "success": 26,
+      "rate": 0.6047,
+      "skipped_unlocatable": 7,
+      "errors": 0
+    }
+  }
+}

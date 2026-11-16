@@ -166,17 +166,22 @@ class VectorCache:
         matrix, ids = self._matrix, self._ids
         if matrix is None:
             return None
-        q = np.asarray(query_vec, dtype=np.float32)
-        norm = float(np.linalg.norm(q))
-        if norm:
-            q = q / norm
-        scores = matrix @ q
-        k = min(top_k, scores.shape[0])
-        # argpartition finds the top k without sorting 26k scores, then only that
-        # slice is ordered.
-        idx = np.argpartition(-scores, k - 1)[:k]
-        idx = idx[np.argsort(-scores[idx], kind="stable")]
-        return [(ids[i], float(scores[i])) for i in idx]
+        from trialguard.retrieval.gemm import query_scores, topk
+
+        # One column of the same product search_queries uses, so a single query
+        # and a batch of them cannot disagree about a tie.
+        scores = query_scores(matrix, query_vec, normalize=True)
+        return topk(scores[:, 0], ids, top_k)
+
+    def search_queries(self, query_vecs, top_k: int) -> list[list[tuple[str, float]]] | None:
+        """Top-k for every row of query_vecs, one GEMM. None if not resident."""
+        matrix, ids = self._matrix, self._ids
+        if matrix is None:
+            return None
+        from trialguard.retrieval.gemm import query_scores, topk
+
+        scores = query_scores(matrix, query_vecs, normalize=True)
+        return [topk(scores[:, i], ids, top_k) for i in range(scores.shape[1])]
 
 
 _caches: dict[str, VectorCache] = {}
@@ -188,6 +193,19 @@ def get_cache(source: str) -> VectorCache:
         if source not in _caches:
             _caches[source] = VectorCache(source)
         return _caches[source]
+
+
+def cached_search_queries(query_vecs, top_k: int, source: str | None):
+    """Batched dense search, or None when the caller should use SQL."""
+    from trialguard.config import settings
+
+    if not settings.retrieval_vector_cache or not source:
+        return None
+    if source != settings.retrieval_vector_cache_source:
+        return None
+    cache = get_cache(source)
+    cache.maybe_reload()
+    return cache.search_queries(query_vecs, top_k)
 
 
 def cached_search(query_vec, top_k: int, source: str | None) -> list[tuple[str, float]] | None:
