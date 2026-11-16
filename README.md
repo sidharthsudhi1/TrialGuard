@@ -642,6 +642,7 @@ what it corrects.
 | [AD-39](docs/adr/0039-one-disqualifier-still-excludes.md) | One disqualifier still excludes |  |
 | [AD-40](docs/adr/0040-small-model-does-not-screen-the-tail.md) | A small model does not screen the deep tail |  |
 | [AD-41](docs/adr/0041-span-detectors-not-adopted.md) | Small span detectors are not an entailment badge |  |
+| [AD-42](docs/adr/0042-database-lease-waits.md) | A database lease waits, and scale-out is not claimed linear |  |
 
 *When a decision is reversed during the build, the reversal and reason are recorded — not deleted.*
 

@@ -1,0 +1,66 @@
+{
+  "base_url": "https://trialguard-api-staging.fly.dev",
+  "machines": 1,
+  "top_k": 5,
+  "n_notes": 2,
+  "vector_cache": {
+    "enabled": true,
+    "source": "ctgov_live",
+    "ready": true,
+    "rows": 26151,
+    "load_seconds": 7.6,
+    "error": null,
+    "version": "b88d0398a62849739121fc86adfb92e3",
+    "loaded_at": "2026-11-16T14:19:42Z"
+  },
+  "steps": [
+    {
+      "concurrency": 4,
+      "measured_s": 90.0,
+      "requests": 257,
+      "ok": 257,
+      "error_rate": 0.0,
+      "statuses": {
+        "200": 257
+      },
+      "rps_ok": 2.856,
+      "wall_ms": {
+        "p50": 1394.3,
+        "p95": 1779.6
+      },
+      "server_ms": {
+        "p50": 1313.0,
+        "p95": 1614.0
+      },
+      "by_machine": {
+        "8ed97d9ad33598": 257
+      },
+      "min_machine_share": 1.0,
+      "client_cpu_cores": 0.009
+    },
+    {
+      "concurrency": 8,
+      "measured_s": 90.0,
+      "requests": 278,
+      "ok": 278,
+      "error_rate": 0.0,
+      "statuses": {
+        "200": 278
+      },
+      "rps_ok": 3.089,
+      "wall_ms": {
+        "p50": 2596.3,
+        "p95": 3136.4
+      },
+      "server_ms": {
+        "p50": 2474.7,
+        "p95": 2989.8
+      },
+      "by_machine": {
+        "8ed97d9ad33598": 278
+      },
+      "min_machine_share": 1.0,
+      "client_cpu_cores": 0.01
+    }
+  ]
+}
