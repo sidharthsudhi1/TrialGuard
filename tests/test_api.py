@@ -1235,3 +1235,16 @@ def test_staging_token_skips_the_limiter_and_an_empty_token_does_not(monkeypatch
                 headers={"X-Staging-Token": "secret"},
             )
             assert again.status_code == 200
+
+
+def test_served_by_header_only_on_a_staging_process(monkeypatch):
+    monkeypatch.setenv("FLY_MACHINE_ID", "m1")
+    monkeypatch.setattr("trialguard.config.settings.api_staging_bypass_token", "")
+    from trialguard.api.app import create_app
+
+    with TestClient(create_app()) as c:
+        assert "x-served-by" not in c.get("/api/limits").headers
+
+    monkeypatch.setattr("trialguard.config.settings.api_staging_bypass_token", "secret")
+    with TestClient(create_app()) as c:
+        assert c.get("/api/limits").headers["x-served-by"] == "m1"
