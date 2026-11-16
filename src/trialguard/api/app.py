@@ -15,7 +15,7 @@ os.environ.setdefault("TG_ANALYST_DELAY", "0")
 # v4 assesses inclusion AND exclusion. Additive cache namespace.
 os.environ.setdefault("TG_PROMPT_VERSION", "v4")
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from trialguard.api.jobs import make_job_store
@@ -81,6 +81,17 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["*"],
     )
+    # Staging only: name the machine that answered, so a load test can show the
+    # proxy spread requests instead of assuming it.
+    machine = os.environ.get("FLY_MACHINE_ID", "")
+    if settings.api_staging_bypass_token and machine:
+
+        @app.middleware("http")
+        async def served_by(request: Request, call_next):
+            response = await call_next(request)
+            response.headers["X-Served-By"] = machine
+            return response
+
     app.include_router(router)
     return app
 
