@@ -1,0 +1,718 @@
+{
+  "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+  "run_usd": 0.001746,
+  "patients": [
+    {
+      "patient_id": "trec-20231",
+      "note": "Disorder: glaucoma\nDefinitive diagnosis: primary open angle glaucoma\nVisual field: moderate field damage\nVisual acuity: 0.3\nPrior cataract surgery: no\nPrior LASIK surgery: no\nComorbid ocular diseases: corneal edema",
+      "keywords": [
+        "primary open angle glaucoma",
+        "moderate glaucoma",
+        "glaucoma with corneal edema",
+        "open angle glaucoma treatment",
+        "glaucoma clinical trials",
+        "corneal edema and glaucoma",
+        "glaucoma moderate vision loss",
+        "primary glaucoma therapy",
+        "glaucoma vision impairment",
+        "open angle glaucoma management",
+        "glaucoma with visual field damage"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-20232",
+      "note": "Disorder: glaucoma\nDefinitive diagnosis: pigmentary\nIntraocular pressure: 15 mmHg\nVisual field: normal\nVisual acuity: 20/50\nPrior cataract surgery: no\nPrior LASIK surgery: yes\nComorbid ocular diseases: macular degeneration",
+      "keywords": [
+        "pigmentary glaucoma",
+        "glaucoma treatment",
+        "macular degeneration",
+        "lasik complications",
+        "intraocular pressure management",
+        "glaucoma clinical trials",
+        "pigment dispersion syndrome",
+        "ocular hypertension",
+        "glaucoma surgery alternatives",
+        "vision restoration therapy"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-20233",
+      "note": "Disorder: glaucoma\nDefinitive diagnosis: uveitic glaucoma\nIntraocular pressure: 28 mmHg\nVisual field: early field damage\nVisual acuity: 20/30\nPrior cataract surgery: no\nPrior LASIK surgery: no\nComorbid ocular diseases: macular edema",
+      "keywords": [
+        "uveitic glaucoma",
+        "glaucoma treatment",
+        "macular edema",
+        "high intraocular pressure",
+        "early glaucoma",
+        "visual field damage",
+        "glaucoma clinical trials",
+        "uveitis management",
+        "ocular hypertension",
+        "glaucoma surgery alternatives",
+        "secondary glaucoma",
+        "inflammatory glaucoma"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-20234",
+      "note": "Disorder: glaucoma\nDefinitive diagnosis: POAG\nIntraocular pressure: 48 mmHg\nVisual field: advanced glaucomatous field damage\nVisual acuity: 20/150\nPrior cataract surgery: yes\nPrior LASIK surgery: no\nComorbid ocular diseases: diabetic retinopathy",
+      "keywords": [
+        "primary open angle glaucoma",
+        "advanced glaucoma",
+        "high intraocular pressure",
+        "glaucomatous field damage",
+        "diabetic retinopathy",
+        "prior cataract surgery",
+        "poor visual acuity",
+        "glaucoma treatment",
+        "intraocular pressure management",
+        "glaucoma with comorbidities",
+        "vision loss glaucoma",
+        "ocular hypertension"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-20235",
+      "note": "Disorder: glaucoma\nDefinitive diagnosis: neovascular glaucoma\nIntraocular pressure: 22 mgHg\nVisual field: normal\nVisual acuity: 0.2\nPrior cataract surgery: yes\nPrior LASIK surgery: no",
+      "keywords": [
+        "neovascular glaucoma",
+        "glaucoma treatment",
+        "high intraocular pressure",
+        "prior cataract surgery",
+        "low visual acuity",
+        "glaucoma clinical trials",
+        "neovascularization therapy",
+        "intraocular pressure management",
+        "glaucoma surgery alternatives",
+        "vision restoration therapy"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-20236",
+      "note": "Disorder: anxiety\nDefinitive diagnosis: yes\nAge: 39\nProficient languages: English\nSSASI: 6\nHAM-A: 20\nPHQ-9: 7\nHAM-D: 23\nSuicidal ideation: yes\nDementia: no",
+      "keywords": [
+        "anxiety disorder",
+        "suicidal ideation",
+        "adult anxiety",
+        "english language",
+        "severe anxiety",
+        "comorbid depression",
+        "anxiety treatment",
+        "major depressive disorder"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-20237",
+      "note": "Disorder: anxiety\nDefinitive diagnosis: yes\nAge: 25 years old\nProficient languages: English, Swedish\nPHQ-9: 18\nHAM-D: 19\nGAD-7: 20\nBeck Depression Inventory: 12\nSuicidal ideation: yes\nDementia: no",
+      "keywords": [
+        "anxiety disorder",
+        "severe anxiety",
+        "depression comorbidity",
+        "suicidal ideation",
+        "adult anxiety",
+        "english language",
+        "anxiety treatment",
+        "comorbid depression",
+        "young adult anxiety",
+        "anxiety clinical trial"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-20238",
+      "note": "Disorder: anxiety\nDefinitive diagnosis: no\nAge: 12yo\nProficient languages: English, Spanish\nSSASI: 12\nHAM-A: 25\nHAM-D: 14\nSuicidal ideation: no\nDementia: no",
+      "keywords": [
+        "anxiety disorder",
+        "pediatric anxiety",
+        "child anxiety treatment",
+        "anxiety clinical trials",
+        "english language trials",
+        "spanish language trials",
+        "adolescent mental health",
+        "anxiety in children",
+        "youth anxiety studies"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-20239",
+      "note": "Disorder: anxiety\nDefinitive diagnosis: yes\nAge: adult\nProficient languages: English, Dutch\nHAM-A: 18\nPHQ-9: 22\nHAM-D: 24\nGAD-7: 12\nSuicidal ideation: yes\nDementia: no",
+      "keywords": [
+        "anxiety disorder",
+        "adult anxiety",
+        "severe anxiety",
+        "anxiety with depression",
+        "suicidal ideation",
+        "anxiety treatment",
+        "english language",
+        "dutch language",
+        "generalized anxiety",
+        "major depressive disorder",
+        "anxiety clinical trial",
+        "treatment resistant anxiety"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202310",
+      "note": "Disorder: anxiety\nDefinitive diagnosis: yes\nAge: 58 y/o\nProficient languages: English, Turkish\nHAM-A: 12\nHAM-D: 19\nGAD-7: 9\nBeck Depression Inventory: 8\nSuicidal ideation: no\nDementia: yes",
+      "keywords": [
+        "anxiety disorder",
+        "dementia comorbidity",
+        "geriatric anxiety",
+        "depression comorbidity",
+        "english language",
+        "turkish language",
+        "anxiety treatment",
+        "depression treatment",
+        "elderly mental health"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202311",
+      "note": "Disorder: COPD\nDefinitive diagnosis: yes\nFEV1: 85%\nGOLD stage: III\nExacerbations: three in past year\nCOPD treatments: bronchodilator, steroids\nSmoking history: 5 cigarettes/day until stopping 2 years ago\nLung comorbidities: interstitial lung disease\nOther comorbidities: hypertension",
+      "keywords": [
+        "copd stage iii",
+        "copd with exacerbations",
+        "fev1 85%",
+        "bronchodilator therapy",
+        "steroid treatment",
+        "interstitial lung disease",
+        "copd and hypertension",
+        "ex-smoker copd",
+        "severe copd",
+        "copd with comorbidities",
+        "gold stage iii copd",
+        "copd with ild"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202312",
+      "note": "Disorder: COPD\nDefinitive diagnosis: yes\nFEV1: 50%\nGOLD stage: II\nExacerbations: two last month\nCOPD treatments: none\nSmoking history: never\nLung comorbidities: asthma\nOther comorbidities: none",
+      "keywords": [
+        "copd stage ii",
+        "copd exacerbations",
+        "fev1 50%",
+        "copd asthma comorbidity",
+        "severe copd",
+        "copd never smoker",
+        "moderate copd",
+        "gold stage ii copd",
+        "copd with asthma",
+        "copd lung disease",
+        "chronic obstructive pulmonary disease",
+        "copd treatment naive"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202313",
+      "note": "Disorder: COPD\nDefinitive diagnosis: yes\nFEV1: 65%\nGOLD stage: IV\nExacerbations: 8 in past 12 mo\nCOPD treatments: EVB, pulmonary rehab\nSmoking history: 2 packs day\nLung comorbidities: lung cancer\nOther comorbidities: none",
+      "keywords": [
+        "copd stage iv",
+        "severe copd",
+        "copd with lung cancer",
+        "fev1 65%",
+        "frequent exacerbations",
+        "evb treatment",
+        "pulmonary rehab",
+        "copd and smoking",
+        "lung cancer and copd",
+        "advanced copd",
+        "copd with comorbid lung cancer",
+        "very severe copd"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202314",
+      "note": "Disorder: COPD\nDefinitive diagnosis: yes\nFEV1: 72%\nGOLD stage: II\nExacerbations: first two weeks ago\nCOPD treatments: steroids\nSmoking history: none\nLung comorbidities: none\nOther comorbidities: glaucoma",
+      "keywords": [
+        "copd stage ii",
+        "copd exacerbation",
+        "copd steroids",
+        "gold stage ii",
+        "copd fev1 72",
+        "copd glaucoma",
+        "moderate copd",
+        "copd no smoking",
+        "copd treatment naive",
+        "copd lung disease",
+        "copd respiratory",
+        "copd gold ii"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202315",
+      "note": "Disorder: COPD\nDefinitive diagnosis: yes\nFEV1: 55%\nGOLD stage: early\nExacerbations: none\nCOPD treatments: none\nSmoking history: none\nLung comorbidities: none\nOther comorbidities: none",
+      "keywords": [
+        "copd",
+        "copd early stage",
+        "gold stage early",
+        "mild copd",
+        "copd fev1 55",
+        "copd never smoker",
+        "copd treatment naive",
+        "chronic obstructive pulmonary disease",
+        "copd no exacerbations"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202316",
+      "note": "Disorder: breast cancer\nDefinitive diagnosis: yes\nHER2: positive\nPrior chemotherapy: no\nPrior radiotherapy: no\nPrior mastectomy: no\nPerformance status: ECOG 1",
+      "keywords": [
+        "breast cancer",
+        "her2 positive",
+        "early stage breast cancer",
+        "ecog 1",
+        "no prior chemotherapy",
+        "no prior radiotherapy",
+        "breast cancer treatment naive",
+        "her2 positive breast cancer",
+        "breast cancer clinical trials",
+        "metastatic breast cancer",
+        "advanced breast cancer",
+        "breast cancer therapy"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202317",
+      "note": "Disorder: breast cancer\nDefinitive diagnosis: stage III\nHER2: negative\nHormone receptors: ER+, PR-\nPrior chemotherapy: neoadjuvant chemotherapy\nPrior radiotherapy: stereotactic radiotherapy\nPrior mastectomy: yes\nSurgery-related therapy: neoadjuvant chemotherapy\nPerformance status: ECOG 2",
+      "keywords": [
+        "breast cancer stage iii",
+        "er positive breast cancer",
+        "her2 negative breast cancer",
+        "neoadjuvant chemotherapy",
+        "hormone receptor positive",
+        "triple negative not applicable",
+        "ecog 2",
+        "post mastectomy",
+        "stereotactic radiotherapy",
+        "advanced breast cancer",
+        "er+ pr- breast cancer",
+        "stage iii breast cancer treatment"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202318",
+      "note": "Disorder: breast cancer\nDefinitive diagnosis: stage 2\nHER2: positive\nHormone receptors: PR-, ER-\nPrior chemotherapy: no\nPrior radiotherapy: yes\nPrior mastectomy: no\nPerformance status: Karnofsky 70%",
+      "keywords": [
+        "breast cancer",
+        "stage 2 breast cancer",
+        "her2 positive",
+        "hormone receptor negative",
+        "triple negative breast cancer",
+        "prior radiotherapy",
+        "karnofsky 70",
+        "breast cancer stage ii",
+        "her2 positive breast cancer",
+        "er/pr negative",
+        "second line breast cancer",
+        "locally advanced breast cancer"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202319",
+      "note": "Disorder: breast cancer\nDefinitive diagnosis: stage IV\nHER2: positive\nHormone receptors: PR positive\nPrior chemotherapy: yes\nPrior radiotherapy: yes\nPrior mastectomy: yes\nSurgery-related therapy: neoadjuvant chemotherapy\nPerformance status: ECOG 3, Karnofsky 50%",
+      "keywords": [
+        "breast cancer stage iv",
+        "her2 positive breast cancer",
+        "pr positive breast cancer",
+        "metastatic breast cancer",
+        "breast cancer with prior chemotherapy",
+        "her2 positive",
+        "hormone receptor positive",
+        "advanced breast cancer",
+        "stage iv breast cancer",
+        "breast cancer with neoadjuvant chemotherapy",
+        "ecog 3 breast cancer",
+        "metastatic her2 positive breast cancer"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202320",
+      "note": "Disorder: breast cancer\nDefinitive diagnosis: yes\nHER2: negative\nPrior chemotherapy: no\nPrior radiotherapy: no\nPrior mastectomy: no\nPerformance status: ECOG 1",
+      "keywords": [
+        "breast cancer",
+        "her2 negative",
+        "early stage breast cancer",
+        "ecog 1",
+        "breast cancer treatment naive",
+        "solid tumor",
+        "female cancer",
+        "breast carcinoma",
+        "no prior chemo",
+        "no prior radiotherapy"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202321",
+      "note": "Disorder: COVID-19\nDefinitive diagnosis: PCR-confirmed\nSymptoms: fever, muscle pain, shortness of breath\nHospitalization: 5 days\nVentilation: 2 days\nVaccination status: 1 shot mRNA\nOxygen saturation: 95%\nComorbid respiratory diseases: asthma",
+      "keywords": [
+        "covid-19",
+        "pcr confirmed covid-19",
+        "mrna vaccinated",
+        "severe covid-19",
+        "asthma comorbidity",
+        "respiratory failure",
+        "ventilator required",
+        "hypoxemic covid-19",
+        "covid-19 pneumonia",
+        "partial vaccination",
+        "acute respiratory distress",
+        "covid-19 with asthma"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202322",
+      "note": "Disorder: COVID-19\nDefinitive diagnosis: confirmed by PCR\nSymptoms: fever, headache, body pains\nHospitalization: yes\nVentilation: yes\nVaccination status: unvaccinated\nOxygen saturation: 96%\nComorbid respiratory diseases: bronchiectasis",
+      "keywords": [
+        "covid-19",
+        "severe covid-19",
+        "unvaccinated covid-19",
+        "bronchiectasis",
+        "ventilated patients",
+        "hospitalized covid-19",
+        "covid-19 pneumonia",
+        "respiratory failure",
+        "critical care covid-19",
+        "unvaccinated adults",
+        "severe respiratory disease",
+        "mechanically ventilated"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202323",
+      "note": "Disorder: COVID-19\nDefinitive diagnosis: yes (PCR)\nSymptoms: fever, muscle pain\nHospitalization: no\nVentilation: no\nVaccination status: 2-shot + booster\nOxygen saturation: 97%\nComorbid respiratory diseases: none",
+      "keywords": [
+        "covid-19",
+        "mild covid-19",
+        "pcr confirmed covid-19",
+        "fever",
+        "muscle pain",
+        "outpatient covid-19",
+        "vaccinated covid-19",
+        "covid-19 booster",
+        "non-hospitalized covid-19",
+        "no ventilation covid-19"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202324",
+      "note": "Disorder: COVID-19\nDefinitive diagnosis: positive on rapid test only\nSymptoms: headache, fatigue\nHospitalization: no\nVentilation: no\nVaccination status: unvaccinated\nOxygen saturation: 98%\nComorbid respiratory diseases: asthma",
+      "keywords": [
+        "covid-19",
+        "unvaccinated covid-19",
+        "mild covid-19",
+        "covid-19 asthma",
+        "covid-19 headache",
+        "outpatient covid-19",
+        "covid-19 fatigue",
+        "non-hospitalized covid-19",
+        "covid-19 respiratory comorbidities"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202325",
+      "note": "Disorder: COVID-19\nDefinitive diagnosis: never\nSymptoms: headache\nHospitalization: no\nVentilation: no\nVaccination status: unvaccinated\nComorbid respiratory diseases: none",
+      "keywords": [
+        "covid-19",
+        "unvaccinated covid-19",
+        "covid-19 headache",
+        "mild covid-19",
+        "outpatient covid-19",
+        "covid-19 treatment",
+        "covid-19 therapy",
+        "unvaccinated patients",
+        "covid-19 clinical trials"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202326",
+      "note": "Disorder: rheumatoid arthritis\nDefinitive diagnosis: yes\nActive DMARD treatment: methotrexate\nPrior DMARD treatment: none\nOther RA medications: ibuprofen\nAffected joints: 3 swollen joints\nTuberculosis: no\nComorbidities: hypertension",
+      "keywords": [
+        "rheumatoid arthritis",
+        "methotrexate treatment",
+        "active ra",
+        "dmard therapy",
+        "hypertension comorbidity",
+        "ibuprofen medication",
+        "swollen joints",
+        "ra disease",
+        "methotrexate user",
+        "adult rheumatoid arthritis",
+        "ra clinical trial",
+        "rheumatoid arthritis study"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202327",
+      "note": "Disorder: rheumatoid arthritis\nDefinitive diagnosis: yes\nActive DMARD treatment: none\nPrior DMARD treatment: hydroxychloroquine\nOther RA medications: prednisone\nAffected joints: 3 swollen, 2 tender joints\nTuberculosis: no\nDAS-28 CRP: 4\nComorbidities: none",
+      "keywords": [
+        "rheumatoid arthritis",
+        "dmard naive",
+        "hydroxychloroquine",
+        "prednisone",
+        "active ra",
+        "moderate ra",
+        "das-28 crp 4",
+        "swollen joints",
+        "tender joints",
+        "ra treatment refractory"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202328",
+      "note": "Disorder: rheumatoid arthritis\nDefinitive diagnosis: yes\nActive DMARD treatment: anti-TNF therapy\nPrior DMARD treatment: methotrexate\nOther RA medications: naproxen\nAffected joints: 5 swollen joints, 2 tender joints\nTuberculosis: past\nComorbidities: none",
+      "keywords": [
+        "rheumatoid arthritis",
+        "anti-tnf therapy",
+        "methotrexate",
+        "dmard treatment",
+        "active ra",
+        "swollen joints",
+        "tnf inhibitor",
+        "ra treatment",
+        "methotrexate resistant",
+        "anti-tnf rheumatoid arthritis",
+        "refractory ra"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202329",
+      "note": "Disorder: rheumatoid arthritis\nDefinitive diagnosis: yes\nActive DMARD treatment: hydroxychloroquine\nPrior DMARD treatment: none\nOther RA medications: ibuprofen\nAffected joints: 6 tender joints\nTuberculosis: no\nDAS-28 CRP: 5.5\nComorbidities: diabetes",
+      "keywords": [
+        "rheumatoid arthritis",
+        "active ra",
+        "hydroxychloroquine",
+        "das-28 crp 5.5",
+        "tender joints",
+        "diabetes comorbidity",
+        "dmard therapy",
+        "ibuprofen",
+        "ra clinical trial",
+        "moderate ra",
+        "adult rheumatoid arthritis"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202330",
+      "note": "Disorder: rheumatoid arthritis\nDefinitive diagnosis: yes\nActive DMARD treatment: anti-TNF therapy\nPrior DMARD treatment: none\nOther RA medications: none\nTuberculosis: no\nComorbidities: none",
+      "keywords": [
+        "rheumatoid arthritis",
+        "anti-tnf therapy",
+        "dmard treatment",
+        "active ra",
+        "tnf inhibitor",
+        "rheumatoid arthritis treatment",
+        "ra clinical trials",
+        "anti-tnf rheumatoid arthritis"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202331",
+      "note": "Disorder: sickle cell anemia\nDefinitive diagnosis: SS\nBlood transfusion: 1 week ago\nHemoglobin: 5.8 g/dL\nLast vaso occlusive crisis: 2 months ago\nStroke history: never",
+      "keywords": [
+        "sickle cell anemia",
+        "ss disease",
+        "vaso occlusive crisis",
+        "low hemoglobin",
+        "recent blood transfusion",
+        "stroke free",
+        "hbss",
+        "sickle cell crisis",
+        "anemia treatment",
+        "hemoglobinopathy",
+        "sickle cell disease"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202332",
+      "note": "Disorder: sickle cell anemia\nDefinitive diagnosis: SC\nBlood transfusion: never\nHemoglobin: 8.7 g/dl\nLast vaso occlusive crisis: 5 in last 12 months\nStroke history: stroke 12 years ago",
+      "keywords": [
+        "sickle cell anemia",
+        "sc disease",
+        "vaso occlusive crisis",
+        "stroke history",
+        "hemoglobinopathy",
+        "sickle cell crisis",
+        "anemia clinical trials",
+        "sickle cell stroke",
+        "hbsc disease",
+        "sickle cell therapy"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202333",
+      "note": "Disorder: sickle cell anemia\nDefinitive diagnosis: SB+\nBlood transfusion: 3 weeks ago\nHemoglobin: 10.5\nLast vaso occlusive crisis: 6 months ago\nStroke history: never",
+      "keywords": [
+        "sickle cell anemia",
+        "sb+ sickle cell",
+        "vaso occlusive crisis",
+        "blood transfusion",
+        "hemoglobin 10.5",
+        "sickle cell disease",
+        "hbss disease",
+        "stroke free",
+        "sickle cell crisis",
+        "anemia clinical trials",
+        "sickle cell therapy"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202334",
+      "note": "Disorder: sickle cell anemia\nDefinitive diagnosis: SS\nBlood transfusion: six months ago\nHemoglobin: 9.0 g/DL\nLast vaso occlusive crisis: 2 years ago\nStroke history: ischemic stroke 2 years ago",
+      "keywords": [
+        "sickle cell anemia",
+        "ss sickle cell",
+        "vaso occlusive crisis",
+        "ischemic stroke",
+        "blood transfusion",
+        "hemoglobin 9.0",
+        "sickle cell disease",
+        "stroke history",
+        "anemia clinical trials",
+        "sickle cell treatment",
+        "hemoglobinopathy",
+        "sickle cell crisis"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202335",
+      "note": "Disorder: sickle cell anemia\nDefinitive diagnosis: SB0\nBlood transfusion: never\nHemoglobin: 7.5 g/dL\nLast vaso occlusive crisis: 2 weeks ago\nStroke history: never",
+      "keywords": [
+        "sickle cell anemia",
+        "sb0 thalassemia",
+        "vaso occlusive crisis",
+        "low hemoglobin",
+        "no blood transfusion",
+        "stroke free",
+        "hemoglobinopathy",
+        "sickle cell disease",
+        "anemia treatment",
+        "vaso occlusive pain",
+        "sickle cell crisis",
+        "hemoglobin level"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202336",
+      "note": "Disorder: type 2 diabetes\nDefinitive diagnosis: yes\nHbA1c: 7.2%\nGlucose: fasting glucose of 138\nBMI: 45\nInsulin: no\nMetformin: no\nOther anti-diabetic drugs: no\nDiet restrictions: no\nExercise: limited to wheelchair\nKetoacidosis history: no\nComorbidities: lung cancer, hypertension, dementia\nHospitalization events: myocardial infarction 6 mo  ago",
+      "keywords": [
+        "type 2 diabetes",
+        "obese bmi",
+        "hypertension",
+        "lung cancer",
+        "dementia",
+        "myocardial infarction",
+        "wheelchair user",
+        "treatment naive diabetes",
+        "uncontrolled diabetes",
+        "diabetes with comorbidities",
+        "complicated diabetes",
+        "severe obesity"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202337",
+      "note": "Disorder: type 2 diabetes\nDefinitive diagnosis: yes\nHbA1c: 4.5\nGlucose: 95\nBMI: 28\nInsulin: no\nMetformin: 5 ml\nOther anti-diabetic drugs: thiazolidinedione\nDiet restrictions: low-calorie\nExercise: walk 2 miles per week\nKetoacidosis history: yes\nComorbidities: hypertension, thyroid disorder\nHospitalization events: never",
+      "keywords": [
+        "type 2 diabetes",
+        "hypertension",
+        "thyroid disorder",
+        "ketoacidosis history",
+        "metformin user",
+        "thiazolidinedione user",
+        "low calorie diet",
+        "insulin naive",
+        "hba1c controlled",
+        "obese bmi",
+        "diabetic ketoacidosis",
+        "comorbid hypertension"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202338",
+      "note": "Disorder: type 2 diabetes\nDefinitive diagnosis: yes\nHbA1c: 6\nGlucose: fasting blood sugar 115\nBMI: 35\nInsulin: yes\nMetformin: 8.5 mL\nOther anti-diabetic drugs: sulfonylurea\nDiet restrictions: periodic fasting\nExercise: walk 500 meters/day\nKetoacidosis history: no\nComorbidities: none\nHospitalization events: stroke last year",
+      "keywords": [
+        "type 2 diabetes",
+        "insulin therapy",
+        "metformin treatment",
+        "sulfonylurea therapy",
+        "obese bmi",
+        "prior stroke",
+        "diabetes with hypertension",
+        "uncontrolled blood sugar",
+        "periodic fasting diet",
+        "daily walking exercise"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202339",
+      "note": "Disorder: type 2 diabetes\nDefinitive diagnosis: yes\nHbA1c: 5.5\nGlucose: 100\nBMI: 32\nInsulin: no\nMetformin: 5 ML\nOther anti-diabetic drugs: no\nDiet restrictions: keto diet\nExercise: jog 2 miles per day\nKetoacidosis history: yes\nComorbidities: hypertension\nHospitalization events: never",
+      "keywords": [
+        "type 2 diabetes",
+        "keto diet",
+        "hypertension",
+        "metformin user",
+        "ketoacidosis history",
+        "insulin naive",
+        "obese bmi",
+        "hba1c controlled",
+        "diabetic ketoacidosis",
+        "exercise regular",
+        "anti diabetic medication",
+        "complicated diabetes"
+      ],
+      "raw_fallback": false
+    },
+    {
+      "patient_id": "trec-202340",
+      "note": "Disorder: type 2 diabetes\nDefinitive diagnosis: yes\nHbA1c: 6.3\nGlucose: 115 fasting blood sugar\nBMI: 40\nInsulin: no\nMetformin: 8.5 mL\nOther anti-diabetic drugs: no\nDiet restrictions: low-calorie\nExercise: no\nComorbidities: chronic kidney disease\nHospitalization events: never",
+      "keywords": [
+        "type 2 diabetes",
+        "chronic kidney disease",
+        "obese bmi 40",
+        "metformin treatment",
+        "hba1c 6.3",
+        "insulin naive",
+        "low calorie diet",
+        "no prior hospitalization"
+      ],
+      "raw_fallback": false
+    }
+  ]
+}
