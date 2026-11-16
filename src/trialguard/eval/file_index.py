@@ -170,6 +170,7 @@ class FileIndex:
         dense_pool: int | None = None,
         bm25_pool: int | None = None,
         use_keywords: bool = False,
+        queries: list[str] | None = None,
     ) -> list[tuple[str, float]]:
         dense_pool = dense_pool or list_pool(top_k)
         bm25_pool = bm25_pool or list_pool(top_k)
@@ -177,10 +178,16 @@ class FileIndex:
         if not self._loaded:
             raise RuntimeError("FileIndex.build() must run before this call")
 
-        if use_keywords:
-            from trialguard.retrieval.query_transform import generate_keywords
-            queries = generate_keywords(query)
-        else:
+        # A caller that already has the keyword list (a remote worker, a replay)
+        # must not pay for extraction again. An empty list is the raw note.
+        if queries is None:
+            if use_keywords:
+                from trialguard.retrieval.query_transform import generate_keywords
+
+                queries = generate_keywords(query)
+            else:
+                queries = [query]
+        elif not queries:
             queries = [query]
 
         from trialguard.ingestion.embed import embed_matrix

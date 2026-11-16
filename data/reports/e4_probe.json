@@ -1,0 +1,1192 @@
+{
+  "n": 350,
+  "sentence_fallbacks": 29,
+  "thresholds": [
+    0.05,
+    0.1,
+    0.15,
+    0.2,
+    0.25,
+    0.3,
+    0.35,
+    0.4,
+    0.45,
+    0.5,
+    0.55,
+    0.6,
+    0.65,
+    0.7,
+    0.75,
+    0.8,
+    0.85,
+    0.9,
+    0.95
+  ],
+  "minicheck_ids": {
+    "no": 3,
+    "yes": 209,
+    "readme": [
+      0.9806,
+      0.0071
+    ]
+  },
+  "lettuce_sample_keys": [
+    "pred",
+    "prob",
+    "token"
+  ],
+  "models": {
+    "lytang/MiniCheck-Flan-T5-Large": {
+      "quote": {
+        "human": {
+          "n": 50,
+          "n_non_entailing": 18,
+          "n_entailing": 32,
+          "auc": 0.7005,
+          "base_rate": 0.36,
+          "operating_points": [
+            {
+              "threshold": 0.05,
+              "rejected": 12,
+              "precision": 0.5,
+              "recall": 0.3333,
+              "sound_citations_destroyed": 6
+            },
+            {
+              "threshold": 0.1,
+              "rejected": 25,
+              "precision": 0.52,
+              "recall": 0.7222,
+              "sound_citations_destroyed": 12
+            },
+            {
+              "threshold": 0.15,
+              "rejected": 31,
+              "precision": 0.4194,
+              "recall": 0.7222,
+              "sound_citations_destroyed": 18
+            },
+            {
+              "threshold": 0.2,
+              "rejected": 36,
+              "precision": 0.4167,
+              "recall": 0.8333,
+              "sound_citations_destroyed": 21
+            },
+            {
+              "threshold": 0.25,
+              "rejected": 39,
+              "precision": 0.4103,
+              "recall": 0.8889,
+              "sound_citations_destroyed": 23
+            },
+            {
+              "threshold": 0.3,
+              "rejected": 42,
+              "precision": 0.4286,
+              "recall": 1.0,
+              "sound_citations_destroyed": 24
+            },
+            {
+              "threshold": 0.35,
+              "rejected": 43,
+              "precision": 0.4186,
+              "recall": 1.0,
+              "sound_citations_destroyed": 25
+            },
+            {
+              "threshold": 0.4,
+              "rejected": 45,
+              "precision": 0.4,
+              "recall": 1.0,
+              "sound_citations_destroyed": 27
+            },
+            {
+              "threshold": 0.45,
+              "rejected": 45,
+              "precision": 0.4,
+              "recall": 1.0,
+              "sound_citations_destroyed": 27
+            },
+            {
+              "threshold": 0.5,
+              "rejected": 46,
+              "precision": 0.3913,
+              "recall": 1.0,
+              "sound_citations_destroyed": 28
+            },
+            {
+              "threshold": 0.55,
+              "rejected": 47,
+              "precision": 0.383,
+              "recall": 1.0,
+              "sound_citations_destroyed": 29
+            },
+            {
+              "threshold": 0.6,
+              "rejected": 47,
+              "precision": 0.383,
+              "recall": 1.0,
+              "sound_citations_destroyed": 29
+            },
+            {
+              "threshold": 0.65,
+              "rejected": 47,
+              "precision": 0.383,
+              "recall": 1.0,
+              "sound_citations_destroyed": 29
+            },
+            {
+              "threshold": 0.7,
+              "rejected": 47,
+              "precision": 0.383,
+              "recall": 1.0,
+              "sound_citations_destroyed": 29
+            },
+            {
+              "threshold": 0.75,
+              "rejected": 48,
+              "precision": 0.375,
+              "recall": 1.0,
+              "sound_citations_destroyed": 30
+            },
+            {
+              "threshold": 0.8,
+              "rejected": 48,
+              "precision": 0.375,
+              "recall": 1.0,
+              "sound_citations_destroyed": 30
+            },
+            {
+              "threshold": 0.85,
+              "rejected": 48,
+              "precision": 0.375,
+              "recall": 1.0,
+              "sound_citations_destroyed": 30
+            },
+            {
+              "threshold": 0.9,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            },
+            {
+              "threshold": 0.95,
+              "rejected": 50,
+              "precision": 0.36,
+              "recall": 1.0,
+              "sound_citations_destroyed": 32
+            }
+          ]
+        },
+        "model": {
+          "n": 300,
+          "n_non_entailing": 86,
+          "n_entailing": 214,
+          "auc": 0.6269,
+          "base_rate": 0.2867,
+          "operating_points": [
+            {
+              "threshold": 0.05,
+              "rejected": 83,
+              "precision": 0.3855,
+              "recall": 0.3721,
+              "sound_citations_destroyed": 51
+            },
+            {
+              "threshold": 0.1,
+              "rejected": 162,
+              "precision": 0.358,
+              "recall": 0.6744,
+              "sound_citations_destroyed": 104
+            },
+            {
+              "threshold": 0.15,
+              "rejected": 204,
+              "precision": 0.3284,
+              "recall": 0.7791,
+              "sound_citations_destroyed": 137
+            },
+            {
+              "threshold": 0.2,
+              "rejected": 232,
+              "precision": 0.3319,
+              "recall": 0.8953,
+              "sound_citations_destroyed": 155
+            },
+            {
+              "threshold": 0.25,
+              "rejected": 240,
+              "precision": 0.3292,
+              "recall": 0.9186,
+              "sound_citations_destroyed": 161
+            },
+            {
+              "threshold": 0.3,
+              "rejected": 246,
+              "precision": 0.3293,
+              "recall": 0.9419,
+              "sound_citations_destroyed": 165
+            },
+            {
+              "threshold": 0.35,
+              "rejected": 253,
+              "precision": 0.3281,
+              "recall": 0.9651,
+              "sound_citations_destroyed": 170
+            },
+            {
+              "threshold": 0.4,
+              "rejected": 258,
+              "precision": 0.3217,
+              "recall": 0.9651,
+              "sound_citations_destroyed": 175
+            },
+            {
+              "threshold": 0.45,
+              "rejected": 267,
+              "precision": 0.3146,
+              "recall": 0.9767,
+              "sound_citations_destroyed": 183
+            },
+            {
+              "threshold": 0.5,
+              "rejected": 268,
+              "precision": 0.3134,
+              "recall": 0.9767,
+              "sound_citations_destroyed": 184
+            },
+            {
+              "threshold": 0.55,
+              "rejected": 271,
+              "precision": 0.31,
+              "recall": 0.9767,
+              "sound_citations_destroyed": 187
+            },
+            {
+              "threshold": 0.6,
+              "rejected": 273,
+              "precision": 0.3077,
+              "recall": 0.9767,
+              "sound_citations_destroyed": 189
+            },
+            {
+              "threshold": 0.65,
+              "rejected": 277,
+              "precision": 0.3069,
+              "recall": 0.9884,
+              "sound_citations_destroyed": 192
+            },
+            {
+              "threshold": 0.7,
+              "rejected": 278,
+              "precision": 0.3058,
+              "recall": 0.9884,
+              "sound_citations_destroyed": 193
+            },
+            {
+              "threshold": 0.75,
+              "rejected": 286,
+              "precision": 0.3007,
+              "recall": 1.0,
+              "sound_citations_destroyed": 200
+            },
+            {
+              "threshold": 0.8,
+              "rejected": 287,
+              "precision": 0.2997,
+              "recall": 1.0,
+              "sound_citations_destroyed": 201
+            },
+            {
+              "threshold": 0.85,
+              "rejected": 290,
+              "precision": 0.2966,
+              "recall": 1.0,
+              "sound_citations_destroyed": 204
+            },
+            {
+              "threshold": 0.9,
+              "rejected": 296,
+              "precision": 0.2905,
+              "recall": 1.0,
+              "sound_citations_destroyed": 210
+            },
+            {
+              "threshold": 0.95,
+              "rejected": 300,
+              "precision": 0.2867,
+              "recall": 1.0,
+              "sound_citations_destroyed": 214
+            }
+          ]
+        },
+        "clears_kill": false
+      },
+      "sentence": {
+        "human": {
+          "n": 50,
+          "n_non_entailing": 18,
+          "n_entailing": 32,
+          "auc": 0.7049,
+          "base_rate": 0.36,
+          "operating_points": [
+            {
+              "threshold": 0.05,
+              "rejected": 12,
+              "precision": 0.5,
+              "recall": 0.3333,
+              "sound_citations_destroyed": 6
+            },
+            {
+              "threshold": 0.1,
+              "rejected": 24,
+              "precision": 0.5,
+              "recall": 0.6667,
+              "sound_citations_destroyed": 12
+            },
+            {
+              "threshold": 0.15,
+              "rejected": 27,
+              "precision": 0.4815,
+              "recall": 0.7222,
+              "sound_citations_destroyed": 14
+            },
+            {
+              "threshold": 0.2,
+              "rejected": 35,
+              "precision": 0.4571,
+              "recall": 0.8889,
+              "sound_citations_destroyed": 19
+            },
+            {
+              "threshold": 0.25,
+              "rejected": 36,
+              "precision": 0.4444,
+              "recall": 0.8889,
+              "sound_citations_destroyed": 20
+            },
+            {
+              "threshold": 0.3,
+              "rejected": 40,
+              "precision": 0.4,
+              "recall": 0.8889,
+              "sound_citations_destroyed": 24
+            },
+            {
+              "threshold": 0.35,
+              "rejected": 41,
+              "precision": 0.4146,
+              "recall": 0.9444,
+              "sound_citations_destroyed": 24
+            },
+            {
+              "threshold": 0.4,
+              "rejected": 41,
+              "precision": 0.4146,
+              "recall": 0.9444,
+              "sound_citations_destroyed": 24
+            },
+            {
+              "threshold": 0.45,
+              "rejected": 41,
+              "precision": 0.4146,
+              "recall": 0.9444,
+              "sound_citations_destroyed": 24
+            },
+            {
+              "threshold": 0.5,
+              "rejected": 44,
+              "precision": 0.4091,
+              "recall": 1.0,
+              "sound_citations_destroyed": 26
+            },
+            {
+              "threshold": 0.55,
+              "rejected": 45,
+              "precision": 0.4,
+              "recall": 1.0,
+              "sound_citations_destroyed": 27
+            },
+            {
+              "threshold": 0.6,
+              "rejected": 47,
+              "precision": 0.383,
+              "recall": 1.0,
+              "sound_citations_destroyed": 29
+            },
+            {
+              "threshold": 0.65,
+              "rejected": 47,
+              "precision": 0.383,
+              "recall": 1.0,
+              "sound_citations_destroyed": 29
+            },
+            {
+              "threshold": 0.7,
+              "rejected": 47,
+              "precision": 0.383,
+              "recall": 1.0,
+              "sound_citations_destroyed": 29
+            },
+            {
+              "threshold": 0.75,
+              "rejected": 47,
+              "precision": 0.383,
+              "recall": 1.0,
+              "sound_citations_destroyed": 29
+            },
+            {
+              "threshold": 0.8,
+              "rejected": 47,
+              "precision": 0.383,
+              "recall": 1.0,
+              "sound_citations_destroyed": 29
+            },
+            {
+              "threshold": 0.85,
+              "rejected": 47,
+              "precision": 0.383,
+              "recall": 1.0,
+              "sound_citations_destroyed": 29
+            },
+            {
+              "threshold": 0.9,
+              "rejected": 48,
+              "precision": 0.375,
+              "recall": 1.0,
+              "sound_citations_destroyed": 30
+            },
+            {
+              "threshold": 0.95,
+              "rejected": 50,
+              "precision": 0.36,
+              "recall": 1.0,
+              "sound_citations_destroyed": 32
+            }
+          ]
+        },
+        "model": {
+          "n": 300,
+          "n_non_entailing": 86,
+          "n_entailing": 214,
+          "auc": 0.6487,
+          "base_rate": 0.2867,
+          "operating_points": [
+            {
+              "threshold": 0.05,
+              "rejected": 78,
+              "precision": 0.4487,
+              "recall": 0.407,
+              "sound_citations_destroyed": 43
+            },
+            {
+              "threshold": 0.1,
+              "rejected": 161,
+              "precision": 0.3665,
+              "recall": 0.686,
+              "sound_citations_destroyed": 102
+            },
+            {
+              "threshold": 0.15,
+              "rejected": 200,
+              "precision": 0.335,
+              "recall": 0.7791,
+              "sound_citations_destroyed": 133
+            },
+            {
+              "threshold": 0.2,
+              "rejected": 219,
+              "precision": 0.3288,
+              "recall": 0.8372,
+              "sound_citations_destroyed": 147
+            },
+            {
+              "threshold": 0.25,
+              "rejected": 229,
+              "precision": 0.3275,
+              "recall": 0.8721,
+              "sound_citations_destroyed": 154
+            },
+            {
+              "threshold": 0.3,
+              "rejected": 241,
+              "precision": 0.3361,
+              "recall": 0.9419,
+              "sound_citations_destroyed": 160
+            },
+            {
+              "threshold": 0.35,
+              "rejected": 248,
+              "precision": 0.3306,
+              "recall": 0.9535,
+              "sound_citations_destroyed": 166
+            },
+            {
+              "threshold": 0.4,
+              "rejected": 249,
+              "precision": 0.3293,
+              "recall": 0.9535,
+              "sound_citations_destroyed": 167
+            },
+            {
+              "threshold": 0.45,
+              "rejected": 254,
+              "precision": 0.3268,
+              "recall": 0.9651,
+              "sound_citations_destroyed": 171
+            },
+            {
+              "threshold": 0.5,
+              "rejected": 259,
+              "precision": 0.3243,
+              "recall": 0.9767,
+              "sound_citations_destroyed": 175
+            },
+            {
+              "threshold": 0.55,
+              "rejected": 260,
+              "precision": 0.3269,
+              "recall": 0.9884,
+              "sound_citations_destroyed": 175
+            },
+            {
+              "threshold": 0.6,
+              "rejected": 260,
+              "precision": 0.3269,
+              "recall": 0.9884,
+              "sound_citations_destroyed": 175
+            },
+            {
+              "threshold": 0.65,
+              "rejected": 261,
+              "precision": 0.3257,
+              "recall": 0.9884,
+              "sound_citations_destroyed": 176
+            },
+            {
+              "threshold": 0.7,
+              "rejected": 264,
+              "precision": 0.322,
+              "recall": 0.9884,
+              "sound_citations_destroyed": 179
+            },
+            {
+              "threshold": 0.75,
+              "rejected": 271,
+              "precision": 0.3137,
+              "recall": 0.9884,
+              "sound_citations_destroyed": 186
+            },
+            {
+              "threshold": 0.8,
+              "rejected": 275,
+              "precision": 0.3091,
+              "recall": 0.9884,
+              "sound_citations_destroyed": 190
+            },
+            {
+              "threshold": 0.85,
+              "rejected": 282,
+              "precision": 0.3014,
+              "recall": 0.9884,
+              "sound_citations_destroyed": 197
+            },
+            {
+              "threshold": 0.9,
+              "rejected": 287,
+              "precision": 0.2997,
+              "recall": 1.0,
+              "sound_citations_destroyed": 201
+            },
+            {
+              "threshold": 0.95,
+              "rejected": 297,
+              "precision": 0.2896,
+              "recall": 1.0,
+              "sound_citations_destroyed": 211
+            }
+          ]
+        },
+        "clears_kill": false
+      }
+    },
+    "KRLabsOrg/lettucedect-base-modernbert-en-v1": {
+      "quote": {
+        "human": {
+          "n": 50,
+          "n_non_entailing": 18,
+          "n_entailing": 32,
+          "auc": 0.5938,
+          "base_rate": 0.36,
+          "operating_points": [
+            {
+              "threshold": 0.05,
+              "rejected": 48,
+              "precision": 0.375,
+              "recall": 1.0,
+              "sound_citations_destroyed": 30
+            },
+            {
+              "threshold": 0.1,
+              "rejected": 48,
+              "precision": 0.375,
+              "recall": 1.0,
+              "sound_citations_destroyed": 30
+            },
+            {
+              "threshold": 0.15,
+              "rejected": 48,
+              "precision": 0.375,
+              "recall": 1.0,
+              "sound_citations_destroyed": 30
+            },
+            {
+              "threshold": 0.2,
+              "rejected": 48,
+              "precision": 0.375,
+              "recall": 1.0,
+              "sound_citations_destroyed": 30
+            },
+            {
+              "threshold": 0.25,
+              "rejected": 48,
+              "precision": 0.375,
+              "recall": 1.0,
+              "sound_citations_destroyed": 30
+            },
+            {
+              "threshold": 0.3,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            },
+            {
+              "threshold": 0.35,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            },
+            {
+              "threshold": 0.4,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            },
+            {
+              "threshold": 0.45,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            },
+            {
+              "threshold": 0.5,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            },
+            {
+              "threshold": 0.55,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            },
+            {
+              "threshold": 0.6,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            },
+            {
+              "threshold": 0.65,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            },
+            {
+              "threshold": 0.7,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            },
+            {
+              "threshold": 0.75,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            },
+            {
+              "threshold": 0.8,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            },
+            {
+              "threshold": 0.85,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            },
+            {
+              "threshold": 0.9,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            },
+            {
+              "threshold": 0.95,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            }
+          ]
+        },
+        "model": {
+          "n": 300,
+          "n_non_entailing": 86,
+          "n_entailing": 214,
+          "auc": 0.6055,
+          "base_rate": 0.2867,
+          "operating_points": [
+            {
+              "threshold": 0.05,
+              "rejected": 284,
+              "precision": 0.3028,
+              "recall": 1.0,
+              "sound_citations_destroyed": 198
+            },
+            {
+              "threshold": 0.1,
+              "rejected": 288,
+              "precision": 0.2986,
+              "recall": 1.0,
+              "sound_citations_destroyed": 202
+            },
+            {
+              "threshold": 0.15,
+              "rejected": 289,
+              "precision": 0.2976,
+              "recall": 1.0,
+              "sound_citations_destroyed": 203
+            },
+            {
+              "threshold": 0.2,
+              "rejected": 291,
+              "precision": 0.2955,
+              "recall": 1.0,
+              "sound_citations_destroyed": 205
+            },
+            {
+              "threshold": 0.25,
+              "rejected": 293,
+              "precision": 0.2935,
+              "recall": 1.0,
+              "sound_citations_destroyed": 207
+            },
+            {
+              "threshold": 0.3,
+              "rejected": 296,
+              "precision": 0.2905,
+              "recall": 1.0,
+              "sound_citations_destroyed": 210
+            },
+            {
+              "threshold": 0.35,
+              "rejected": 298,
+              "precision": 0.2886,
+              "recall": 1.0,
+              "sound_citations_destroyed": 212
+            },
+            {
+              "threshold": 0.4,
+              "rejected": 299,
+              "precision": 0.2876,
+              "recall": 1.0,
+              "sound_citations_destroyed": 213
+            },
+            {
+              "threshold": 0.45,
+              "rejected": 300,
+              "precision": 0.2867,
+              "recall": 1.0,
+              "sound_citations_destroyed": 214
+            },
+            {
+              "threshold": 0.5,
+              "rejected": 300,
+              "precision": 0.2867,
+              "recall": 1.0,
+              "sound_citations_destroyed": 214
+            },
+            {
+              "threshold": 0.55,
+              "rejected": 300,
+              "precision": 0.2867,
+              "recall": 1.0,
+              "sound_citations_destroyed": 214
+            },
+            {
+              "threshold": 0.6,
+              "rejected": 300,
+              "precision": 0.2867,
+              "recall": 1.0,
+              "sound_citations_destroyed": 214
+            },
+            {
+              "threshold": 0.65,
+              "rejected": 300,
+              "precision": 0.2867,
+              "recall": 1.0,
+              "sound_citations_destroyed": 214
+            },
+            {
+              "threshold": 0.7,
+              "rejected": 300,
+              "precision": 0.2867,
+              "recall": 1.0,
+              "sound_citations_destroyed": 214
+            },
+            {
+              "threshold": 0.75,
+              "rejected": 300,
+              "precision": 0.2867,
+              "recall": 1.0,
+              "sound_citations_destroyed": 214
+            },
+            {
+              "threshold": 0.8,
+              "rejected": 300,
+              "precision": 0.2867,
+              "recall": 1.0,
+              "sound_citations_destroyed": 214
+            },
+            {
+              "threshold": 0.85,
+              "rejected": 300,
+              "precision": 0.2867,
+              "recall": 1.0,
+              "sound_citations_destroyed": 214
+            },
+            {
+              "threshold": 0.9,
+              "rejected": 300,
+              "precision": 0.2867,
+              "recall": 1.0,
+              "sound_citations_destroyed": 214
+            },
+            {
+              "threshold": 0.95,
+              "rejected": 300,
+              "precision": 0.2867,
+              "recall": 1.0,
+              "sound_citations_destroyed": 214
+            }
+          ]
+        },
+        "clears_kill": false
+      },
+      "sentence": {
+        "human": {
+          "n": 50,
+          "n_non_entailing": 18,
+          "n_entailing": 32,
+          "auc": 0.6285,
+          "base_rate": 0.36,
+          "operating_points": [
+            {
+              "threshold": 0.05,
+              "rejected": 47,
+              "precision": 0.383,
+              "recall": 1.0,
+              "sound_citations_destroyed": 29
+            },
+            {
+              "threshold": 0.1,
+              "rejected": 47,
+              "precision": 0.383,
+              "recall": 1.0,
+              "sound_citations_destroyed": 29
+            },
+            {
+              "threshold": 0.15,
+              "rejected": 47,
+              "precision": 0.383,
+              "recall": 1.0,
+              "sound_citations_destroyed": 29
+            },
+            {
+              "threshold": 0.2,
+              "rejected": 47,
+              "precision": 0.383,
+              "recall": 1.0,
+              "sound_citations_destroyed": 29
+            },
+            {
+              "threshold": 0.25,
+              "rejected": 48,
+              "precision": 0.375,
+              "recall": 1.0,
+              "sound_citations_destroyed": 30
+            },
+            {
+              "threshold": 0.3,
+              "rejected": 48,
+              "precision": 0.375,
+              "recall": 1.0,
+              "sound_citations_destroyed": 30
+            },
+            {
+              "threshold": 0.35,
+              "rejected": 48,
+              "precision": 0.375,
+              "recall": 1.0,
+              "sound_citations_destroyed": 30
+            },
+            {
+              "threshold": 0.4,
+              "rejected": 48,
+              "precision": 0.375,
+              "recall": 1.0,
+              "sound_citations_destroyed": 30
+            },
+            {
+              "threshold": 0.45,
+              "rejected": 48,
+              "precision": 0.375,
+              "recall": 1.0,
+              "sound_citations_destroyed": 30
+            },
+            {
+              "threshold": 0.5,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            },
+            {
+              "threshold": 0.55,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            },
+            {
+              "threshold": 0.6,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            },
+            {
+              "threshold": 0.65,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            },
+            {
+              "threshold": 0.7,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            },
+            {
+              "threshold": 0.75,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            },
+            {
+              "threshold": 0.8,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            },
+            {
+              "threshold": 0.85,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            },
+            {
+              "threshold": 0.9,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            },
+            {
+              "threshold": 0.95,
+              "rejected": 49,
+              "precision": 0.3673,
+              "recall": 1.0,
+              "sound_citations_destroyed": 31
+            }
+          ]
+        },
+        "model": {
+          "n": 300,
+          "n_non_entailing": 86,
+          "n_entailing": 214,
+          "auc": 0.5863,
+          "base_rate": 0.2867,
+          "operating_points": [
+            {
+              "threshold": 0.05,
+              "rejected": 272,
+              "precision": 0.3125,
+              "recall": 0.9884,
+              "sound_citations_destroyed": 187
+            },
+            {
+              "threshold": 0.1,
+              "rejected": 282,
+              "precision": 0.3014,
+              "recall": 0.9884,
+              "sound_citations_destroyed": 197
+            },
+            {
+              "threshold": 0.15,
+              "rejected": 285,
+              "precision": 0.2982,
+              "recall": 0.9884,
+              "sound_citations_destroyed": 200
+            },
+            {
+              "threshold": 0.2,
+              "rejected": 287,
+              "precision": 0.2997,
+              "recall": 1.0,
+              "sound_citations_destroyed": 201
+            },
+            {
+              "threshold": 0.25,
+              "rejected": 289,
+              "precision": 0.2976,
+              "recall": 1.0,
+              "sound_citations_destroyed": 203
+            },
+            {
+              "threshold": 0.3,
+              "rejected": 292,
+              "precision": 0.2945,
+              "recall": 1.0,
+              "sound_citations_destroyed": 206
+            },
+            {
+              "threshold": 0.35,
+              "rejected": 293,
+              "precision": 0.2935,
+              "recall": 1.0,
+              "sound_citations_destroyed": 207
+            },
+            {
+              "threshold": 0.4,
+              "rejected": 296,
+              "precision": 0.2905,
+              "recall": 1.0,
+              "sound_citations_destroyed": 210
+            },
+            {
+              "threshold": 0.45,
+              "rejected": 296,
+              "precision": 0.2905,
+              "recall": 1.0,
+              "sound_citations_destroyed": 210
+            },
+            {
+              "threshold": 0.5,
+              "rejected": 296,
+              "precision": 0.2905,
+              "recall": 1.0,
+              "sound_citations_destroyed": 210
+            },
+            {
+              "threshold": 0.55,
+              "rejected": 296,
+              "precision": 0.2905,
+              "recall": 1.0,
+              "sound_citations_destroyed": 210
+            },
+            {
+              "threshold": 0.6,
+              "rejected": 296,
+              "precision": 0.2905,
+              "recall": 1.0,
+              "sound_citations_destroyed": 210
+            },
+            {
+              "threshold": 0.65,
+              "rejected": 296,
+              "precision": 0.2905,
+              "recall": 1.0,
+              "sound_citations_destroyed": 210
+            },
+            {
+              "threshold": 0.7,
+              "rejected": 296,
+              "precision": 0.2905,
+              "recall": 1.0,
+              "sound_citations_destroyed": 210
+            },
+            {
+              "threshold": 0.75,
+              "rejected": 296,
+              "precision": 0.2905,
+              "recall": 1.0,
+              "sound_citations_destroyed": 210
+            },
+            {
+              "threshold": 0.8,
+              "rejected": 296,
+              "precision": 0.2905,
+              "recall": 1.0,
+              "sound_citations_destroyed": 210
+            },
+            {
+              "threshold": 0.85,
+              "rejected": 296,
+              "precision": 0.2905,
+              "recall": 1.0,
+              "sound_citations_destroyed": 210
+            },
+            {
+              "threshold": 0.9,
+              "rejected": 296,
+              "precision": 0.2905,
+              "recall": 1.0,
+              "sound_citations_destroyed": 210
+            },
+            {
+              "threshold": 0.95,
+              "rejected": 296,
+              "precision": 0.2905,
+              "recall": 1.0,
+              "sound_citations_destroyed": 210
+            }
+          ]
+        },
+        "clears_kill": false
+      }
+    }
+  }
+}

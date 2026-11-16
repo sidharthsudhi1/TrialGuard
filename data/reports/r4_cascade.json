@@ -1,0 +1,17 @@
+{
+  "plan": {
+    "call_usd": 0.000392,
+    "depth": 36,
+    "n_patients": 125,
+    "small": "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+    "drop_limit": 0.05
+  },
+  "complete": false,
+  "drop": {
+    "eligible": 761,
+    "excluded": 287,
+    "rate": 0.3771
+  },
+  "spent_usd": 0.674128,
+  "decision": "incomplete"
+}
