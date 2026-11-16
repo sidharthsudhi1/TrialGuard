@@ -69,6 +69,15 @@ skills-lock.json
 
 # Local working plan (session-reusable, not for the repo)
 /docs/weakpoints_fix_plan.md
+/docs/pipeline1_hardening_plan.md
+
+# Local agent tooling state
+.claude-flow/
+.swarm/
+.playwright-mcp/
+agentdb.rvf*
+ruvector.db
+.coverage
 
 # Fine-tuned model weights (R2 cross-encoder); trained on EC2, never committed
 /data/models/
