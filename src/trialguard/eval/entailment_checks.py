@@ -53,14 +53,14 @@ def main() -> None:
     # cohort note when the quote can be found there. E1 and E3 read the quote.
     from trialguard.eval.cohorts import load_patients
 
-    notes = {
-        (c, p["patient_id"]): p["description"]
+    notes: dict[tuple[str, str], str] = {
+        (c, str(p["patient_id"])): str(p["description"])
         for c in ("sigir", "trec_2021", "trec_2022")
         for p in load_patients(c)
     }
     scored = []
     for item in items:
-        note = notes.get((item.get("cohort"), item.get("patient_id")), "")
+        note = notes.get((str(item.get("cohort") or ""), str(item.get("patient_id") or "")), "")
         row = {**item, "patient_text": note}
         row["flags"] = _flags(row)
         scored.append(row)

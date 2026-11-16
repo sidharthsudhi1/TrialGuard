@@ -88,7 +88,7 @@ def build(n: int = 200, seed: int = SEED) -> list[dict]:
     if not pool:
         raise FileNotFoundError("TREC corpus jsonl is not on disk")
     order = rng.permutation(len(pool))
-    rows = []
+    rows: list[dict] = []
     for i in order:
         if len(rows) >= n:
             break
