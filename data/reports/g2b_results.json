@@ -1,0 +1,389 @@
+{
+  "n_gold": 200,
+  "errors": 0,
+  "spent_usd": 0.004233,
+  "prompt_version": "v4",
+  "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+  "overall": {
+    "n": 200,
+    "accuracy": {
+      "point": 0.865,
+      "ci": [
+        0.815,
+        0.91
+      ],
+      "n": 200
+    },
+    "coverage": {
+      "point": 0.98,
+      "ci": [
+        0.96,
+        0.995
+      ],
+      "n": 200
+    },
+    "decisive_accuracy": {
+      "point": 0.8827,
+      "ci": [
+        0.8351,
+        0.9246
+      ],
+      "n": 200
+    },
+    "false_exclusion": {
+      "point": 0.1043,
+      "ci": [
+        0.0517,
+        0.1638
+      ],
+      "n": 200
+    },
+    "false_inclusion": {
+      "point": 0.1294,
+      "ci": [
+        0.061,
+        0.2045
+      ],
+      "n": 200
+    },
+    "verdicts": {
+      "cannot_determine": 4,
+      "met": 112,
+      "not_met": 84
+    }
+  },
+  "by_attr": {
+    "age": {
+      "n": 40,
+      "accuracy": {
+        "point": 0.925,
+        "ci": [
+          0.825,
+          1.0
+        ],
+        "n": 40
+      },
+      "coverage": {
+        "point": 1.0,
+        "ci": [
+          1.0,
+          1.0
+        ],
+        "n": 40
+      },
+      "decisive_accuracy": {
+        "point": 0.925,
+        "ci": [
+          0.825,
+          1.0
+        ],
+        "n": 40
+      },
+      "false_exclusion": {
+        "point": 0.1364,
+        "ci": [
+          0.0,
+          0.2963
+        ],
+        "n": 40
+      },
+      "false_inclusion": {
+        "point": 0.0,
+        "ci": [
+          0.0,
+          0.0
+        ],
+        "n": 40
+      },
+      "verdicts": {
+        "met": 19,
+        "not_met": 21
+      }
+    },
+    "creatinine": {
+      "n": 25,
+      "accuracy": {
+        "point": 1.0,
+        "ci": [
+          1.0,
+          1.0
+        ],
+        "n": 25
+      },
+      "coverage": {
+        "point": 1.0,
+        "ci": [
+          1.0,
+          1.0
+        ],
+        "n": 25
+      },
+      "decisive_accuracy": {
+        "point": 1.0,
+        "ci": [
+          1.0,
+          1.0
+        ],
+        "n": 25
+      },
+      "false_exclusion": {
+        "point": 0.0,
+        "ci": [
+          0.0,
+          0.0
+        ],
+        "n": 25
+      },
+      "false_inclusion": {
+        "point": 0.0,
+        "ci": [
+          0.0,
+          0.0
+        ],
+        "n": 25
+      },
+      "verdicts": {
+        "met": 15,
+        "not_met": 10
+      }
+    },
+    "bilirubin": {
+      "n": 15,
+      "accuracy": {
+        "point": 0.8,
+        "ci": [
+          0.6,
+          1.0
+        ],
+        "n": 15
+      },
+      "coverage": {
+        "point": 1.0,
+        "ci": [
+          1.0,
+          1.0
+        ],
+        "n": 15
+      },
+      "decisive_accuracy": {
+        "point": 0.8,
+        "ci": [
+          0.6,
+          1.0
+        ],
+        "n": 15
+      },
+      "false_exclusion": {
+        "point": 0.1,
+        "ci": [
+          0.0,
+          0.3333
+        ],
+        "n": 15
+      },
+      "false_inclusion": {
+        "point": 0.4,
+        "ci": [
+          0.0,
+          1.0
+        ],
+        "n": 15
+      },
+      "verdicts": {
+        "met": 11,
+        "not_met": 4
+      }
+    },
+    "platelets": {
+      "n": 40,
+      "accuracy": {
+        "point": 0.825,
+        "ci": [
+          0.7,
+          0.925
+        ],
+        "n": 40
+      },
+      "coverage": {
+        "point": 0.975,
+        "ci": [
+          0.925,
+          1.0
+        ],
+        "n": 40
+      },
+      "decisive_accuracy": {
+        "point": 0.8462,
+        "ci": [
+          0.725,
+          0.9487
+        ],
+        "n": 40
+      },
+      "false_exclusion": {
+        "point": 0.2174,
+        "ci": [
+          0.05,
+          0.4
+        ],
+        "n": 40
+      },
+      "false_inclusion": {
+        "point": 0.0588,
+        "ci": [
+          0.0,
+          0.2
+        ],
+        "n": 40
+      },
+      "verdicts": {
+        "cannot_determine": 1,
+        "met": 19,
+        "not_met": 20
+      }
+    },
+    "anc": {
+      "n": 33,
+      "accuracy": {
+        "point": 0.6667,
+        "ci": [
+          0.5152,
+          0.8182
+        ],
+        "n": 33
+      },
+      "coverage": {
+        "point": 0.9394,
+        "ci": [
+          0.8485,
+          1.0
+        ],
+        "n": 33
+      },
+      "decisive_accuracy": {
+        "point": 0.7097,
+        "ci": [
+          0.5484,
+          0.8667
+        ],
+        "n": 33
+      },
+      "false_exclusion": {
+        "point": 0.15,
+        "ci": [
+          0.0,
+          0.3333
+        ],
+        "n": 33
+      },
+      "false_inclusion": {
+        "point": 0.4615,
+        "ci": [
+          0.1818,
+          0.75
+        ],
+        "n": 33
+      },
+      "verdicts": {
+        "cannot_determine": 2,
+        "met": 21,
+        "not_met": 10
+      }
+    },
+    "hemoglobin": {
+      "n": 23,
+      "accuracy": {
+        "point": 0.8696,
+        "ci": [
+          0.7391,
+          1.0
+        ],
+        "n": 23
+      },
+      "coverage": {
+        "point": 0.9565,
+        "ci": [
+          0.8696,
+          1.0
+        ],
+        "n": 23
+      },
+      "decisive_accuracy": {
+        "point": 0.9091,
+        "ci": [
+          0.7727,
+          1.0
+        ],
+        "n": 23
+      },
+      "false_exclusion": {
+        "point": 0.0,
+        "ci": [
+          0.0,
+          0.0
+        ],
+        "n": 23
+      },
+      "false_inclusion": {
+        "point": 0.1429,
+        "ci": [
+          0.0,
+          0.3571
+        ],
+        "n": 23
+      },
+      "verdicts": {
+        "cannot_determine": 1,
+        "met": 11,
+        "not_met": 11
+      }
+    },
+    "ecog": {
+      "n": 24,
+      "accuracy": {
+        "point": 1.0,
+        "ci": [
+          1.0,
+          1.0
+        ],
+        "n": 24
+      },
+      "coverage": {
+        "point": 1.0,
+        "ci": [
+          1.0,
+          1.0
+        ],
+        "n": 24
+      },
+      "decisive_accuracy": {
+        "point": 1.0,
+        "ci": [
+          1.0,
+          1.0
+        ],
+        "n": 24
+      },
+      "false_exclusion": {
+        "point": 0.0,
+        "ci": [
+          0.0,
+          0.0
+        ],
+        "n": 24
+      },
+      "false_inclusion": {
+        "point": 0.0,
+        "ci": [
+          0.0,
+          0.0
+        ],
+        "n": 24
+      },
+      "verdicts": {
+        "met": 16,
+        "not_met": 8
+      }
+    }
+  }
+}
