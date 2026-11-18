@@ -51,7 +51,8 @@ class Settings(BaseSettings):
     # Fine-tuned cross-encoder (R2) for deep requests (top_k >= 100): local path
     # or HF id of the saved weights. Empty = off. Measured end to end at top-100:
     # surfaced recall +0.032 / +0.040 on TREC 2021 / 2022, unverifiable flat
-    # (data/reports/r2e2e_findings.md). Costs ~7-8 s/patient on CPU.
+    # (data/reports/r2e2e_findings.md). Off in production: 438-476 s per deep
+    # search on the Fly API machine, 95 s even int8/256/300 (AD-44).
     retrieval_ce_model: str = ""
     # Cap BLAS threads inside one dense product. 0 leaves the library default.
     # S1 measures whether a cap of 1 raises throughput once searches overlap.

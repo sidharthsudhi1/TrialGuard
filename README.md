@@ -644,6 +644,7 @@ what it corrects.
 | [AD-41](docs/adr/0041-span-detectors-not-adopted.md) | Small span detectors are not an entailment badge |  |
 | [AD-42](docs/adr/0042-database-lease-waits.md) | A database lease waits, and scale-out is not claimed linear |  |
 | [AD-43](docs/adr/0043-numeric-quote-check-not-adopted.md) | A unit-aware numeric check on the quote is not a badge |  |
+| [AD-44](docs/adr/0044-r2-cross-encoder-not-served.md) | The R2 cross-encoder is not served on the current machine |  |
 
 *When a decision is reversed during the build, the reversal and reason are recorded — not deleted.*
 
