@@ -643,6 +643,7 @@ what it corrects.
 | [AD-40](docs/adr/0040-small-model-does-not-screen-the-tail.md) | A small model does not screen the deep tail |  |
 | [AD-41](docs/adr/0041-span-detectors-not-adopted.md) | Small span detectors are not an entailment badge |  |
 | [AD-42](docs/adr/0042-database-lease-waits.md) | A database lease waits, and scale-out is not claimed linear |  |
+| [AD-43](docs/adr/0043-numeric-quote-check-not-adopted.md) | A unit-aware numeric check on the quote is not a badge |  |
 
 *When a decision is reversed during the build, the reversal and reason are recorded — not deleted.*
 
