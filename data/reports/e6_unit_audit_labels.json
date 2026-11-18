@@ -1,0 +1,308 @@
+{
+  "auditor": "Claude (model audit, not clinician)",
+  "precision": 0.35,
+  "correct": 21,
+  "n": 60,
+  "labels": [
+    {
+      "audit_id": 0,
+      "flag_correct": true,
+      "note": "verdict contradicts the quoted number"
+    },
+    {
+      "audit_id": 1,
+      "flag_correct": true,
+      "note": "verdict contradicts the quoted number"
+    },
+    {
+      "audit_id": 2,
+      "flag_correct": false,
+      "note": "parser: gestational age read as age"
+    },
+    {
+      "audit_id": 3,
+      "flag_correct": false,
+      "note": "other condition fails (sex/menopause); verdict right"
+    },
+    {
+      "audit_id": 4,
+      "flag_correct": false,
+      "note": "other condition (surgery); verdict defensible"
+    },
+    {
+      "audit_id": 5,
+      "flag_correct": true,
+      "note": "verdict contradicts the quoted number"
+    },
+    {
+      "audit_id": 6,
+      "flag_correct": false,
+      "note": "garbled criterion; age holds, verdict rests on other part"
+    },
+    {
+      "audit_id": 7,
+      "flag_correct": false,
+      "note": "disjunction let through by 'or over' exemption; verdict right"
+    },
+    {
+      "audit_id": 8,
+      "flag_correct": true,
+      "note": "verdict contradicts the quoted number"
+    },
+    {
+      "audit_id": 9,
+      "flag_correct": true,
+      "note": "verdict contradicts the quoted number"
+    },
+    {
+      "audit_id": 10,
+      "flag_correct": false,
+      "note": "other condition (Thai); verdict defensible"
+    },
+    {
+      "audit_id": 11,
+      "flag_correct": false,
+      "note": "other condition (sex); verdict right"
+    },
+    {
+      "audit_id": 12,
+      "flag_correct": false,
+      "note": "other conditions; verdict defensible"
+    },
+    {
+      "audit_id": 13,
+      "flag_correct": false,
+      "note": "other conditions; verdict defensible"
+    },
+    {
+      "audit_id": 14,
+      "flag_correct": false,
+      "note": "other condition (DCIS only); verdict right"
+    },
+    {
+      "audit_id": 15,
+      "flag_correct": false,
+      "note": "other conditions; verdict defensible"
+    },
+    {
+      "audit_id": 16,
+      "flag_correct": false,
+      "note": "maternal age, not patient age"
+    },
+    {
+      "audit_id": 17,
+      "flag_correct": true,
+      "note": "verdict contradicts the quoted number"
+    },
+    {
+      "audit_id": 18,
+      "flag_correct": false,
+      "note": "other condition (sex); verdict right"
+    },
+    {
+      "audit_id": 19,
+      "flag_correct": false,
+      "note": "parser: spurious age clause from parenthetical"
+    },
+    {
+      "audit_id": 20,
+      "flag_correct": true,
+      "note": "verdict contradicts the quoted number"
+    },
+    {
+      "audit_id": 21,
+      "flag_correct": true,
+      "note": "verdict contradicts the quoted number"
+    },
+    {
+      "audit_id": 22,
+      "flag_correct": false,
+      "note": "other conditions (wheelchair bound); verdict defensible"
+    },
+    {
+      "audit_id": 23,
+      "flag_correct": false,
+      "note": "other condition (BMI); verdict not about the number"
+    },
+    {
+      "audit_id": 24,
+      "flag_correct": true,
+      "note": "verdict contradicts the quoted number"
+    },
+    {
+      "audit_id": 25,
+      "flag_correct": false,
+      "note": "other condition (sex); verdict right"
+    },
+    {
+      "audit_id": 26,
+      "flag_correct": false,
+      "note": "other condition (sex); verdict right"
+    },
+    {
+      "audit_id": 27,
+      "flag_correct": false,
+      "note": "other conditions; cannot establish"
+    },
+    {
+      "audit_id": 28,
+      "flag_correct": false,
+      "note": "parser: upper bound without 'age' missed; verdict right"
+    },
+    {
+      "audit_id": 29,
+      "flag_correct": false,
+      "note": "other conditions; verdict defensible"
+    },
+    {
+      "audit_id": 30,
+      "flag_correct": false,
+      "note": "other conditions (ambulant, DMD); verdict defensible"
+    },
+    {
+      "audit_id": 31,
+      "flag_correct": false,
+      "note": "other conditions; unit mix (years and weeks)"
+    },
+    {
+      "audit_id": 32,
+      "flag_correct": true,
+      "note": "verdict contradicts the quoted number"
+    },
+    {
+      "audit_id": 33,
+      "flag_correct": false,
+      "note": "parser: upper bound without 'age' missed; verdict right"
+    },
+    {
+      "audit_id": 34,
+      "flag_correct": false,
+      "note": "other condition (pregnant); verdict right"
+    },
+    {
+      "audit_id": 35,
+      "flag_correct": false,
+      "note": "other condition (sex); verdict right"
+    },
+    {
+      "audit_id": 36,
+      "flag_correct": false,
+      "note": "other conditions; verdict defensible"
+    },
+    {
+      "audit_id": 37,
+      "flag_correct": false,
+      "note": "other condition (sex); verdict right"
+    },
+    {
+      "audit_id": 38,
+      "flag_correct": true,
+      "note": "verdict contradicts the quoted number"
+    },
+    {
+      "audit_id": 39,
+      "flag_correct": false,
+      "note": "other condition (weight); verdict not about the number"
+    },
+    {
+      "audit_id": 40,
+      "flag_correct": false,
+      "note": "other condition (residence); verdict defensible"
+    },
+    {
+      "audit_id": 41,
+      "flag_correct": false,
+      "note": "parser: upper bound without 'age' missed; verdict right"
+    },
+    {
+      "audit_id": 42,
+      "flag_correct": true,
+      "note": "verdict contradicts the quoted number"
+    },
+    {
+      "audit_id": 43,
+      "flag_correct": true,
+      "note": "verdict contradicts the quoted number"
+    },
+    {
+      "audit_id": 44,
+      "flag_correct": true,
+      "note": "verdict contradicts the quoted number"
+    },
+    {
+      "audit_id": 45,
+      "flag_correct": false,
+      "note": "disjunction let through by 'or older' exemption; verdict right"
+    },
+    {
+      "audit_id": 46,
+      "flag_correct": true,
+      "note": "verdict contradicts the quoted number"
+    },
+    {
+      "audit_id": 47,
+      "flag_correct": false,
+      "note": "other condition (pregnant); verdict right"
+    },
+    {
+      "audit_id": 48,
+      "flag_correct": true,
+      "note": "verdict contradicts the quoted number"
+    },
+    {
+      "audit_id": 49,
+      "flag_correct": true,
+      "note": "verdict contradicts the quoted number"
+    },
+    {
+      "audit_id": 50,
+      "flag_correct": false,
+      "note": "parser: '18 years and younger' misread; verdict right"
+    },
+    {
+      "audit_id": 51,
+      "flag_correct": true,
+      "note": "verdict contradicts the quoted number"
+    },
+    {
+      "audit_id": 52,
+      "flag_correct": true,
+      "note": "verdict contradicts the quoted number"
+    },
+    {
+      "audit_id": 53,
+      "flag_correct": false,
+      "note": "parser: upper bound without 'age' missed; verdict right"
+    },
+    {
+      "audit_id": 54,
+      "flag_correct": false,
+      "note": "other condition (smoking); verdict defensible"
+    },
+    {
+      "audit_id": 55,
+      "flag_correct": false,
+      "note": "other condition (DCIS only); verdict right"
+    },
+    {
+      "audit_id": 56,
+      "flag_correct": true,
+      "note": "verdict contradicts the quoted number"
+    },
+    {
+      "audit_id": 57,
+      "flag_correct": false,
+      "note": "other conditions (gene); verdict defensible"
+    },
+    {
+      "audit_id": 58,
+      "flag_correct": true,
+      "note": "verdict contradicts the quoted number"
+    },
+    {
+      "audit_id": 59,
+      "flag_correct": false,
+      "note": "parser: hours read as years; verdict right"
+    }
+  ]
+}

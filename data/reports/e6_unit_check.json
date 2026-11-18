@@ -1,0 +1,43 @@
+{
+  "seed": 20261118,
+  "gold": {
+    "human": {
+      "n": 50,
+      "in_scope": 3,
+      "flags": 0,
+      "sound_flagged": 0,
+      "unsound_flagged": 0,
+      "unsound_total": 18,
+      "flagged": []
+    },
+    "model": {
+      "n": 300,
+      "in_scope": 16,
+      "flags": 1,
+      "sound_flagged": 1,
+      "unsound_flagged": 0,
+      "unsound_total": 86,
+      "flagged": [
+        {
+          "criterion": "Individuals younger than 11 years and older than 18 years",
+          "verdict": "not_met",
+          "quote": "14-year-old boy",
+          "entails": true
+        }
+      ]
+    }
+  },
+  "cache": {
+    "files": 63983,
+    "decisive_unique": 210874,
+    "in_scope": 8829,
+    "flags": 629,
+    "audited": 60
+  },
+  "g2b_dev": {
+    "wrong": 23,
+    "caught": 23,
+    "right": 173,
+    "false_flags": 0
+  }
+}
