@@ -82,6 +82,10 @@ Scoring ran at about 60–70 pairs/s on 16 physical cores in bf16: roughly
 only fits the deep path, which already runs as a multi-minute job, never the
 interactive top-5/25 search. Training cost about 80 min per direction on CPU.
 
+*Amendment 2026-11-18:* that cost holds for the c7i.8xlarge only. On the Fly
+API machine (2 vCPU, fp32) the same 500-candidate pool takes 438-476 s; see
+`r2s_findings.md` and AD-44.
+
 ## What next
 
 - **R3** (pre-registered trigger met): add synthetic patient notes written for
