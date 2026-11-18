@@ -27,6 +27,12 @@ QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
 
 MEDCPT_QUERY_MODEL = "ncbi/MedCPT-Query-Encoder"
 MEDCPT_ARTICLE_MODEL = "ncbi/MedCPT-Article-Encoder"
+# Hub commits the ctgov_live vectors were built with. Pinned so a change upstream
+# cannot reach the image, and so query and document encoders cannot drift apart.
+MEDCPT_REVISIONS = {
+    MEDCPT_QUERY_MODEL: "d83a36cc6b8e3a5c5e9d9d6ba156808c1643dcbc",
+    MEDCPT_ARTICLE_MODEL: "d05a736da4bb84ee4057b7f7999485be6ed85465",
+}
 MEDCPT_QUERY_MAXLEN = 64
 MEDCPT_ARTICLE_MAXLEN = 512
 
@@ -185,8 +191,9 @@ def _get_medcpt(is_query: bool):
                     os.environ.setdefault("HF_TOKEN", settings.hf_token)
                 from transformers import AutoModel, AutoTokenizer
                 name = MEDCPT_QUERY_MODEL if is_query else MEDCPT_ARTICLE_MODEL
-                tok = AutoTokenizer.from_pretrained(name)
-                model = AutoModel.from_pretrained(name).to(_device()).eval()
+                rev = MEDCPT_REVISIONS[name]
+                tok = AutoTokenizer.from_pretrained(name, revision=rev)
+                model = AutoModel.from_pretrained(name, revision=rev).to(_device()).eval()
                 _medcpt[key] = (tok, model)
     return _medcpt[key]
 
