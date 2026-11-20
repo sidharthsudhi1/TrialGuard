@@ -78,6 +78,17 @@ web = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+# Only read by `uv pip compile` when regenerating requirements-api.lock. The API
+# image runs on CPU, so torch resolves from the CPU index; explicit keeps every
+# other package on PyPI.
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
 [tool.mypy]
 # E5 widened this from three hand-picked targets to all of src/. It is not
 # --strict: the goal is to catch real defects (it found a bare `return` on a

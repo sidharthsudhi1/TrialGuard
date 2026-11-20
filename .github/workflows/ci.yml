@@ -31,6 +31,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0  # gitleaks scans every commit, not just the tip
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
@@ -86,3 +88,38 @@ jobs:
             --ignore-vuln PYSEC-2026-1795 --ignore-vuln PYSEC-2026-1796 \
             --ignore-vuln PYSEC-2026-2875 --ignore-vuln PYSEC-2026-2876 \
             --ignore-vuln PYSEC-2026-3721 --ignore-vuln PYSEC-2026-3447
+
+      # The step above audits a fresh resolve; Fly runs requirements-api.lock.
+      # Audit the lock too, and fail if pyproject changed without regenerating
+      # it (uv keeps existing pins, so an unchanged pyproject compiles to the
+      # same file). torch is +cpu, which PyPI cannot match, so pip-audit skips it.
+      - name: Lock audit
+        run: |
+          pip install uv==0.13.6
+          uv pip compile pyproject.toml --extra web --python-version 3.12 \
+            --python-platform x86_64-manylinux_2_28 --generate-hashes \
+            --emit-index-annotation -q -o requirements-api.lock \
+            --custom-compile-command "uv pip compile pyproject.toml --extra web --python-version 3.12 --python-platform x86_64-manylinux_2_28 --generate-hashes --emit-index-annotation -o requirements-api.lock"
+          git diff --exit-code requirements-api.lock
+          pip-audit -r requirements-api.lock --require-hashes --disable-pip
+
+      - name: Secret scan
+        run: |
+          curl -sSfL -o gitleaks.tgz https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tgz" | sha256sum -c -
+          tar -xzf gitleaks.tgz gitleaks
+          ./gitleaks git . --redact --no-banner
+
+  web-audit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      # Runtime dependencies only. The dev-only lint and tailwind 3 chain carries
+      # advisories whose fixes are semver-major and never runs on Vercel. Audit
+      # reads the lockfile alone, so nothing is installed.
+      - name: npm audit
+        run: npm audit --omit=dev --audit-level=high
