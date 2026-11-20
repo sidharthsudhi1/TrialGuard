@@ -119,8 +119,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       # Runtime dependencies only. The dev-only lint and tailwind 3 chain carries
-      # advisories whose fixes are semver-major and never runs on Vercel.
+      # advisories whose fixes are semver-major and never runs on Vercel. Audit
+      # reads the lockfile alone, so nothing is installed.
       - name: npm audit
-        run: |
-          npm ci --ignore-scripts
-          npm audit --omit=dev --audit-level=high
+        run: npm audit --omit=dev --audit-level=high
