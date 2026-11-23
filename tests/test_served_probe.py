@@ -121,6 +121,24 @@ def test_a_broken_database_pool_alerts():
     assert "pool_ok" in _failed(outcome)
 
 
+def test_a_dead_connection_on_the_first_call_alerts():
+    """The first health call is the first lease after a Fly resume. A dead
+    connection fails it and is discarded, so the warm call comes back green."""
+    health = [
+        {"ok": True, "pool_ok": False, "pool_error": "OperationalError", "store_ok": False},
+        {"ok": True, "pool_ok": True, "store_ok": True},
+    ]
+
+    result = _probe(health=health)
+    outcome = check(result)
+
+    assert result["pool_ok"] is True
+    assert result["pool_ok_cold"] is False
+    assert _failed(outcome) == {"pool_first_call"}
+    row = next(r for r in outcome["results"] if r["check"] == "pool_first_call")
+    assert row["value"] == "OperationalError"
+
+
 def test_an_exhausted_budget_alerts():
     result = _probe(budget={"exhausted": True, "remaining_usd": 0.0})
 
