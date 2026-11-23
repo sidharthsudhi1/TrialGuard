@@ -1237,6 +1237,105 @@ def test_staging_token_skips_the_limiter_and_an_empty_token_does_not(monkeypatch
             assert again.status_code == 200
 
 
+def _loop_spy():
+    """A job store, plus a recorder of every call made on the event-loop thread."""
+    import asyncio
+
+    from trialguard.api.jobs import InMemoryJobStore
+
+    calls: list[str] = []
+    on_loop: list[str] = []
+
+    def record(name: str) -> None:
+        calls.append(name)
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        on_loop.append(name)
+
+    class SpyStore(InMemoryJobStore):
+        def create(self, *a, **k):
+            record("create")
+            return super().create(*a, **k)
+
+        def get(self, *a, **k):
+            record("get")
+            return super().get(*a, **k)
+
+        def events_since(self, *a, **k):
+            record("events_since")
+            return super().events_since(*a, **k)
+
+        def heartbeat(self, *a, **k):
+            record("heartbeat")
+            return super().heartbeat(*a, **k)
+
+        def append(self, *a, **k):
+            record("append")
+            return super().append(*a, **k)
+
+        def complete(self, *a, **k):
+            record("complete")
+            return super().complete(*a, **k)
+
+        def fail(self, *a, **k):
+            record("fail")
+            return super().fail(*a, **k)
+
+    return SpyStore(), record, calls, on_loop
+
+
+def _run_spied_job(client, monkeypatch, assess_fn):
+    store, record, calls, on_loop = _loop_spy()
+    client.app.state.jobs = store
+    monkeypatch.setattr("trialguard.config.settings.api_job_heartbeat_seconds", 0.01)
+    with (
+        patch("trialguard.agent.sanitize.detect_injection", return_value=False),
+        patch("trialguard.db.queries.get_trial", return_value=STUB_ROWS["NCT0001"]),
+        patch("trialguard.agent.graph.assess", side_effect=assess_fn),
+        patch("trialguard.llm.cost.active_ledger") as ledger,
+    ):
+        ledger.return_value.exhausted.side_effect = lambda: record("exhausted") or False
+        ledger.return_value.summary.side_effect = lambda: record("summary") or {
+            "usd": 2.0, "usd_cap": 2.0, "calls": 1, "date": "x"
+        }
+        ledger.return_value.remaining_usd.return_value = 0.0
+        created = client.post(
+            "/api/assess", json={"note": "synthetic note", "nct_ids": ["NCT0001"]}
+        )
+        job_id = created.json()["job_id"]
+        with client.stream("GET", f"/api/assess/{job_id}") as stream:
+            raw = "".join(stream.iter_text())
+    return raw, calls, on_loop
+
+
+def test_no_store_or_ledger_call_runs_on_the_event_loop(client, monkeypatch):
+    def slow_assess(note, nct_id, criteria, source_text, **kwargs):
+        time.sleep(0.1)  # long enough for the 10 ms heartbeat to fire
+        return STUB_ASSESS
+
+    raw, calls, on_loop = _run_spied_job(client, monkeypatch, slow_assess)
+
+    assert "event: summary" in raw
+    assert {"exhausted", "create", "get", "events_since", "heartbeat", "append",
+            "complete"} <= set(calls)
+    assert on_loop == []
+
+
+def test_the_budget_stop_path_stays_off_the_event_loop(client, monkeypatch):
+    from trialguard.agent.ratelimit import BudgetExhausted
+
+    def broke(note, nct_id, criteria, source_text, **kwargs):
+        raise BudgetExhausted("daily cap reached")
+
+    raw, calls, on_loop = _run_spied_job(client, monkeypatch, broke)
+
+    assert "BudgetExhausted" in raw
+    assert {"summary", "fail"} <= set(calls)
+    assert on_loop == []
+
+
 def test_served_by_header_only_on_a_staging_process(monkeypatch):
     monkeypatch.setenv("FLY_MACHINE_ID", "m1")
     monkeypatch.setattr("trialguard.config.settings.api_staging_bypass_token", "")

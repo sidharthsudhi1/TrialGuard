@@ -458,17 +458,21 @@ async def assess_start(body: AssessRequest, request: Request) -> AssessCreated:
 
     from trialguard.llm.cost import active_ledger
 
-    if active_ledger().exhausted():
-        raise HTTPException(
-            status_code=402,
-            detail=_budget_exhausted_detail(RuntimeError("Daily spend cap reached.")),
+    # The ledger and the job store are blocking psycopg2, and a lease can wait
+    # 30 s for a pool slot. On the event loop that stalls every request in the
+    # process, health checks included, so each call runs in a thread.
+    ledger = active_ledger()
+    if await asyncio.to_thread(ledger.exhausted):
+        detail = await asyncio.to_thread(
+            _budget_exhausted_detail, RuntimeError("Daily spend cap reached.")
         )
+        raise HTTPException(status_code=402, detail=detail)
 
     note = body.note.strip()
     skip_cache = not _is_preset(note)
     store = request.app.state.jobs
     try:
-        job = store.create(note, nct_ids, skip_cache_write=skip_cache)
+        job = await asyncio.to_thread(store.create, note, nct_ids, skip_cache_write=skip_cache)
     except Exception as e:
         # Without this the client gets a bare 500 and cannot tell a rejected
         # request from a broken one. Worse, returning a job id anyway would
@@ -527,7 +531,7 @@ async def assess_stream(job_id: str, request: Request) -> StreamingResponse:
     of a finished job wants.
     """
     store = request.app.state.jobs
-    job = store.get(job_id, with_events=False)
+    job = await asyncio.to_thread(store.get, job_id, with_events=False)
     if job is None:
         raise HTTPException(status_code=404, detail="Unknown job_id.")
     resume_from = _resume_cursor(request)
@@ -542,12 +546,14 @@ async def assess_stream(job_id: str, request: Request) -> StreamingResponse:
         cursor = resume_from
         idle = 0.0
         while True:
-            current = store.get(job_id, with_events=False)
+            # Every open stream polls this often, so a blocking read here would
+            # hold the event loop for the whole process (see assess_start).
+            current = await asyncio.to_thread(store.get, job_id, with_events=False)
             if current is None:
                 payload = {"type": "error", "error": "job_expired"}
                 yield f"event: error\ndata: {json.dumps(payload)}\n\n"
                 return
-            pending = store.events_since(job_id, cursor)
+            pending = await asyncio.to_thread(store.events_since, job_id, cursor)
             for seq, ev in pending:
                 cursor = seq
                 etype = ev.get("type", "trial")

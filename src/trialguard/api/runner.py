@@ -63,7 +63,7 @@ async def _heartbeat(
     while True:
         await asyncio.sleep(interval)
         try:
-            alive = store.heartbeat(job_id)
+            alive = await asyncio.to_thread(store.heartbeat, job_id)
         except Exception:  # noqa: S112 -- a failed beat must not kill the loop
             continue
         if not alive:
@@ -143,8 +143,10 @@ class _Faithfulness:
 
 
 async def _run_assess_job(app: Any, job_id: str) -> None:
+    # Every store and ledger call below is blocking psycopg2 that can wait 30 s
+    # for a pool slot, so each runs in a thread rather than on the event loop.
     store = app.state.jobs
-    job = store.get(job_id, with_events=False)
+    job = await asyncio.to_thread(store.get, job_id, with_events=False)
     if job is None:
         return
 
@@ -245,11 +247,12 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
             for completed in asyncio.as_completed(tasks):
                 event = await completed
                 tally.add(event.get("assessments") or [])
-                store.append(job_id, event)
+                await asyncio.to_thread(store.append, job_id, event)
                 landed.add(event["nct_id"])
                 if head and not head_sent and head <= landed:
                     head_sent = True
-                    store.append(
+                    await asyncio.to_thread(
+                        store.append,
                         job_id,
                         {"type": "head", "n": head_n, "of": len(job.nct_ids),
                          "faithfulness": tally.summary()},
@@ -259,18 +262,20 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
             # and must not be paid for once the cap is hit.
             for t in tasks:
                 t.cancel()
+            detail = await asyncio.to_thread(_budget_exhausted_detail, e)
             if not head_sent:
-                store.fail(job_id, json.dumps(_budget_exhausted_detail(e)))
+                await asyncio.to_thread(store.fail, job_id, json.dumps(detail))
                 return
             # The head is a complete answer on its own; failing the job would
             # discard it. Close it as partial and say why.
-            store.complete(
+            await asyncio.to_thread(
+                store.complete,
                 job_id,
                 {
                     "n_trials": len(job.nct_ids),
                     "n_assessed": len(landed),
                     "status": "partial",
-                    "stopped": _budget_exhausted_detail(e),
+                    "stopped": detail,
                     "faithfulness": tally.summary(),
                 },
             )
@@ -279,7 +284,8 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
             # The beat cancelled the work because the job is no longer ours. It
             # already carries a terminal status written by whoever took it.
             return
-        store.complete(
+        await asyncio.to_thread(
+            store.complete,
             job_id,
             {
                 "n_trials": len(job.nct_ids),
@@ -302,12 +308,13 @@ async def _run_assess_job(app: Any, job_id: str) -> None:
         loop.run_in_executor(None, tally.emit, job_id)
     except Exception as e:
         if isinstance(e, BudgetExhausted):
-            store.fail(job_id, json.dumps(_budget_exhausted_detail(e)))
+            detail = await asyncio.to_thread(_budget_exhausted_detail, e)
+            await asyncio.to_thread(store.fail, job_id, json.dumps(detail))
         else:
-            store.fail(job_id, str(e))
+            await asyncio.to_thread(store.fail, job_id, str(e))
     finally:
         beat.cancel()
-        _ensure_terminal(store, job_id)
+        await asyncio.to_thread(_ensure_terminal, store, job_id)
 
 
 def _assess_one(
