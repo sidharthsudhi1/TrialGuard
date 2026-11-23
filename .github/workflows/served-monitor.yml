@@ -16,8 +16,14 @@ jobs:
           python-version: "3.12"
           cache: pip
 
+      # The deployed lock, as Dockerfile.api installs it, so the monitor runs the
+      # versions production runs. A fresh resolve picked up a Langfuse major that
+      # removed the API this reads, and every run from 2026-10-14 failed on it.
       - name: Install
-        run: pip install -e .
+        run: |
+          pip install --require-hashes -r requirements-api.lock \
+            --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --no-deps -e .
 
       # WS-4 — the live endpoints, which traces cannot see. A trace-reading
       # monitor is blind exactly when the API is down, because an outage produces
