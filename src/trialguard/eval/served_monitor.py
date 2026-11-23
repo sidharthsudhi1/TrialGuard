@@ -34,30 +34,53 @@ def _trace_output(trace) -> dict | None:
     return out if isinstance(out, dict) and "assessments" in out else None
 
 
+def served_filter(since: dt.datetime) -> str:
+    """Root observations of served assess traces started at or after `since`."""
+    return json.dumps(
+        [
+            {
+                "type": "arrayOptions",
+                "column": "tags",
+                "operator": "all of",
+                "value": ["served", "assess"],
+            },
+            {"type": "boolean", "column": "isRootObservation", "operator": "=", "value": True},
+            {
+                "type": "datetime",
+                "column": "startTime",
+                "operator": ">=",
+                "value": since.isoformat(),
+            },
+        ]
+    )
+
+
 def fetch_served_states(days: int) -> list[dict]:
-    """Final states of every served assess trace in the window, newest first."""
+    """Final states of every served assess trace in the window."""
     from trialguard.tracing import get_client
 
     client = get_client()
     if client is None:
         raise RuntimeError("Langfuse credentials absent — cannot read served traces")
 
+    # Langfuse 5 removed trace listing. A trace's final state is its root
+    # observation's output, and `filter` overrides every query-parameter filter,
+    # so the tags, root flag and window all have to live in it.
     since = dt.datetime.now(dt.UTC) - dt.timedelta(days=days)
-    states, page = [], 1
+    query = served_filter(since)
+    states: list[dict] = []
+    cursor = None
     while True:
-        batch = client.api.trace.list(
-            tags=["served", "assess"], from_timestamp=since, page=page, limit=50
+        page = client.api.observations.get_many(
+            fields="core,io", filter=query, limit=50, cursor=cursor
         )
-        for t in batch.data:
-            state = _trace_output(t)
-            if state is None:
-                full = client.api.trace.get(t.id)
-                state = _trace_output(full)
+        for obs in page.data:
+            state = _trace_output(obs)
             if state is not None:
                 states.append(state)
-        if page >= batch.meta.total_pages:
+        cursor = page.meta.cursor
+        if not cursor:
             break
-        page += 1
     return states
 
 
