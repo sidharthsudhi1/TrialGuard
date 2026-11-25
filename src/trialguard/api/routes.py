@@ -157,7 +157,10 @@ def _preset_notes() -> frozenset[str]:
         fixture = frozenset()
     # The UI's own notes are always allowed, fixtures or not. They are the only
     # notes most users will ever submit, and they were the ones being excluded.
-    return fixture | DEMO_PRESET_NOTES
+    # The probe's note too: its search latency gate assumes a keyword cache hit.
+    from trialguard.eval.served_probe import PROBE_NOTE
+
+    return fixture | DEMO_PRESET_NOTES | {PROBE_NOTE}
 
 
 def _is_preset(note: str) -> bool:
@@ -341,6 +344,7 @@ def search(body: SearchRequest, request: Request) -> dict[str, Any]:
             source=SOURCE,
             use_keywords=True,
             handler=_trace_handler(request_id, "search"),
+            persist_keywords=_is_preset(body.note),
         )
     except BudgetExhausted as e:
         raise HTTPException(status_code=402, detail=_budget_exhausted_detail(e)) from e
@@ -391,6 +395,7 @@ def search_stream(body: SearchRequest, request: Request) -> StreamingResponse:
                     use_keywords=True,
                     handler=_trace_handler(request_id, "search"),
                     on_provisional=on_provisional,
+                    persist_keywords=_is_preset(note),
                 )
                 box.put(
                     {

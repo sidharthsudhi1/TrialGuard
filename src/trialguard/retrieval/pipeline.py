@@ -91,6 +91,7 @@ def retrieve(
     use_keywords: bool = False,
     handler=None,
     on_provisional=None,
+    persist_keywords: bool = True,
 ) -> tuple[list[tuple[str, float]], dict[str, float]]:
     """Run hybrid retrieval. Returns (results, latency_ms_breakdown).
 
@@ -136,7 +137,10 @@ def retrieve(
                 bm25_futs.append(pool.submit(bm25_search, kw, bm25_pool, source))
 
         queries = generate_keywords(
-            query, handler=handler, on_keyword=_on_kw if stream else None
+            query,
+            handler=handler,
+            on_keyword=_on_kw if stream else None,
+            persist=persist_keywords,
         )
         keyword_ms = (time.perf_counter() - tk) * 1000
         if stream and started == queries and bm25_futs:

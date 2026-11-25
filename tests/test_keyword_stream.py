@@ -33,7 +33,7 @@ def test_streamed_keywords_rank_like_the_blocking_path(monkeypatch):
         calls.append(("bm25", q))
         return [("NCT1", 0.5)] if "breast" in q else [("NCT3", 0.5)]
 
-    def fake_gen(note, n_max=12, handler=None, on_keyword=None):
+    def fake_gen(note, n_max=12, handler=None, on_keyword=None, persist=True):
         kws = ["breast cancer", "ecog 1"]
         if on_keyword:
             for kw in kws:
@@ -65,7 +65,7 @@ def test_a_partial_stream_is_discarded(monkeypatch):
     def fake_bm25(q, top_k=50, source=None):
         return [("NCT9", 0.2)]
 
-    def fake_gen(note, n_max=12, handler=None, on_keyword=None):
+    def fake_gen(note, n_max=12, handler=None, on_keyword=None, persist=True):
         if on_keyword:
             on_keyword("dropped fragment")
         return ["breast cancer"]
@@ -88,7 +88,7 @@ def test_provisional_callback_does_not_change_the_final_list(monkeypatch):
     def fake_bm25(q, top_k=50, source=None):
         return [("NCT3", 0.2)]
 
-    def fake_gen(note, n_max=12, handler=None, on_keyword=None):
+    def fake_gen(note, n_max=12, handler=None, on_keyword=None, persist=True):
         kws = ["breast cancer"]
         if on_keyword:
             on_keyword(kws[0])

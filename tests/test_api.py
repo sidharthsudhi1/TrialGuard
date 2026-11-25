@@ -361,7 +361,7 @@ def test_search_passes_a_trace_handler(client):
     """CLAUDE.md non-negotiable: invocations carry tracing. The served path did not."""
     seen = {}
 
-    def _retrieve(note, top_k=5, source=None, use_keywords=False, handler=None):
+    def _retrieve(note, top_k=5, source=None, use_keywords=False, handler=None, **_):
         seen["handler"] = handler
         return STUB_HITS, STUB_LATENCY
 
@@ -1174,8 +1174,36 @@ def test_deep_job_caps_in_flight_trials_and_queueing_never_times_out(client, mon
     assert max(peak) <= 2
 
 
+@pytest.mark.parametrize("path", ["/api/search", "/api/search/stream"])
+def test_search_persists_keywords_only_for_presets(client, path):
+    """Keywords are derived from the note, so free text must not be stored."""
+    from trialguard.api.demo_presets import DEMO_PRESET_NOTES
+
+    seen = []
+
+    def _retrieve(note, persist_keywords=True, **_):
+        seen.append(persist_keywords)
+        return STUB_HITS, STUB_LATENCY
+
+    preset = next(iter(DEMO_PRESET_NOTES))
+    with (
+        patch("trialguard.agent.sanitize.detect_injection", return_value=False),
+        patch("trialguard.retrieval.pipeline.retrieve", side_effect=_retrieve),
+        patch("trialguard.db.queries.get_trials", return_value=STUB_ROWS),
+        patch("trialguard.tracing.get_langchain_handler", return_value=None),
+    ):
+        for note in ("a synthetic free-text note", preset):
+            r = client.post(path, json={"note": note, "top_k": 2})
+            assert r.status_code == 200
+            r.read()
+
+    assert seen == [False, True]
+
+
 def test_search_stream_sends_provisional_then_final(client):
-    def _retrieve(note, top_k=5, source=None, use_keywords=False, handler=None, on_provisional=None):
+    def _retrieve(
+        note, top_k=5, source=None, use_keywords=False, handler=None, on_provisional=None, **_
+    ):
         if on_provisional:
             on_provisional([("NCT0002", 0.2)])
         return STUB_HITS, STUB_LATENCY
