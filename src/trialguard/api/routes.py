@@ -106,6 +106,14 @@ def _reject_empty_or_injection(note: str) -> None:
 
     if not note or not note.strip():
         raise HTTPException(status_code=400, detail="Patient note is required.")
+    if len(note) > settings.api_max_note_chars:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Note is {len(note):,} characters; the limit is "
+                f"{settings.api_max_note_chars:,}."
+            ),
+        )
     if detect_injection(note):
         raise HTTPException(
             status_code=400,
@@ -425,8 +433,9 @@ def search_stream(body: SearchRequest, request: Request) -> StreamingResponse:
 
 
 @router.get("/trials/{nct_id}")
-def trial_detail(nct_id: str) -> dict[str, Any]:
+def trial_detail(nct_id: str, request: Request) -> dict[str, Any]:
     """Full trial row including eligibility_raw for quote highlighting."""
+    _rate_or_429(request, "trials")
     from trialguard.db.queries import get_trial
 
     row = get_trial(nct_id, source=SOURCE)
@@ -535,11 +544,35 @@ async def assess_stream(job_id: str, request: Request) -> StreamingResponse:
     reconnects with no header replays the whole log, which is what a fresh reader
     of a finished job wants.
     """
+    open_streams = request.app.state.open_streams
+    ip = _client_ip(request)
+    cap = settings.api_max_streams_per_ip
+    # A 429 rather than an SSE error event: EventSource reconnects after a stream
+    # ends but gives up on a non-200, so this is the answer that stops it.
+    if open_streams[ip] >= cap and not _staging_bypass(request):
+        raise HTTPException(
+            status_code=429,
+            detail=f"At most {cap} assessment streams open at once. Close one and retry.",
+            headers={"Retry-After": "5"},
+        )
     store = request.app.state.jobs
     job = await asyncio.to_thread(store.get, job_id, with_events=False)
     if job is None:
         raise HTTPException(status_code=404, detail="Unknown job_id.")
     resume_from = _resume_cursor(request)
+
+    async def counted():
+        # Counted inside the generator so the release runs in its finally. A
+        # response that never starts never counts. Two requests racing the check
+        # above can exceed the cap by one each, which a soft limit can afford.
+        open_streams[ip] += 1
+        try:
+            async for chunk in event_gen():
+                yield chunk
+        finally:
+            open_streams[ip] -= 1
+            if open_streams[ip] <= 0:
+                del open_streams[ip]
 
     async def event_gen():
         # A per-job sequence, not a local count of what this generator sent. The
@@ -587,7 +620,7 @@ async def assess_stream(job_id: str, request: Request) -> StreamingResponse:
             await asyncio.sleep(0.15)
 
     return StreamingResponse(
-        event_gen(),
+        counted(),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

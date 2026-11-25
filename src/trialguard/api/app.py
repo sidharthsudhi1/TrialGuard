@@ -6,6 +6,7 @@ Wraps retrieve() and assess() as they are. Pins TG_PROMPT_VERSION=v4.
 from __future__ import annotations
 
 import os
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 
@@ -37,7 +38,10 @@ async def lifespan(app: FastAPI):
     app.state.rate_limiters = {
         "search": RateLimiter(settings.api_search_rate_per_min),
         "assess": RateLimiter(settings.api_assess_rate_per_min),
+        "trials": RateLimiter(settings.api_trial_rate_per_min),
     }
+    # Open assess streams per client IP; see routes.assess_stream.
+    app.state.open_streams = Counter()
     app.state.assess_executor = ThreadPoolExecutor(
         max_workers=settings.api_assess_workers,
         thread_name_prefix="tg-assess",

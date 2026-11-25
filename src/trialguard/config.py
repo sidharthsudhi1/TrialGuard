@@ -115,6 +115,15 @@ class Settings(BaseSettings):
     # Per-IP sliding-window limits (keyword extract / analyst spend).
     api_search_rate_per_min: int = 10
     api_assess_rate_per_min: int = 15
+    # Trial detail is one page view per call, so this is generous for a person and
+    # bounds a scripted crawl of the corpus.
+    api_trial_rate_per_min: int = 60
+    # Every open assess stream polls the job store about 7 times a second, so the
+    # number one client can hold open is a DB load knob, not a UI one.
+    api_max_streams_per_ip: int = 4
+    # Longest real note across SIGIR and TREC 2021-2023 is 1,293 characters. The
+    # cap bounds keyword-call tokens and the regex scans that run before it.
+    api_max_note_chars: int = 4000
     # Assess job retention (seconds). Enforced as a DELETE on job create, not
     # eviction-on-read, now that job rows are durable.
     api_job_ttl_seconds: int = 3600

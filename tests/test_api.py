@@ -1375,3 +1375,56 @@ def test_served_by_header_only_on_a_staging_process(monkeypatch):
     monkeypatch.setattr("trialguard.config.settings.api_staging_bypass_token", "secret")
     with TestClient(create_app()) as c:
         assert c.get("/api/limits").headers["x-served-by"] == "m1"
+
+
+# --- abuse limits: note length, trial lookup, open streams -----------------
+
+
+@pytest.mark.parametrize(
+    ("path", "extra"), [("/api/search", {}), ("/api/assess", {"nct_ids": ["NCT0001"]})]
+)
+def test_an_oversized_note_is_refused_before_any_scan(client, monkeypatch, path, extra):
+    monkeypatch.setattr("trialguard.config.settings.api_max_note_chars", 100)
+    with (
+        patch("trialguard.agent.sanitize.detect_injection") as inj,
+        patch("trialguard.agent.sanitize.detect_phi") as phi,
+    ):
+        r = client.post(path, json={"note": "x" * 101, **extra})
+
+    assert r.status_code == 400
+    assert r.json()["detail"] == "Note is 101 characters; the limit is 100."
+    inj.assert_not_called()
+    phi.assert_not_called()
+
+
+def test_trial_lookup_is_rate_limited(monkeypatch):
+    monkeypatch.setattr("trialguard.config.settings.database_url", "")
+    monkeypatch.setattr("trialguard.config.settings.api_trial_rate_per_min", 2)
+    with (
+        TestClient(create_app()) as c,
+        patch("trialguard.db.queries.get_trial", return_value=STUB_ROWS["NCT0001"]),
+    ):
+        codes = [c.get("/api/trials/NCT0001").status_code for _ in range(3)]
+        last = c.get("/api/trials/NCT0001")
+
+    assert codes == [200, 200, 429]
+    assert int(last.headers["Retry-After"]) >= 1
+
+
+def test_a_client_at_the_stream_cap_is_refused(client, monkeypatch):
+    monkeypatch.setattr("trialguard.config.settings.api_max_streams_per_ip", 2)
+    job_id, _ = _run_two_trial_job(client)
+    open_streams = client.app.state.open_streams
+    # A finished stream gives its slot back.
+    assert sum(open_streams.values()) == 0
+
+    open_streams["testclient"] = 2
+    r = client.get(f"/api/assess/{job_id}")
+    assert r.status_code == 429
+    assert r.headers["Retry-After"] == "5"
+
+    open_streams["testclient"] = 1
+    with client.stream("GET", f"/api/assess/{job_id}") as stream:
+        assert stream.status_code == 200
+        "".join(stream.iter_text())
+    assert open_streams["testclient"] == 1
