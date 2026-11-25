@@ -170,7 +170,7 @@ def _emit(keywords: list[str], on_keyword) -> list[str]:
 
 
 def generate_keywords(
-    patient_note: str, n_max: int = 12, handler=None, on_keyword=None
+    patient_note: str, n_max: int = 12, handler=None, on_keyword=None, persist: bool = True
 ) -> list[str]:
     """LLM-extract search keywords from patient note. Cached to disk by note hash.
 
@@ -198,7 +198,7 @@ def generate_keywords(
         return _emit(stored, on_keyword)
 
     from trialguard.agent.ratelimit import estimate_tokens
-    from trialguard.llm.cost import active_ledger
+    from trialguard.llm.cost import _atomic_write, active_ledger
     from trialguard.llm.provider import (
         active_model,
         active_provider,
@@ -272,8 +272,14 @@ def generate_keywords(
         keywords = _parse_keywords(raw, n_max)
         if not keywords:
             raise ValueError("empty keyword list")
-        cache_path.write_text(json.dumps(keywords))
-        cache_put("keywords", note_key, keywords)
+        # Keywords are derived from the note, so persisting them for free text
+        # breaks the same rule the analyst cache follows (skip_cache_write): an
+        # attacker-controlled note would be stored and grow the cache without
+        # bound. The served path passes persist=False for anything off the
+        # preset allowlist.
+        if persist:
+            _atomic_write(cache_path, json.dumps(keywords))
+            cache_put("keywords", note_key, keywords)
         if on_keyword is not None and emitted != keywords:
             # The caller discards searches started from a list the full parse
             # did not keep. Do not emit the parsed list on top of the partials.
