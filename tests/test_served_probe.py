@@ -139,6 +139,29 @@ def test_a_dead_connection_on_the_first_call_alerts():
     assert row["value"] == "OperationalError"
 
 
+def test_a_first_call_the_proxy_refused_is_not_a_dead_pool():
+    """Nightly 2026-11-24 and 11-25: Fly answered the first call 503 after ~45 s
+    with no body, and the check reported pool_first_call False as if a lease had
+    failed. Only reachability failed; the pool was never asked."""
+
+    class _ColdProxy503(_FakeClient):
+        def get(self, url):
+            if "health" in url and self.calls.count("health") == 0:
+                self.calls.append("health")
+                return _Resp(503)
+            return super().get(url)
+
+    result = probe(
+        "https://example.test", client=_ColdProxy503(), catchup_s=0.0, sleep=lambda _: None
+    )
+    outcome = check(result)
+
+    assert result["pool_ok_cold"] is None
+    assert _failed(outcome) == {"health_reachable"}
+    row = next(r for r in outcome["results"] if r["check"] == "pool_first_call")
+    assert row["value"] == "no answer"
+
+
 def test_an_exhausted_budget_alerts():
     result = _probe(budget={"exhausted": True, "remaining_usd": 0.0})
 

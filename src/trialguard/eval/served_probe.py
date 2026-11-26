@@ -162,7 +162,13 @@ def probe(
         "health_status": _status(r_cold, cold_err),
         "health_ok": bool(health.get("ok")),
         "pool_ok": bool(health.get("pool_ok")),
-        "pool_ok_cold": bool(cold_health.get("pool_ok")),
+        # None when the first call never reached the app: a proxy 503 has no
+        # body, and reading that as a dead pool misnamed two nightly failures.
+        "pool_ok_cold": (
+            bool(cold_health.get("pool_ok"))
+            if _status(r_cold, cold_err) == 200 and cold_health
+            else None
+        ),
         "pool_error_cold": cold_health.get("pool_error"),
         "store_ok": bool(health.get("store_ok")),
         "corpus_age_hours": _corpus_age_hours(health),
@@ -237,12 +243,17 @@ def check(result: dict, thresholds_path: Path = THRESHOLDS) -> dict:
     # suspend, so if time.monotonic() stalls while suspended a dead connection is
     # handed out unpinged. It fails that one request and is discarded, which is
     # why the warm call's pool_ok cannot see it.
-    _row(
-        "pool_first_call",
-        result["pool_ok_cold"],
-        result.get("pool_error_cold") or result["pool_ok_cold"],
-        "true",
-    )
+    cold_pool = result["pool_ok_cold"]
+    if cold_pool is None:
+        # health_reachable already fails on this; the pool was never asked.
+        _row("pool_first_call", True, "no answer", "judged only when the first call is 200")
+    else:
+        _row(
+            "pool_first_call",
+            cold_pool,
+            result.get("pool_error_cold") or cold_pool,
+            "true",
+        )
     # Distinct from pool_ok on purpose: a leasable connection to a database
     # missing the jobs tables answers every assess with 503 while pool_ok stays
     # true, which is what happened after the Phase 10 deploy.
