@@ -48,6 +48,52 @@ def test_clinical_narrative_is_not_flagged(note):
     assert detect_phi(note) == []
 
 
+# --- Phase 40: unlabelled names (NER + context) -------------------------------
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Mr. Okafor was seen today with chest pain.",
+        "Ms. Nguyen declined further imaging.",
+        "Her daughter Amara provides most of the history.",
+        "Lives with his wife, Mary Thompson, who drives him to clinic.",
+        "Maria Lopez is a 45-year-old woman with stage IV NSCLC.",
+        "Karen is a 72-year-old woman with hypertension.",
+        "Referred by her sister Hope Sharma after the diagnosis.",
+        "Dmitri Petrov presented with fever and rigors.",
+    ],
+)
+def test_detects_unlabelled_names(text):
+    assert "person_name" in detect_phi(text)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Tenderness and positive Murphy sign on examination.",
+        "Urinary retention s/p Foley catheter.",
+        "History of Burkitt lymphoma and Hodgkin lymphoma.",
+        "Long-standing Crohn's disease, on infliximab.",
+        "Patient is a 45-year-old man with dyspnea.",
+        "Wegener's granulomatosis treated with rituximab.",
+        "Daughter reported increased agitation for 2-3 days.",
+        "Mother has breast cancer; father had colon cancer.",
+        "Started Lasix 40 mg and Vanco po for Cdiff.",
+        "A 61-year-old woman, BRCA1 carrier, ECOG 1.",
+        "Moved from Colorado to California last year.",
+        "Down syndrome with Graves disease.",
+    ],
+)
+def test_eponyms_drugs_and_relatives_without_names_are_not_names(text):
+    assert "person_name" not in detect_phi(text)
+
+
+# These two cohort notes open with the patient's name ("Karen is a 72-year-old",
+# "Fernandez is a 41 year man"). Unlabelled names are exactly what the NER pass
+# exists to refuse, so flagging them is a true positive, not a false one.
+NAMED_COHORT_NOTES = {"sigir-201515", "trec-202148"}
+
+
 def test_no_false_positives_on_any_committed_cohort_note():
     """The load-bearing test: zero flags across every real cohort note.
 
@@ -58,13 +104,27 @@ def test_no_false_positives_on_any_committed_cohort_note():
 
     flagged = []
     total = 0
+    named = set()
     for cohort in ("sigir", "trec_2021", "trec_2022"):
         for p in load_patients(cohort):
             total += 1
             hits = detect_phi(p["description"])
-            if hits:
+            if p["patient_id"] in NAMED_COHORT_NOTES:
+                assert hits == ["person_name"], (p["patient_id"], hits)
+                named.add(p["patient_id"])
+            elif hits:
                 flagged.append((cohort, p["patient_id"], hits))
     # 59 SIGIR + 75 TREC 2021 + 50 TREC 2022. Asserted so the test cannot
     # quietly pass on an empty or truncated cohort load.
     assert total == 184, f"expected the full cohort set, saw {total}"
     assert not flagged, f"false positives on synthetic notes: {flagged[:5]}"
+    assert named == NAMED_COHORT_NOTES
+
+
+def test_no_false_positives_on_trec_2023_notes():
+    """Held out from the Phase 10 sweep; checked the same way."""
+    from trialguard.eval.cohorts import load_patients
+
+    flagged = [(p["patient_id"], detect_phi(p["description"]))
+               for p in load_patients("trec_2023") if detect_phi(p["description"])]
+    assert not flagged
