@@ -45,6 +45,10 @@ RUN python -c "from trialguard.ingestion.embed import embed_batch, embed_text; \
     embed_text('warmup', is_query=True); \
     embed_batch(['warmup'], is_query=False)"
 
+# The name-refusal model (Phase 40, ~430 MB) is baked for the same reason: the
+# boundary refuses or accepts every note through it, so it must be local.
+RUN python -c "from trialguard.agent.sanitize import _deid; _deid()('warmup note')"
+
 # Set after the bake, which needs the network. From here every weight is local,
 # so a Hub round trip on each from_pretrained is pure boot latency — and if a
 # model were ever missing, failing loudly beats silently pulling 440 MB during
@@ -59,6 +63,7 @@ ENV HF_HUB_OFFLINE=1
 RUN python -c "from trialguard.ingestion.embed import embed_batch, embed_text; \
     embed_text('offline check', is_query=True); \
     embed_batch(['offline check'], is_query=False)"
+RUN python -c "from trialguard.agent.sanitize import _deid; _deid()('offline check')"
 
 ENV TG_PROMPT_VERSION=v4
 ENV TG_ANALYST_DELAY=0

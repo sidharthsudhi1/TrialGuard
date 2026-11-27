@@ -77,10 +77,12 @@ def presets(n: int = 4) -> dict[str, str]:
 
 
 def warm_models() -> None:
-    """Load MedCPT into memory so the first user request is not a cold start."""
+    """Load MedCPT and the de-id model so the first user request is not a cold start."""
+    from trialguard.agent.sanitize import detect_names
     from trialguard.ingestion.embed import embed_text
 
     embed_text("warmup query", is_query=True)
+    detect_names("warmup note")
 
 
 def retrieve_trials(note: str, top_k: int = TOP_K) -> list[dict]:

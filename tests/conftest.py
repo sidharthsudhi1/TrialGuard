@@ -25,6 +25,18 @@ TEST_DB = os.environ.get("TG_TEST_DATABASE_URL", "")
 
 
 @pytest.fixture(autouse=True)
+def _no_deid_model(monkeypatch):
+    """The name-refusal model is ~430 MB; tests replay recorded output instead.
+
+    Default: the model finds nothing, so detect_phi runs regex and context
+    rules only. test_phi swaps in recorded entities. TG_DEID_LIVE=1 loads the
+    real model (CI parity check).
+    """
+    if os.environ.get("TG_DEID_LIVE") != "1":
+        monkeypatch.setattr("trialguard.agent.sanitize._deid", lambda: lambda text: [])
+
+
+@pytest.fixture(autouse=True)
 def _no_live_database(monkeypatch):
     monkeypatch.setattr("trialguard.config.settings.database_url", "", raising=False)
 

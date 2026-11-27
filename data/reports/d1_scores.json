@@ -1,0 +1,1217 @@
+{
+ "obi/deid_roberta_i2b2": {
+  "load_s": 6.98,
+  "median_ms": 1109.4,
+  "p95_ms": 2235.9,
+  "median_ms_4000_chars": 5709.0,
+  "arms": {
+   "t0.5": {
+    "false_positive_notes": [
+     "trec-202335"
+    ],
+    "named_cohort_flagged": 0,
+    "recall": {
+     "tuning": {
+      "hit": 240,
+      "n": 240,
+      "recall": 1.0,
+      "ci95": [
+       0.9842,
+       1.0
+      ]
+     },
+     "holdout_1": {
+      "hit": 240,
+      "n": 240,
+      "recall": 1.0,
+      "ci95": [
+       0.9842,
+       1.0
+      ]
+     },
+     "holdout_2": {
+      "hit": 232,
+      "n": 240,
+      "recall": 0.9667,
+      "ci95": [
+       0.9356,
+       0.983
+      ]
+     }
+    }
+   },
+   "t0.5+rules": {
+    "false_positive_notes": [
+     "trec-202335"
+    ],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 240,
+      "n": 240,
+      "recall": 1.0,
+      "ci95": [
+       0.9842,
+       1.0
+      ]
+     },
+     "holdout_1": {
+      "hit": 240,
+      "n": 240,
+      "recall": 1.0,
+      "ci95": [
+       0.9842,
+       1.0
+      ]
+     },
+     "holdout_2": {
+      "hit": 233,
+      "n": 240,
+      "recall": 0.9708,
+      "ci95": [
+       0.941,
+       0.9858
+      ]
+     }
+    }
+   },
+   "t0.7": {
+    "false_positive_notes": [
+     "trec-202335"
+    ],
+    "named_cohort_flagged": 0,
+    "recall": {
+     "tuning": {
+      "hit": 237,
+      "n": 240,
+      "recall": 0.9875,
+      "ci95": [
+       0.9639,
+       0.9957
+      ]
+     },
+     "holdout_1": {
+      "hit": 238,
+      "n": 240,
+      "recall": 0.9917,
+      "ci95": [
+       0.9701,
+       0.9977
+      ]
+     },
+     "holdout_2": {
+      "hit": 222,
+      "n": 240,
+      "recall": 0.925,
+      "ci95": [
+       0.8846,
+       0.952
+      ]
+     }
+    }
+   },
+   "t0.7+rules": {
+    "false_positive_notes": [
+     "trec-202335"
+    ],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 239,
+      "n": 240,
+      "recall": 0.9958,
+      "ci95": [
+       0.9768,
+       0.9993
+      ]
+     },
+     "holdout_1": {
+      "hit": 240,
+      "n": 240,
+      "recall": 1.0,
+      "ci95": [
+       0.9842,
+       1.0
+      ]
+     },
+     "holdout_2": {
+      "hit": 223,
+      "n": 240,
+      "recall": 0.9292,
+      "ci95": [
+       0.8895,
+       0.9553
+      ]
+     }
+    }
+   },
+   "t0.9": {
+    "false_positive_notes": [
+     "trec-202335"
+    ],
+    "named_cohort_flagged": 0,
+    "recall": {
+     "tuning": {
+      "hit": 220,
+      "n": 240,
+      "recall": 0.9167,
+      "ci95": [
+       0.8748,
+       0.9454
+      ]
+     },
+     "holdout_1": {
+      "hit": 221,
+      "n": 240,
+      "recall": 0.9208,
+      "ci95": [
+       0.8797,
+       0.9487
+      ]
+     },
+     "holdout_2": {
+      "hit": 189,
+      "n": 240,
+      "recall": 0.7875,
+      "ci95": [
+       0.7314,
+       0.8345
+      ]
+     }
+    }
+   },
+   "t0.9+rules": {
+    "false_positive_notes": [
+     "trec-202335"
+    ],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 235,
+      "n": 240,
+      "recall": 0.9792,
+      "ci95": [
+       0.9522,
+       0.9911
+      ]
+     },
+     "holdout_1": {
+      "hit": 230,
+      "n": 240,
+      "recall": 0.9583,
+      "ci95": [
+       0.925,
+       0.9772
+      ]
+     },
+     "holdout_2": {
+      "hit": 196,
+      "n": 240,
+      "recall": 0.8167,
+      "ci95": [
+       0.7629,
+       0.8605
+      ]
+     }
+    }
+   }
+  }
+ },
+ "StanfordAIMI/stanford-deidentifier-base": {
+  "load_s": 1.9,
+  "median_ms": 228.6,
+  "p95_ms": 442.4,
+  "median_ms_4000_chars": 1498.4,
+  "arms": {
+   "t0.5": {
+    "false_positive_notes": [],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 236,
+      "n": 240,
+      "recall": 0.9833,
+      "ci95": [
+       0.9579,
+       0.9935
+      ]
+     },
+     "holdout_1": {
+      "hit": 233,
+      "n": 240,
+      "recall": 0.9708,
+      "ci95": [
+       0.941,
+       0.9858
+      ]
+     },
+     "holdout_2": {
+      "hit": 211,
+      "n": 240,
+      "recall": 0.8792,
+      "ci95": [
+       0.8318,
+       0.9145
+      ]
+     }
+    }
+   },
+   "t0.5+rules": {
+    "false_positive_notes": [],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 240,
+      "n": 240,
+      "recall": 1.0,
+      "ci95": [
+       0.9842,
+       1.0
+      ]
+     },
+     "holdout_1": {
+      "hit": 233,
+      "n": 240,
+      "recall": 0.9708,
+      "ci95": [
+       0.941,
+       0.9858
+      ]
+     },
+     "holdout_2": {
+      "hit": 211,
+      "n": 240,
+      "recall": 0.8792,
+      "ci95": [
+       0.8318,
+       0.9145
+      ]
+     }
+    }
+   },
+   "t0.7": {
+    "false_positive_notes": [],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 233,
+      "n": 240,
+      "recall": 0.9708,
+      "ci95": [
+       0.941,
+       0.9858
+      ]
+     },
+     "holdout_1": {
+      "hit": 224,
+      "n": 240,
+      "recall": 0.9333,
+      "ci95": [
+       0.8945,
+       0.9586
+      ]
+     },
+     "holdout_2": {
+      "hit": 201,
+      "n": 240,
+      "recall": 0.8375,
+      "ci95": [
+       0.7856,
+       0.8788
+      ]
+     }
+    }
+   },
+   "t0.7+rules": {
+    "false_positive_notes": [],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 239,
+      "n": 240,
+      "recall": 0.9958,
+      "ci95": [
+       0.9768,
+       0.9993
+      ]
+     },
+     "holdout_1": {
+      "hit": 227,
+      "n": 240,
+      "recall": 0.9458,
+      "ci95": [
+       0.9095,
+       0.9681
+      ]
+     },
+     "holdout_2": {
+      "hit": 201,
+      "n": 240,
+      "recall": 0.8375,
+      "ci95": [
+       0.7856,
+       0.8788
+      ]
+     }
+    }
+   },
+   "t0.9": {
+    "false_positive_notes": [],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 229,
+      "n": 240,
+      "recall": 0.9542,
+      "ci95": [
+       0.9198,
+       0.9742
+      ]
+     },
+     "holdout_1": {
+      "hit": 196,
+      "n": 240,
+      "recall": 0.8167,
+      "ci95": [
+       0.7629,
+       0.8605
+      ]
+     },
+     "holdout_2": {
+      "hit": 177,
+      "n": 240,
+      "recall": 0.7375,
+      "ci95": [
+       0.6784,
+       0.7891
+      ]
+     }
+    }
+   },
+   "t0.9+rules": {
+    "false_positive_notes": [],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 237,
+      "n": 240,
+      "recall": 0.9875,
+      "ci95": [
+       0.9639,
+       0.9957
+      ]
+     },
+     "holdout_1": {
+      "hit": 204,
+      "n": 240,
+      "recall": 0.85,
+      "ci95": [
+       0.7993,
+       0.8896
+      ]
+     },
+     "holdout_2": {
+      "hit": 177,
+      "n": 240,
+      "recall": 0.7375,
+      "ci95": [
+       0.6784,
+       0.7891
+      ]
+     }
+    }
+   }
+  }
+ },
+ "dslim/bert-base-NER": {
+  "load_s": 4.98,
+  "median_ms": 336.3,
+  "p95_ms": 590.6,
+  "median_ms_4000_chars": 2073.3,
+  "arms": {
+   "t0.5": {
+    "false_positive_notes": [
+     "sigir-201417",
+     "trec-202112",
+     "trec-202116",
+     "trec-20212",
+     "trec-202130",
+     "trec-20214",
+     "trec-202140",
+     "trec-202141",
+     "trec-202149",
+     "trec-202152",
+     "trec-202155",
+     "trec-202159",
+     "trec-202166",
+     "trec-202174",
+     "trec-202175",
+     "trec-20218",
+     "trec-20219",
+     "trec-202213",
+     "trec-202223",
+     "trec-202226",
+     "trec-202246",
+     "trec-202318",
+     "trec-202319"
+    ],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 240,
+      "n": 240,
+      "recall": 1.0,
+      "ci95": [
+       0.9842,
+       1.0
+      ]
+     },
+     "holdout_1": {
+      "hit": 240,
+      "n": 240,
+      "recall": 1.0,
+      "ci95": [
+       0.9842,
+       1.0
+      ]
+     },
+     "holdout_2": {
+      "hit": 233,
+      "n": 240,
+      "recall": 0.9708,
+      "ci95": [
+       0.941,
+       0.9858
+      ]
+     }
+    }
+   },
+   "t0.5+rules": {
+    "false_positive_notes": [
+     "sigir-201417",
+     "trec-202112",
+     "trec-202116",
+     "trec-20212",
+     "trec-202130",
+     "trec-20214",
+     "trec-202140",
+     "trec-202141",
+     "trec-202149",
+     "trec-202152",
+     "trec-202155",
+     "trec-202159",
+     "trec-202166",
+     "trec-202174",
+     "trec-202175",
+     "trec-20218",
+     "trec-20219",
+     "trec-202213",
+     "trec-202223",
+     "trec-202226",
+     "trec-202246",
+     "trec-202318",
+     "trec-202319"
+    ],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 240,
+      "n": 240,
+      "recall": 1.0,
+      "ci95": [
+       0.9842,
+       1.0
+      ]
+     },
+     "holdout_1": {
+      "hit": 240,
+      "n": 240,
+      "recall": 1.0,
+      "ci95": [
+       0.9842,
+       1.0
+      ]
+     },
+     "holdout_2": {
+      "hit": 233,
+      "n": 240,
+      "recall": 0.9708,
+      "ci95": [
+       0.941,
+       0.9858
+      ]
+     }
+    }
+   },
+   "t0.7": {
+    "false_positive_notes": [
+     "sigir-201417",
+     "trec-202112",
+     "trec-202130",
+     "trec-20214",
+     "trec-202140",
+     "trec-202141",
+     "trec-202149",
+     "trec-202155",
+     "trec-202166",
+     "trec-202174",
+     "trec-202175",
+     "trec-20218",
+     "trec-20219",
+     "trec-202213",
+     "trec-202223",
+     "trec-202226",
+     "trec-202246",
+     "trec-202318",
+     "trec-202319"
+    ],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 237,
+      "n": 240,
+      "recall": 0.9875,
+      "ci95": [
+       0.9639,
+       0.9957
+      ]
+     },
+     "holdout_1": {
+      "hit": 239,
+      "n": 240,
+      "recall": 0.9958,
+      "ci95": [
+       0.9768,
+       0.9993
+      ]
+     },
+     "holdout_2": {
+      "hit": 231,
+      "n": 240,
+      "recall": 0.9625,
+      "ci95": [
+       0.9303,
+       0.9801
+      ]
+     }
+    }
+   },
+   "t0.7+rules": {
+    "false_positive_notes": [
+     "sigir-201417",
+     "trec-202112",
+     "trec-202130",
+     "trec-20214",
+     "trec-202140",
+     "trec-202141",
+     "trec-202149",
+     "trec-202155",
+     "trec-202166",
+     "trec-202174",
+     "trec-202175",
+     "trec-20218",
+     "trec-20219",
+     "trec-202213",
+     "trec-202223",
+     "trec-202226",
+     "trec-202246",
+     "trec-202318",
+     "trec-202319"
+    ],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 240,
+      "n": 240,
+      "recall": 1.0,
+      "ci95": [
+       0.9842,
+       1.0
+      ]
+     },
+     "holdout_1": {
+      "hit": 239,
+      "n": 240,
+      "recall": 0.9958,
+      "ci95": [
+       0.9768,
+       0.9993
+      ]
+     },
+     "holdout_2": {
+      "hit": 231,
+      "n": 240,
+      "recall": 0.9625,
+      "ci95": [
+       0.9303,
+       0.9801
+      ]
+     }
+    }
+   },
+   "t0.9": {
+    "false_positive_notes": [
+     "sigir-201417",
+     "trec-202130",
+     "trec-20214",
+     "trec-202140",
+     "trec-202141",
+     "trec-202149",
+     "trec-202155",
+     "trec-202166",
+     "trec-202174",
+     "trec-202175",
+     "trec-20218",
+     "trec-202213",
+     "trec-202223",
+     "trec-202226",
+     "trec-202318",
+     "trec-202319"
+    ],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 206,
+      "n": 240,
+      "recall": 0.8583,
+      "ci95": [
+       0.8086,
+       0.8968
+      ]
+     },
+     "holdout_1": {
+      "hit": 232,
+      "n": 240,
+      "recall": 0.9667,
+      "ci95": [
+       0.9356,
+       0.983
+      ]
+     },
+     "holdout_2": {
+      "hit": 214,
+      "n": 240,
+      "recall": 0.8917,
+      "ci95": [
+       0.846,
+       0.925
+      ]
+     }
+    }
+   },
+   "t0.9+rules": {
+    "false_positive_notes": [
+     "sigir-201417",
+     "trec-202130",
+     "trec-20214",
+     "trec-202140",
+     "trec-202141",
+     "trec-202149",
+     "trec-202155",
+     "trec-202166",
+     "trec-202174",
+     "trec-202175",
+     "trec-20218",
+     "trec-202213",
+     "trec-202223",
+     "trec-202226",
+     "trec-202318",
+     "trec-202319"
+    ],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 238,
+      "n": 240,
+      "recall": 0.9917,
+      "ci95": [
+       0.9701,
+       0.9977
+      ]
+     },
+     "holdout_1": {
+      "hit": 234,
+      "n": 240,
+      "recall": 0.975,
+      "ci95": [
+       0.9465,
+       0.9885
+      ]
+     },
+     "holdout_2": {
+      "hit": 219,
+      "n": 240,
+      "recall": 0.9125,
+      "ci95": [
+       0.8699,
+       0.9421
+      ]
+     }
+    }
+   }
+  }
+ },
+ "obi/deid_bert_i2b2": {
+  "load_s": 8.93,
+  "median_ms": 99.7,
+  "p95_ms": 199.8,
+  "median_ms_4000_chars": 619.0,
+  "arms": {
+   "t0.5": {
+    "false_positive_notes": [
+     "trec-202155",
+     "trec-202175"
+    ],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 237,
+      "n": 240,
+      "recall": 0.9875,
+      "ci95": [
+       0.9639,
+       0.9957
+      ]
+     },
+     "holdout_1": {
+      "hit": 236,
+      "n": 240,
+      "recall": 0.9833,
+      "ci95": [
+       0.9579,
+       0.9935
+      ]
+     },
+     "holdout_2": {
+      "hit": 227,
+      "n": 240,
+      "recall": 0.9458,
+      "ci95": [
+       0.9095,
+       0.9681
+      ]
+     }
+    }
+   },
+   "t0.5+rules": {
+    "false_positive_notes": [
+     "trec-202155",
+     "trec-202175"
+    ],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 239,
+      "n": 240,
+      "recall": 0.9958,
+      "ci95": [
+       0.9768,
+       0.9993
+      ]
+     },
+     "holdout_1": {
+      "hit": 236,
+      "n": 240,
+      "recall": 0.9833,
+      "ci95": [
+       0.9579,
+       0.9935
+      ]
+     },
+     "holdout_2": {
+      "hit": 229,
+      "n": 240,
+      "recall": 0.9542,
+      "ci95": [
+       0.9198,
+       0.9742
+      ]
+     }
+    }
+   },
+   "t0.7": {
+    "false_positive_notes": [
+     "trec-202155",
+     "trec-202175"
+    ],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 231,
+      "n": 240,
+      "recall": 0.9625,
+      "ci95": [
+       0.9303,
+       0.9801
+      ]
+     },
+     "holdout_1": {
+      "hit": 227,
+      "n": 240,
+      "recall": 0.9458,
+      "ci95": [
+       0.9095,
+       0.9681
+      ]
+     },
+     "holdout_2": {
+      "hit": 212,
+      "n": 240,
+      "recall": 0.8833,
+      "ci95": [
+       0.8366,
+       0.918
+      ]
+     }
+    }
+   },
+   "t0.7+rules": {
+    "false_positive_notes": [
+     "trec-202155",
+     "trec-202175"
+    ],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 237,
+      "n": 240,
+      "recall": 0.9875,
+      "ci95": [
+       0.9639,
+       0.9957
+      ]
+     },
+     "holdout_1": {
+      "hit": 228,
+      "n": 240,
+      "recall": 0.95,
+      "ci95": [
+       0.9147,
+       0.9712
+      ]
+     },
+     "holdout_2": {
+      "hit": 214,
+      "n": 240,
+      "recall": 0.8917,
+      "ci95": [
+       0.846,
+       0.925
+      ]
+     }
+    }
+   },
+   "t0.9": {
+    "false_positive_notes": [
+     "trec-202175"
+    ],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 220,
+      "n": 240,
+      "recall": 0.9167,
+      "ci95": [
+       0.8748,
+       0.9454
+      ]
+     },
+     "holdout_1": {
+      "hit": 183,
+      "n": 240,
+      "recall": 0.7625,
+      "ci95": [
+       0.7048,
+       0.8119
+      ]
+     },
+     "holdout_2": {
+      "hit": 158,
+      "n": 240,
+      "recall": 0.6583,
+      "ci95": [
+       0.5963,
+       0.7154
+      ]
+     }
+    }
+   },
+   "t0.9+rules": {
+    "false_positive_notes": [
+     "trec-202175"
+    ],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 236,
+      "n": 240,
+      "recall": 0.9833,
+      "ci95": [
+       0.9579,
+       0.9935
+      ]
+     },
+     "holdout_1": {
+      "hit": 192,
+      "n": 240,
+      "recall": 0.8,
+      "ci95": [
+       0.7448,
+       0.8457
+      ]
+     },
+     "holdout_2": {
+      "hit": 168,
+      "n": 240,
+      "recall": 0.7,
+      "ci95": [
+       0.6392,
+       0.7545
+      ]
+     }
+    }
+   }
+  }
+ },
+ "StanfordAIMI/stanford-deidentifier-only-i2b2": {
+  "load_s": 8.41,
+  "median_ms": 265.3,
+  "p95_ms": 543.7,
+  "median_ms_4000_chars": 2047.1,
+  "arms": {
+   "t0.5": {
+    "false_positive_notes": [],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 236,
+      "n": 240,
+      "recall": 0.9833,
+      "ci95": [
+       0.9579,
+       0.9935
+      ]
+     },
+     "holdout_1": {
+      "hit": 215,
+      "n": 240,
+      "recall": 0.8958,
+      "ci95": [
+       0.8508,
+       0.9284
+      ]
+     },
+     "holdout_2": {
+      "hit": 205,
+      "n": 240,
+      "recall": 0.8542,
+      "ci95": [
+       0.8039,
+       0.8932
+      ]
+     }
+    }
+   },
+   "t0.5+rules": {
+    "false_positive_notes": [],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 240,
+      "n": 240,
+      "recall": 1.0,
+      "ci95": [
+       0.9842,
+       1.0
+      ]
+     },
+     "holdout_1": {
+      "hit": 216,
+      "n": 240,
+      "recall": 0.9,
+      "ci95": [
+       0.8555,
+       0.9319
+      ]
+     },
+     "holdout_2": {
+      "hit": 205,
+      "n": 240,
+      "recall": 0.8542,
+      "ci95": [
+       0.8039,
+       0.8932
+      ]
+     }
+    }
+   },
+   "t0.7": {
+    "false_positive_notes": [],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 232,
+      "n": 240,
+      "recall": 0.9667,
+      "ci95": [
+       0.9356,
+       0.983
+      ]
+     },
+     "holdout_1": {
+      "hit": 195,
+      "n": 240,
+      "recall": 0.8125,
+      "ci95": [
+       0.7583,
+       0.8568
+      ]
+     },
+     "holdout_2": {
+      "hit": 197,
+      "n": 240,
+      "recall": 0.8208,
+      "ci95": [
+       0.7674,
+       0.8642
+      ]
+     }
+    }
+   },
+   "t0.7+rules": {
+    "false_positive_notes": [],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 238,
+      "n": 240,
+      "recall": 0.9917,
+      "ci95": [
+       0.9701,
+       0.9977
+      ]
+     },
+     "holdout_1": {
+      "hit": 197,
+      "n": 240,
+      "recall": 0.8208,
+      "ci95": [
+       0.7674,
+       0.8642
+      ]
+     },
+     "holdout_2": {
+      "hit": 197,
+      "n": 240,
+      "recall": 0.8208,
+      "ci95": [
+       0.7674,
+       0.8642
+      ]
+     }
+    }
+   },
+   "t0.9": {
+    "false_positive_notes": [],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 229,
+      "n": 240,
+      "recall": 0.9542,
+      "ci95": [
+       0.9198,
+       0.9742
+      ]
+     },
+     "holdout_1": {
+      "hit": 164,
+      "n": 240,
+      "recall": 0.6833,
+      "ci95": [
+       0.622,
+       0.7389
+      ]
+     },
+     "holdout_2": {
+      "hit": 162,
+      "n": 240,
+      "recall": 0.675,
+      "ci95": [
+       0.6134,
+       0.7311
+      ]
+     }
+    }
+   },
+   "t0.9+rules": {
+    "false_positive_notes": [],
+    "named_cohort_flagged": 2,
+    "recall": {
+     "tuning": {
+      "hit": 237,
+      "n": 240,
+      "recall": 0.9875,
+      "ci95": [
+       0.9639,
+       0.9957
+      ]
+     },
+     "holdout_1": {
+      "hit": 166,
+      "n": 240,
+      "recall": 0.6917,
+      "ci95": [
+       0.6306,
+       0.7467
+      ]
+     },
+     "holdout_2": {
+      "hit": 164,
+      "n": 240,
+      "recall": 0.6833,
+      "ci95": [
+       0.622,
+       0.7389
+      ]
+     }
+    }
+   }
+  }
+ },
+ "served": {
+  "model": "obi/deid_bert_i2b2",
+  "threshold": 0.3,
+  "false_positive_notes": [],
+  "named_cohort_flagged": 2,
+  "recall": {
+   "tuning": {
+    "hit": 239,
+    "n": 240,
+    "recall": 0.9958,
+    "ci95": [
+     0.9768,
+     0.9993
+    ]
+   },
+   "holdout_1": {
+    "hit": 237,
+    "n": 240,
+    "recall": 0.9875,
+    "ci95": [
+     0.9639,
+     0.9957
+    ]
+   },
+   "holdout_2": {
+    "hit": 233,
+    "n": 240,
+    "recall": 0.9708,
+    "ci95": [
+     0.941,
+     0.9858
+    ]
+   }
+  }
+ }
+}

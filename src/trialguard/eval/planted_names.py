@@ -87,7 +87,7 @@ def build(seed: int = 40, per_template: int = 40, holdout: int = 0) -> list[dict
     """holdout=0 is the tuning set, 1 and 2 the frozen held-out template sets."""
     from trialguard.eval.cohorts import load_patients
 
-    rng = random.Random(seed)
+    rng = random.Random(seed)  # noqa: S311 -- reproducible sampling, not security
     bases = [
         (p["patient_id"], p["description"])
         for c in ("sigir", "trec_2021", "trec_2022", "trec_2023")
@@ -96,7 +96,7 @@ def build(seed: int = 40, per_template: int = 40, holdout: int = 0) -> list[dict
     ]
     out = []
     if holdout:
-        rng = random.Random(seed + holdout)
+        rng = random.Random(seed + holdout)  # noqa: S311
     forms = {1: HOLDOUT, 2: HOLDOUT_2}.get(holdout)
     for template in range(len(forms) if forms else TEMPLATES):
         for base_id, note in rng.sample(bases, per_template):
