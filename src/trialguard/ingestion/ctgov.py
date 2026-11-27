@@ -41,6 +41,7 @@ FIELDS = ",".join([
     "Sex",
     "HealthyVolunteers",
     "LastUpdatePostDate",
+    "StudyType",
 ])
 
 # Fixed enums — case-sensitive
@@ -129,6 +130,7 @@ def _extract_trial(study: dict) -> dict:
         "sex": elig_mod.get("sex", ""),
         "healthy_volunteers": healthy is True or healthy == "Yes",
         "last_updated": status_mod.get("lastUpdatePostDateStruct", {}).get("date", ""),
+        "study_type": design_mod.get("studyType") or None,
     }
 
 
@@ -340,6 +342,17 @@ def lookup_ids(ids: list[str], client: httpx.Client | None = None) -> dict[str, 
     before it is expired. filter.ids ignores the status filter, so a trial that
     moved to COMPLETED still comes back and says so.
     """
+    return _lookup(ids, "OverallStatus", "status", client)
+
+
+def lookup_study_types(ids: list[str], client: httpx.Client | None = None) -> dict[str, str | None]:
+    """studyType per NCT id, or None where CT.gov returned nothing."""
+    return _lookup(ids, "StudyType", "study_type", client)
+
+
+def _lookup(
+    ids: list[str], field_name: str, key: str, client: httpx.Client | None
+) -> dict[str, str | None]:
     own = client is None
     client = client or _client()
     url = f"{settings.ctgov_api_base}/studies"
@@ -349,7 +362,7 @@ def lookup_ids(ids: list[str], client: httpx.Client | None = None) -> dict[str, 
             chunk = ids[i : i + LOOKUP_CHUNK]
             params = {
                 "filter.ids": ",".join(chunk),
-                "fields": "NCTId,OverallStatus",
+                "fields": f"NCTId,{field_name}",
                 "pageSize": LOOKUP_CHUNK,
                 "format": "json",
             }
@@ -357,7 +370,7 @@ def lookup_ids(ids: list[str], client: httpx.Client | None = None) -> dict[str, 
             for study in resp.json().get("studies") or []:
                 t = _extract_trial(study)
                 if t["nct_id"] in found:
-                    found[t["nct_id"]] = t["status"] or None
+                    found[t["nct_id"]] = t[key] or None
             _sleep(settings.ctgov_request_delay)
     finally:
         if own:

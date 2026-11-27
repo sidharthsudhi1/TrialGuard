@@ -245,3 +245,34 @@ def test_lookup_reports_current_status_and_absence():
     assert result["NCT00000001"] == "COMPLETED"
     assert result["NCT00000002"] is None
     assert set(result) == set(ids)
+
+
+def test_study_type_is_requested_and_extracted():
+    from trialguard.ingestion.ctgov import FIELDS
+
+    assert "StudyType" in FIELDS.split(",")
+    study = _study("NCT00000001")
+    study["protocolSection"]["designModule"] = {"studyType": "OBSERVATIONAL"}
+    assert _extract_trial(study)["study_type"] == "OBSERVATIONAL"
+    assert _extract_trial(_study("NCT00000002"))["study_type"] is None
+
+
+def test_lookup_study_types_reports_type_and_absence():
+    from trialguard.ingestion.ctgov import lookup_study_types
+
+    def handler(request):
+        assert "StudyType" in request.url.params["fields"]
+        ids = request.url.params["filter.ids"].split(",")
+        studies = [
+            {"protocolSection": {"identificationModule": {"nctId": n},
+                                 "designModule": {"studyType": "INTERVENTIONAL"}}}
+            for n in ids if n != "NCT00000002"
+        ]
+        return httpx.Response(200, json={"studies": studies})
+
+    ids = [f"NCT{i:08d}" for i in range(1, 151)]
+    result = lookup_study_types(ids, client=httpx.Client(transport=httpx.MockTransport(handler)))
+
+    assert result["NCT00000001"] == "INTERVENTIONAL"
+    assert result["NCT00000002"] is None
+    assert set(result) == set(ids)
