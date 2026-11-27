@@ -1,5 +1,7 @@
 """Phase 40: the synthetic planted-name set the NER refusal is measured on."""
 
+import pytest
+
 from trialguard.eval.planted_names import FIRST, LAST, build, plant
 
 
@@ -33,8 +35,10 @@ def test_base_notes_carry_no_name_of_their_own():
     assert not any(x["base_id"] in ("sigir-201515", "trec-202148") for x in build(seed=40))
 
 
-def test_holdout_set_is_separate_and_large_enough():
-    held = build(seed=40, holdout=True)
+@pytest.mark.parametrize("holdout", [1, 2])
+def test_holdout_sets_are_separate_and_large_enough(holdout):
+    held = build(seed=40, holdout=holdout)
     assert len(held) >= 200
     assert all(x["name"] in x["note"] for x in held)
-    assert {x["note"] for x in held}.isdisjoint({x["note"] for x in build(seed=40)})
+    others = {x["note"] for h in {0, 1, 2} - {holdout} for x in build(seed=40, holdout=h)}
+    assert {x["note"] for x in held}.isdisjoint(others)

@@ -39,6 +39,16 @@ HOLDOUT = (
     "{note} {first} {last} prefers morning appointments.",
     "Seen with {first} {last} (partner). {note}",
 )
+# Frozen after HOLDOUT showed the first rules overfit (recall 0.76), before any
+# change made in response. HOLDOUT has now informed the detector; this has not.
+HOLDOUT_2 = (
+    "{note} Discussed the plan with {first} at the bedside.",
+    "{note} {first} asked about trial travel costs.",
+    "Called {first} {last} with the biopsy result. {note}",
+    "{note} Transport arranged by {first}.",
+    "{note} Consent witnessed by {first} {last}.",
+    "{note} Message left for {first} {last}.",
+)
 EXCLUDED_BASES = ("sigir-201515", "trec-202148")  # these notes already name the patient
 _LEAD = re.compile(r"^(?:An?|The)\s+(?=\d)", re.I)
 
@@ -65,13 +75,16 @@ def plant(note: str, first: str, last: str, template: int) -> tuple[str, str]:
     return f"{note} Referred by her sister {name} after the diagnosis.", name
 
 
-def plant_holdout(note: str, first: str, last: str, template: int) -> tuple[str, str]:
-    form = HOLDOUT[template]
+def plant_holdout(
+    note: str, first: str, last: str, template: int, forms: tuple[str, ...] = HOLDOUT
+) -> tuple[str, str]:
+    form = forms[template]
     name = f"{first} {last}" if "{last}" in form else first
     return form.format(note=note, first=first, last=last), name
 
 
-def build(seed: int = 40, per_template: int = 40, holdout: bool = False) -> list[dict]:
+def build(seed: int = 40, per_template: int = 40, holdout: int = 0) -> list[dict]:
+    """holdout=0 is the tuning set, 1 and 2 the frozen held-out template sets."""
     from trialguard.eval.cohorts import load_patients
 
     rng = random.Random(seed)
@@ -83,10 +96,14 @@ def build(seed: int = 40, per_template: int = 40, holdout: bool = False) -> list
     ]
     out = []
     if holdout:
-        rng = random.Random(seed + 1)
-    make, count = (plant_holdout, len(HOLDOUT)) if holdout else (plant, TEMPLATES)
-    for template in range(count):
+        rng = random.Random(seed + holdout)
+    forms = {1: HOLDOUT, 2: HOLDOUT_2}.get(holdout)
+    for template in range(len(forms) if forms else TEMPLATES):
         for base_id, note in rng.sample(bases, per_template):
-            text, name = make(note, rng.choice(FIRST), rng.choice(LAST), template)
+            first, last = rng.choice(FIRST), rng.choice(LAST)
+            if forms:
+                text, name = plant_holdout(note, first, last, template, forms)
+            else:
+                text, name = plant(note, first, last, template)
             out.append({"base_id": base_id, "template": template, "name": name, "note": text})
     return out
