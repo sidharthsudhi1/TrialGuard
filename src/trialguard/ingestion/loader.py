@@ -14,7 +14,7 @@ COLUMNS = (
     "nct_id", "title", "status", "phase", "conditions", "interventions",
     "eligibility_raw", "inclusion_criteria", "exclusion_criteria",
     "min_age", "max_age", "sex", "healthy_volunteers", "last_updated",
-    "embedding", "metadata", "source",
+    "study_type", "embedding", "metadata", "source",
     "doc_hash", "content_hash", "embed_tag", "parser_version",
 )
 
@@ -99,6 +99,7 @@ def row_for(t: dict, source: str, with_embedding: bool = True) -> dict:
         "sex": t.get("sex"),
         "healthy_volunteers": t.get("healthy_volunteers"),
         "last_updated": t.get("last_updated"),
+        "study_type": t.get("study_type"),
         "metadata": json.dumps({k: v for k, v in t.items() if k != "embedding"}),
         "source": t.get("source", source),
         **stamp(t),

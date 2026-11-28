@@ -1,0 +1,188 @@
+{
+ "k": 25,
+ "jobs": [
+  {
+   "cohort": "trec_2021",
+   "patient_id": "trec-202125",
+   "variant": "original",
+   "note": "The patient is a 42 year-old postmenopausal woman who had a screening sonogram which revealed an abnormality in the right breast. She had no palpable masses on breast exam. Core biopsy was done and revealed a 1.8 cm infiltrating ductal breast carcinoma in the left upper outer quadrant. Lumpectomy was done and the surgical margins were clear. The tumor was HER2-positive and ER/PR negative. Axillary sampling revealed 1 positive lymph node out of 12 sampled. CXR was unremarkable. She is using \u201cwell women\u201d multivitamins daily and no other medication. She smokes frequently and consumes alcohol occasionally. She is in a relation with only one partner and has a history of 3 pregnancies and live births. She breastfed all three children.",
+   "keywords": [
+    "her2-positive breast cancer",
+    "infiltrating ductal carcinoma",
+    "er/pr negative breast cancer",
+    "breast cancer with lymph node involvement",
+    "early stage breast cancer",
+    "postmenopausal breast cancer",
+    "her2-positive",
+    "breast carcinoma",
+    "lymph node positive breast cancer",
+    "hormone receptor negative breast cancer"
+   ]
+  },
+  {
+   "cohort": "trec_2021",
+   "patient_id": "trec-202125",
+   "variant": "flipped",
+   "note": "The patient is a 42 year-old postmenopausal woman who had a screening sonogram which revealed an abnormality in the right breast. She had no palpable masses on breast exam. Core biopsy was done and revealed a 1.8 cm infiltrating ductal breast carcinoma in the left upper outer quadrant. Lumpectomy was done and the surgical margins were clear. The tumor was HER2-negative and ER/PR positive. Axillary sampling revealed 1 positive lymph node out of 12 sampled. CXR was unremarkable. She is using \u201cwell women\u201d multivitamins daily and no other medication. She smokes frequently and consumes alcohol occasionally. She is in a relation with only one partner and has a history of 3 pregnancies and live births. She breastfed all three children.",
+   "keywords": [
+    "her2-negative breast cancer",
+    "infiltrating ductal carcinoma",
+    "er/pr positive breast cancer",
+    "breast cancer with lymph node involvement",
+    "early stage breast cancer",
+    "postmenopausal breast cancer",
+    "her2-negative",
+    "breast carcinoma",
+    "lymph node positive breast cancer",
+    "hormone receptor positive breast cancer"
+   ],
+   "dropped_keywords": []
+  },
+  {
+   "cohort": "trec_2021",
+   "patient_id": "trec-202161",
+   "variant": "original",
+   "note": "The patient is a 45-year-old postmenopausal woman with cytologically confirmed breast cancer. A core biopsy revealed a 3 cm invasive ductal breast carcinoma in the left upper outer quadrant. The tumor is  HER2-positive and ER/PR negative. Axillary sampling revealed 5 positive lymph nodes. CXR was remarkable for metastatic lesions. The patient is using multivitamins and iron supplements. She does not smoke or consume alcohol. She is not sexually active and has no children. She is a candidate for tumor resection and agrees to do so prior to chemotherapy.",
+   "keywords": [
+    "her2-positive breast cancer",
+    "invasive ductal carcinoma",
+    "er/pr negative breast cancer",
+    "metastatic breast cancer",
+    "breast cancer with lymph node involvement",
+    "postmenopausal breast cancer",
+    "tumor resection eligible",
+    "breast cancer chemotherapy",
+    "her2-positive",
+    "invasive ductal breast carcinoma",
+    "metastatic lesions",
+    "advanced breast cancer"
+   ]
+  },
+  {
+   "cohort": "trec_2021",
+   "patient_id": "trec-202161",
+   "variant": "flipped",
+   "note": "The patient is a 45-year-old postmenopausal woman with cytologically confirmed breast cancer. A core biopsy revealed a 3 cm invasive ductal breast carcinoma in the left upper outer quadrant. The tumor is  HER2-negative and ER/PR positive. Axillary sampling revealed 5 positive lymph nodes. CXR was remarkable for metastatic lesions. The patient is using multivitamins and iron supplements. She does not smoke or consume alcohol. She is not sexually active and has no children. She is a candidate for tumor resection and agrees to do so prior to chemotherapy.",
+   "keywords": [
+    "her2-negative breast cancer",
+    "invasive ductal carcinoma",
+    "er/pr positive breast cancer",
+    "metastatic breast cancer",
+    "breast cancer with lymph node involvement",
+    "postmenopausal breast cancer",
+    "tumor resection eligible",
+    "breast cancer chemotherapy",
+    "her2-negative",
+    "invasive ductal breast carcinoma",
+    "metastatic lesions",
+    "advanced breast cancer"
+   ],
+   "dropped_keywords": []
+  },
+  {
+   "cohort": "trec_2023",
+   "patient_id": "trec-202316",
+   "variant": "flipped",
+   "note": "Disorder: breast cancer\nDefinitive diagnosis: yes\nHER2: negative\nPrior chemotherapy: no\nPrior radiotherapy: no\nPrior mastectomy: no\nPerformance status: ECOG 1",
+   "keywords": [
+    "breast cancer",
+    "her2 negative",
+    "early stage breast cancer",
+    "ecog 1",
+    "no prior chemotherapy",
+    "no prior radiotherapy",
+    "breast cancer treatment naive",
+    "her2 negative breast cancer",
+    "breast cancer clinical trials",
+    "metastatic breast cancer",
+    "advanced breast cancer",
+    "breast cancer therapy"
+   ],
+   "dropped_keywords": []
+  },
+  {
+   "cohort": "trec_2023",
+   "patient_id": "trec-202317",
+   "variant": "flipped",
+   "note": "Disorder: breast cancer\nDefinitive diagnosis: stage III\nHER2: positive\nHormone receptors: ER-, PR+\nPrior chemotherapy: neoadjuvant chemotherapy\nPrior radiotherapy: stereotactic radiotherapy\nPrior mastectomy: yes\nSurgery-related therapy: neoadjuvant chemotherapy\nPerformance status: ECOG 2",
+   "keywords": [
+    "breast cancer stage iii",
+    "er negative breast cancer",
+    "her2 positive breast cancer",
+    "neoadjuvant chemotherapy",
+    "ecog 2",
+    "post mastectomy",
+    "stereotactic radiotherapy",
+    "advanced breast cancer",
+    "er- pr+ breast cancer",
+    "stage iii breast cancer treatment"
+   ],
+   "dropped_keywords": [
+    "hormone receptor negative",
+    "triple positive not applicable"
+   ]
+  },
+  {
+   "cohort": "trec_2023",
+   "patient_id": "trec-202318",
+   "variant": "flipped",
+   "note": "Disorder: breast cancer\nDefinitive diagnosis: stage 2\nHER2: negative\nHormone receptors: PR+, ER+\nPrior chemotherapy: no\nPrior radiotherapy: yes\nPrior mastectomy: no\nPerformance status: Karnofsky 70%",
+   "keywords": [
+    "breast cancer",
+    "stage 2 breast cancer",
+    "her2 negative",
+    "hormone receptor positive",
+    "prior radiotherapy",
+    "karnofsky 70",
+    "breast cancer stage ii",
+    "her2 negative breast cancer",
+    "er/pr positive",
+    "second line breast cancer",
+    "locally advanced breast cancer"
+   ],
+   "dropped_keywords": [
+    "triple positive breast cancer"
+   ]
+  },
+  {
+   "cohort": "trec_2023",
+   "patient_id": "trec-202319",
+   "variant": "flipped",
+   "note": "Disorder: breast cancer\nDefinitive diagnosis: stage IV\nHER2: negative\nHormone receptors: PR negative\nPrior chemotherapy: yes\nPrior radiotherapy: yes\nPrior mastectomy: yes\nSurgery-related therapy: neoadjuvant chemotherapy\nPerformance status: ECOG 3, Karnofsky 50%",
+   "keywords": [
+    "breast cancer stage iv",
+    "her2 negative breast cancer",
+    "pr negative breast cancer",
+    "metastatic breast cancer",
+    "breast cancer with prior chemotherapy",
+    "her2 negative",
+    "hormone receptor negative",
+    "advanced breast cancer",
+    "stage iv breast cancer",
+    "breast cancer with neoadjuvant chemotherapy",
+    "ecog 3 breast cancer",
+    "metastatic her2 negative breast cancer"
+   ],
+   "dropped_keywords": []
+  },
+  {
+   "cohort": "trec_2023",
+   "patient_id": "trec-202320",
+   "variant": "flipped",
+   "note": "Disorder: breast cancer\nDefinitive diagnosis: yes\nHER2: positive\nPrior chemotherapy: no\nPrior radiotherapy: no\nPrior mastectomy: no\nPerformance status: ECOG 1",
+   "keywords": [
+    "breast cancer",
+    "her2 positive",
+    "early stage breast cancer",
+    "ecog 1",
+    "breast cancer treatment naive",
+    "solid tumor",
+    "female cancer",
+    "breast carcinoma",
+    "no prior chemo",
+    "no prior radiotherapy"
+   ],
+   "dropped_keywords": []
+  }
+ ]
+}

@@ -29,6 +29,7 @@ CONTENT_FIELDS = (
     "sex",
     "healthy_volunteers",
     "last_updated",
+    "study_type",
 )
 
 

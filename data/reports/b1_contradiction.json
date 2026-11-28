@@ -1,0 +1,1206 @@
+{
+ "k": 25,
+ "classifier": "E3 disease-stem regex, gold-eligible patients only",
+ "original": {
+  "sigir": {
+   "k": 25,
+   "patients": 1,
+   "patients_with_marker": 0,
+   "surfaced": 25,
+   "contradicted": 0,
+   "rate": {
+    "point": 0.0,
+    "ci": [
+     0.0,
+     0.0
+    ],
+    "n": 1
+   },
+   "rate_given_marker": {
+    "point": null,
+    "ci": [
+     null,
+     null
+    ],
+    "n": 0
+   },
+   "per_patient": [
+    {
+     "patient_id": "sigir-201427",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    }
+   ]
+  },
+  "trec_2021": {
+   "k": 25,
+   "patients": 14,
+   "patients_with_marker": 2,
+   "surfaced": 350,
+   "contradicted": 20,
+   "rate": {
+    "point": 0.0571,
+    "ci": [
+     0.0,
+     0.1429
+    ],
+    "n": 14
+   },
+   "rate_given_marker": {
+    "point": 0.4,
+    "ci": [
+     0.4,
+     0.4
+    ],
+    "n": 2
+   },
+   "per_patient": [
+    {
+     "patient_id": "trec-20211",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-20214",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202111",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202113",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202115",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202117",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202125",
+     "stated": {
+      "HER2": "pos",
+      "ER": "neg",
+      "PR": "neg",
+      "HR": "neg"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 10,
+     "contradicted_ids": [
+      "NCT02574546",
+      "NCT04131933",
+      "NCT04396626",
+      "NCT03381092",
+      "NCT04247035",
+      "NCT02564848",
+      "NCT03269981",
+      "NCT03843346",
+      "NCT04569747",
+      "NCT02464774"
+     ]
+    },
+    {
+     "patient_id": "trec-202127",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202131",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202134",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202156",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202161",
+     "stated": {
+      "HER2": "pos",
+      "ER": "neg",
+      "PR": "neg",
+      "HR": "neg"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 10,
+     "contradicted_ids": [
+      "NCT02574546",
+      "NCT04396626",
+      "NCT04131933",
+      "NCT04247035",
+      "NCT02564848",
+      "NCT03381092",
+      "NCT00633464",
+      "NCT02441946",
+      "NCT03820830",
+      "NCT04569747"
+     ]
+    },
+    {
+     "patient_id": "trec-202164",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202170",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    }
+   ]
+  },
+  "trec_2022": {
+   "k": 25,
+   "patients": 1,
+   "patients_with_marker": 0,
+   "surfaced": 25,
+   "contradicted": 0,
+   "rate": {
+    "point": 0.0,
+    "ci": [
+     0.0,
+     0.0
+    ],
+    "n": 1
+   },
+   "rate_given_marker": {
+    "point": null,
+    "ci": [
+     null,
+     null
+    ],
+    "n": 0
+   },
+   "per_patient": [
+    {
+     "patient_id": "trec-202211",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    }
+   ]
+  },
+  "trec_2023": {
+   "k": 25,
+   "patients": 7,
+   "patients_with_marker": 5,
+   "surfaced": 175,
+   "contradicted": 9,
+   "rate": {
+    "point": 0.0514,
+    "ci": [
+     0.0171,
+     0.0914
+    ],
+    "n": 7
+   },
+   "rate_given_marker": {
+    "point": 0.072,
+    "ci": [
+     0.032,
+     0.112
+    ],
+    "n": 5
+   },
+   "per_patient": [
+    {
+     "patient_id": "trec-202313",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202316",
+     "stated": {
+      "HER2": "pos"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 1,
+     "contradicted_ids": [
+      "NCT05559528"
+     ]
+    },
+    {
+     "patient_id": "trec-202317",
+     "stated": {
+      "HER2": "neg",
+      "ER": "pos",
+      "PR": "neg",
+      "HR": "pos"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 3,
+     "contradicted_ids": [
+      "NCT04480203",
+      "NCT04268693",
+      "NCT03397537"
+     ]
+    },
+    {
+     "patient_id": "trec-202318",
+     "stated": {
+      "HER2": "pos",
+      "PR": "neg",
+      "ER": "neg",
+      "HR": "neg"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 3,
+     "contradicted_ids": [
+      "NCT05755581",
+      "NCT05559528",
+      "NCT03397537"
+     ]
+    },
+    {
+     "patient_id": "trec-202319",
+     "stated": {
+      "HER2": "pos",
+      "PR": "pos",
+      "HR": "pos"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 2,
+     "contradicted_ids": [
+      "NCT05559528",
+      "NCT05755581"
+     ]
+    },
+    {
+     "patient_id": "trec-202320",
+     "stated": {
+      "HER2": "neg"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202336",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    }
+   ]
+  },
+  "pooled": {
+   "k": 25,
+   "patients": 23,
+   "patients_with_marker": 7,
+   "surfaced": 575,
+   "contradicted": 29,
+   "rate": {
+    "point": 0.0504,
+    "ci": [
+     0.0104,
+     0.1009
+    ],
+    "n": 23
+   },
+   "rate_given_marker": {
+    "point": 0.1657,
+    "ci": [
+     0.0629,
+     0.28
+    ],
+    "n": 7
+   },
+   "per_patient": [
+    {
+     "patient_id": "sigir-201427",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-20211",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-20214",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202111",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202113",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202115",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202117",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202125",
+     "stated": {
+      "HER2": "pos",
+      "ER": "neg",
+      "PR": "neg",
+      "HR": "neg"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 10,
+     "contradicted_ids": [
+      "NCT02574546",
+      "NCT04131933",
+      "NCT04396626",
+      "NCT03381092",
+      "NCT04247035",
+      "NCT02564848",
+      "NCT03269981",
+      "NCT03843346",
+      "NCT04569747",
+      "NCT02464774"
+     ]
+    },
+    {
+     "patient_id": "trec-202127",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202131",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202134",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202156",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202161",
+     "stated": {
+      "HER2": "pos",
+      "ER": "neg",
+      "PR": "neg",
+      "HR": "neg"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 10,
+     "contradicted_ids": [
+      "NCT02574546",
+      "NCT04396626",
+      "NCT04131933",
+      "NCT04247035",
+      "NCT02564848",
+      "NCT03381092",
+      "NCT00633464",
+      "NCT02441946",
+      "NCT03820830",
+      "NCT04569747"
+     ]
+    },
+    {
+     "patient_id": "trec-202164",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202170",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202211",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202313",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202316",
+     "stated": {
+      "HER2": "pos"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 1,
+     "contradicted_ids": [
+      "NCT05559528"
+     ]
+    },
+    {
+     "patient_id": "trec-202317",
+     "stated": {
+      "HER2": "neg",
+      "ER": "pos",
+      "PR": "neg",
+      "HR": "pos"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 3,
+     "contradicted_ids": [
+      "NCT04480203",
+      "NCT04268693",
+      "NCT03397537"
+     ]
+    },
+    {
+     "patient_id": "trec-202318",
+     "stated": {
+      "HER2": "pos",
+      "PR": "neg",
+      "ER": "neg",
+      "HR": "neg"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 3,
+     "contradicted_ids": [
+      "NCT05755581",
+      "NCT05559528",
+      "NCT03397537"
+     ]
+    },
+    {
+     "patient_id": "trec-202319",
+     "stated": {
+      "HER2": "pos",
+      "PR": "pos",
+      "HR": "pos"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 2,
+     "contradicted_ids": [
+      "NCT05559528",
+      "NCT05755581"
+     ]
+    },
+    {
+     "patient_id": "trec-202320",
+     "stated": {
+      "HER2": "neg"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202336",
+     "stated": {},
+     "retrieved": false,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    }
+   ]
+  },
+  "audited": {
+   "flagged": 29,
+   "confirmed": 22,
+   "precision": 0.7586,
+   "rate": {
+    "point": 0.0383,
+    "ci": [
+     0.0104,
+     0.073
+    ],
+    "n": 23
+   },
+   "rate_given_marker": {
+    "point": 0.1257,
+    "ci": [
+     0.0629,
+     0.2
+    ],
+    "n": 7
+   }
+  }
+ },
+ "flipped": {
+  "sigir": {
+   "k": 25,
+   "patients": 0,
+   "patients_with_marker": 0,
+   "surfaced": 0,
+   "contradicted": 0,
+   "rate": {
+    "point": null,
+    "ci": [
+     null,
+     null
+    ],
+    "n": 0
+   },
+   "rate_given_marker": {
+    "point": null,
+    "ci": [
+     null,
+     null
+    ],
+    "n": 0
+   },
+   "per_patient": []
+  },
+  "trec_2021": {
+   "k": 25,
+   "patients": 2,
+   "patients_with_marker": 2,
+   "surfaced": 50,
+   "contradicted": 19,
+   "rate": {
+    "point": 0.38,
+    "ci": [
+     0.36,
+     0.4
+    ],
+    "n": 2
+   },
+   "rate_given_marker": {
+    "point": 0.38,
+    "ci": [
+     0.36,
+     0.4
+    ],
+    "n": 2
+   },
+   "per_patient": [
+    {
+     "patient_id": "trec-202125",
+     "stated": {
+      "HER2": "neg",
+      "ER": "pos",
+      "PR": "pos",
+      "HR": "pos"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 10,
+     "contradicted_ids": [
+      "NCT01617915",
+      "NCT02945579",
+      "NCT04578106",
+      "NCT03381092",
+      "NCT01782651",
+      "NCT04249440",
+      "NCT04480203",
+      "NCT02464774",
+      "NCT04457596",
+      "NCT00070564"
+     ]
+    },
+    {
+     "patient_id": "trec-202161",
+     "stated": {
+      "HER2": "neg",
+      "ER": "pos",
+      "PR": "pos",
+      "HR": "pos"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 9,
+     "contradicted_ids": [
+      "NCT01617915",
+      "NCT01782651",
+      "NCT04480203",
+      "NCT00633464",
+      "NCT04578106",
+      "NCT02945579",
+      "NCT03381092",
+      "NCT04249440",
+      "NCT02464774"
+     ]
+    }
+   ]
+  },
+  "trec_2022": {
+   "k": 25,
+   "patients": 0,
+   "patients_with_marker": 0,
+   "surfaced": 0,
+   "contradicted": 0,
+   "rate": {
+    "point": null,
+    "ci": [
+     null,
+     null
+    ],
+    "n": 0
+   },
+   "rate_given_marker": {
+    "point": null,
+    "ci": [
+     null,
+     null
+    ],
+    "n": 0
+   },
+   "per_patient": []
+  },
+  "trec_2023": {
+   "k": 25,
+   "patients": 5,
+   "patients_with_marker": 5,
+   "surfaced": 125,
+   "contradicted": 7,
+   "rate": {
+    "point": 0.056,
+    "ci": [
+     0.016,
+     0.112
+    ],
+    "n": 5
+   },
+   "rate_given_marker": {
+    "point": 0.056,
+    "ci": [
+     0.016,
+     0.112
+    ],
+    "n": 5
+   },
+   "per_patient": [
+    {
+     "patient_id": "trec-202316",
+     "stated": {
+      "HER2": "neg"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 1,
+     "contradicted_ids": [
+      "NCT01782651"
+     ]
+    },
+    {
+     "patient_id": "trec-202317",
+     "stated": {
+      "HER2": "pos",
+      "ER": "neg",
+      "PR": "pos",
+      "HR": "pos"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 4,
+     "contradicted_ids": [
+      "NCT05559528",
+      "NCT05755581",
+      "NCT03503799",
+      "NCT05734950"
+     ]
+    },
+    {
+     "patient_id": "trec-202318",
+     "stated": {
+      "HER2": "neg",
+      "PR": "pos",
+      "ER": "pos",
+      "HR": "pos"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202319",
+     "stated": {
+      "HER2": "neg",
+      "PR": "neg"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 1,
+     "contradicted_ids": [
+      "NCT00105456"
+     ]
+    },
+    {
+     "patient_id": "trec-202320",
+     "stated": {
+      "HER2": "pos"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 1,
+     "contradicted_ids": [
+      "NCT05559528"
+     ]
+    }
+   ]
+  },
+  "pooled": {
+   "k": 25,
+   "patients": 7,
+   "patients_with_marker": 7,
+   "surfaced": 175,
+   "contradicted": 26,
+   "rate": {
+    "point": 0.1486,
+    "ci": [
+     0.04,
+     0.2686
+    ],
+    "n": 7
+   },
+   "rate_given_marker": {
+    "point": 0.1486,
+    "ci": [
+     0.04,
+     0.2686
+    ],
+    "n": 7
+   },
+   "per_patient": [
+    {
+     "patient_id": "trec-202125",
+     "stated": {
+      "HER2": "neg",
+      "ER": "pos",
+      "PR": "pos",
+      "HR": "pos"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 10,
+     "contradicted_ids": [
+      "NCT01617915",
+      "NCT02945579",
+      "NCT04578106",
+      "NCT03381092",
+      "NCT01782651",
+      "NCT04249440",
+      "NCT04480203",
+      "NCT02464774",
+      "NCT04457596",
+      "NCT00070564"
+     ]
+    },
+    {
+     "patient_id": "trec-202161",
+     "stated": {
+      "HER2": "neg",
+      "ER": "pos",
+      "PR": "pos",
+      "HR": "pos"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 9,
+     "contradicted_ids": [
+      "NCT01617915",
+      "NCT01782651",
+      "NCT04480203",
+      "NCT00633464",
+      "NCT04578106",
+      "NCT02945579",
+      "NCT03381092",
+      "NCT04249440",
+      "NCT02464774"
+     ]
+    },
+    {
+     "patient_id": "trec-202316",
+     "stated": {
+      "HER2": "neg"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 1,
+     "contradicted_ids": [
+      "NCT01782651"
+     ]
+    },
+    {
+     "patient_id": "trec-202317",
+     "stated": {
+      "HER2": "pos",
+      "ER": "neg",
+      "PR": "pos",
+      "HR": "pos"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 4,
+     "contradicted_ids": [
+      "NCT05559528",
+      "NCT05755581",
+      "NCT03503799",
+      "NCT05734950"
+     ]
+    },
+    {
+     "patient_id": "trec-202318",
+     "stated": {
+      "HER2": "neg",
+      "PR": "pos",
+      "ER": "pos",
+      "HR": "pos"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 0,
+     "contradicted_ids": []
+    },
+    {
+     "patient_id": "trec-202319",
+     "stated": {
+      "HER2": "neg",
+      "PR": "neg"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 1,
+     "contradicted_ids": [
+      "NCT00105456"
+     ]
+    },
+    {
+     "patient_id": "trec-202320",
+     "stated": {
+      "HER2": "pos"
+     },
+     "retrieved": true,
+     "surfaced": 25,
+     "contradicted": 1,
+     "contradicted_ids": [
+      "NCT05559528"
+     ]
+    }
+   ]
+  },
+  "audited": {
+   "flagged": 26,
+   "confirmed": 25,
+   "precision": 0.9615,
+   "rate": {
+    "point": 0.1429,
+    "ci": [
+     0.04,
+     0.2571
+    ],
+    "n": 7
+   },
+   "rate_given_marker": {
+    "point": 0.1429,
+    "ci": [
+     0.04,
+     0.2571
+    ],
+    "n": 7
+   }
+  }
+ },
+ "paired_flip": {
+  "patients": [
+   "trec-202125",
+   "trec-202161",
+   "trec-202316",
+   "trec-202317",
+   "trec-202318",
+   "trec-202319",
+   "trec-202320"
+  ],
+  "original": [
+   0.24,
+   0.28,
+   0.04,
+   0.12,
+   0.12,
+   0.08,
+   0.0
+  ],
+  "flipped": [
+   0.36,
+   0.36,
+   0.04,
+   0.16,
+   0.0,
+   0.04,
+   0.04
+  ],
+  "diff": {
+   "point": 0.0171,
+   "ci": [
+    -0.04,
+    0.0686
+   ],
+   "n": 7
+  }
+ },
+ "blind_baseline": {
+  "k": 25,
+  "patients": 7,
+  "patients_with_marker": 7,
+  "surfaced": 175,
+  "contradicted": 33,
+  "rate": {
+   "point": 0.1886,
+   "ci": [
+    0.0743,
+    0.32
+   ],
+   "n": 7
+  },
+  "rate_given_marker": {
+   "point": 0.1886,
+   "ci": [
+    0.0743,
+    0.32
+   ],
+   "n": 7
+  },
+  "per_patient": [
+   {
+    "patient_id": "trec-202125",
+    "stated": {
+     "HER2": "neg",
+     "ER": "pos",
+     "PR": "pos",
+     "HR": "pos"
+    },
+    "retrieved": true,
+    "surfaced": 25,
+    "contradicted": 12,
+    "contradicted_ids": [
+     "NCT01617915",
+     "NCT01782651",
+     "NCT04249440",
+     "NCT03381092",
+     "NCT04578106",
+     "NCT02945579",
+     "NCT03269981",
+     "NCT04480203",
+     "NCT04457596",
+     "NCT02464774",
+     "NCT04276337",
+     "NCT02297698"
+    ]
+   },
+   {
+    "patient_id": "trec-202161",
+    "stated": {
+     "HER2": "neg",
+     "ER": "pos",
+     "PR": "pos",
+     "HR": "pos"
+    },
+    "retrieved": true,
+    "surfaced": 25,
+    "contradicted": 9,
+    "contradicted_ids": [
+     "NCT01782651",
+     "NCT01617915",
+     "NCT04249440",
+     "NCT04578106",
+     "NCT04480203",
+     "NCT03381092",
+     "NCT00633464",
+     "NCT02945579",
+     "NCT03792529"
+    ]
+   },
+   {
+    "patient_id": "trec-202316",
+    "stated": {
+     "HER2": "neg"
+    },
+    "retrieved": true,
+    "surfaced": 25,
+    "contradicted": 3,
+    "contradicted_ids": [
+     "NCT01782651",
+     "NCT02595762",
+     "NCT04249440"
+    ]
+   },
+   {
+    "patient_id": "trec-202317",
+    "stated": {
+     "HER2": "pos",
+     "ER": "neg",
+     "PR": "pos",
+     "HR": "pos"
+    },
+    "retrieved": true,
+    "surfaced": 25,
+    "contradicted": 6,
+    "contradicted_ids": [
+     "NCT05559528",
+     "NCT05755581",
+     "NCT05747794",
+     "NCT04268693",
+     "NCT03503799",
+     "NCT03397537"
+    ]
+   },
+   {
+    "patient_id": "trec-202318",
+    "stated": {
+     "HER2": "neg",
+     "PR": "pos",
+     "ER": "pos",
+     "HR": "pos"
+    },
+    "retrieved": true,
+    "surfaced": 25,
+    "contradicted": 1,
+    "contradicted_ids": [
+     "NCT01782651"
+    ]
+   },
+   {
+    "patient_id": "trec-202319",
+    "stated": {
+     "HER2": "neg",
+     "PR": "neg"
+    },
+    "retrieved": true,
+    "surfaced": 25,
+    "contradicted": 2,
+    "contradicted_ids": [
+     "NCT00105456",
+     "NCT01782651"
+    ]
+   },
+   {
+    "patient_id": "trec-202320",
+    "stated": {
+     "HER2": "pos"
+    },
+    "retrieved": true,
+    "surfaced": 25,
+    "contradicted": 0,
+    "contradicted_ids": []
+   }
+  ]
+ }
+}

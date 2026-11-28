@@ -1,0 +1,13 @@
+{
+ "method": "Every flagged (patient, trial) pair read by hand against the trial's inclusion text on 2026-11-27. A pair is false when the patient as stated would meet the trial's biomarker criteria.",
+ "false_positives": [
+  {"variant": "original", "patient_id": "trec-202125", "nct_id": "NCT02574546", "why": "ER-negative, any PR, any HER2; 'triple positive ... not eligible' read as a requirement"},
+  {"variant": "original", "patient_id": "trec-202161", "nct_id": "NCT02574546", "why": "as above"},
+  {"variant": "original", "patient_id": "trec-202125", "nct_id": "NCT03381092", "why": "'ER/PR positive cells ratio <10%, or HER2 positive' admits ER/PR-low or HER2+"},
+  {"variant": "original", "patient_id": "trec-202161", "nct_id": "NCT03381092", "why": "as above"},
+  {"variant": "original", "patient_id": "trec-202125", "nct_id": "NCT03269981", "why": "'hormonal therapy in cases with HR+ tumor' is a treatment rule, not a requirement"},
+  {"variant": "original", "patient_id": "trec-202125", "nct_id": "NCT04569747", "why": "primary HER2+ tumour required; an extra ER+ lesion is allowed, not required"},
+  {"variant": "original", "patient_id": "trec-202161", "nct_id": "NCT04569747", "why": "as above"},
+  {"variant": "flipped", "patient_id": "trec-202125", "nct_id": "NCT00070564", "why": "uncertain: receptor clause is a disjunction and the HER2 clause context is truncated; counted false"}
+ ]
+}

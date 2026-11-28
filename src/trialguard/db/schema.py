@@ -99,6 +99,13 @@ CREATE INDEX IF NOT EXISTS refresh_runs_started_idx
     ON refresh_runs(source, started_at DESC);
 """
 
+# Phase 39. Additive and idempotent, applied by init_schema and by
+# scripts/migrate_study_type.py for the live database. It must reach Neon before
+# code that writes the column is deployed: the loader names it in every upsert.
+STUDY_TYPE_DDL = """
+ALTER TABLE trials ADD COLUMN IF NOT EXISTS study_type TEXT;
+"""
+
 # f-string: JOBS_DDL is spliced in so the two tables have exactly one definition,
 # and a test can create them without the pgvector extension the rest of this needs.
 DDL = f"""
@@ -142,6 +149,8 @@ CREATE INDEX IF NOT EXISTS trials_doc_tsv_idx
     ON trials USING gin (doc_tsv);
 
 {PROVENANCE_DDL}
+
+{STUDY_TYPE_DDL}
 
 -- Durable cache. The disk caches under data/cache/ live on the container's
 -- ephemeral rootfs, so every deploy silently re-rolled them: keyword regeneration
