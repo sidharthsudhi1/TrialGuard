@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     langfuse_host: str = "https://cloud.langfuse.com"       # legacy alias
     langfuse_base_url: str = "https://cloud.langfuse.com"   # SDK v3 canonical
     tracing_enabled: bool = True
+    # Phase 40: served traces keep verdicts, counts and enums, never note text
+    # (tracing.mask_served_spans). fly.toml sets it; eval runs keep full traces
+    # because their inputs are public cohorts.
+    trace_structure_only: bool = False
 
     # Vector store
     database_url: str = ""

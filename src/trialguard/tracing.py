@@ -6,8 +6,23 @@ No-op fallback when credentials are absent or tracing is disabled.
 
 from __future__ import annotations
 
+import json
 import os
+import re
 from typing import Any
+
+# Phase 40: under the de-identified input contract, served traces carry
+# structure only. These keys hold enums, ids and model names; every other
+# string in an exported span is replaced, so no note text reaches Langfuse.
+REDACTED = "[redacted]"
+_ENUM_KEYS = frozenset({
+    "verdict", "trial_verdict", "trial_tier", "kind", "role", "type", "nct_id",
+    "provider", "model", "model_name", "prompt_version", "purpose", "finish_reason",
+})
+_ENUM_VALUE = re.compile(r"[\w.:/-]{1,80}")
+# Span attributes that hold serialized payloads: scrubbed, never passed through.
+_PAYLOAD = re.compile(r"\.(input|output|status_message|model\.parameters)$|\.metadata(\.|$)")
+_MAX_FREE_TOKENS = 3
 
 
 def _export_credentials() -> bool:
@@ -34,6 +49,77 @@ def _credentials_present() -> bool:
     return _export_credentials()
 
 
+def scrub(value: Any, key: str | None = None) -> Any:
+    """Structure of a traced payload: numbers, flags and enums kept, text replaced."""
+    if isinstance(value, dict):
+        return {k: scrub(v, k) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [scrub(v, key) for v in value]
+    if isinstance(value, str):
+        return value if key in _ENUM_KEYS and _ENUM_VALUE.fullmatch(value) else REDACTED
+    return value
+
+
+def _scrub_attribute(key: str, value: Any) -> Any:
+    try:
+        decoded = json.loads(value) if isinstance(value, str) else value
+    except json.JSONDecodeError:
+        decoded = value
+    leaf = key.rsplit(".", 1)[-1]
+    cleaned = scrub(decoded, leaf)
+    return json.dumps(cleaned) if isinstance(value, str) else cleaned
+
+
+def _free_text(value: Any) -> bool:
+    values = value if isinstance(value, (list, tuple)) else [value]
+    return any(isinstance(v, str) and len(v.split()) > _MAX_FREE_TOKENS for v in values)
+
+
+def mask_served_spans(*, params: Any) -> Any:
+    """Export-stage Langfuse hook: payloads scrubbed, any other prose dropped.
+
+    Runs on the final span attributes, so it covers the LangChain handler and
+    direct observations alike. If it raises, Langfuse drops the batch: the
+    failure mode is a missing trace, not a leaked note.
+    """
+    from langfuse.types import MaskOtelSpansResult, OtelSpanPatch
+
+    patches = {}
+    for ident, span in params.spans.items():
+        set_attrs, drop = {}, []
+        for key, value in span.attributes.items():
+            if _PAYLOAD.search(key):
+                set_attrs[key] = _scrub_attribute(key, value)
+            elif key.startswith(("gen_ai.prompt", "gen_ai.completion")) or _free_text(value):
+                drop.append(key)
+        if set_attrs or drop:
+            patches[ident] = OtelSpanPatch(set_attributes=set_attrs, delete_attributes=tuple(drop))
+    return MaskOtelSpansResult(span_patches=patches)
+
+
+def _client():
+    """The process Langfuse client, built with the served mask when it is on."""
+    from langfuse import Langfuse
+    from langfuse import get_client as _get_client
+
+    from trialguard.config import settings
+
+    if settings.trace_structure_only:
+        global _MASKED_CLIENT
+        if _MASKED_CLIENT is None:
+            client = Langfuse(mask_otel_spans=mask_served_spans)
+            # Langfuse keeps one client per public key and ignores the mask when
+            # one already exists. Tracing off beats exporting note text.
+            if client._resources.mask_otel_spans is not mask_served_spans:
+                return None
+            _MASKED_CLIENT = client
+        return _MASKED_CLIENT
+    return _get_client()
+
+
+_MASKED_CLIENT = None
+
+
 def get_client():
     """Return Langfuse v3 client, or None if credentials/tracing absent.
 
@@ -44,9 +130,7 @@ def get_client():
     if not settings.tracing_enabled or not _credentials_present():
         return None
     try:
-        from langfuse import get_client as _get_client
-
-        return _get_client()
+        return _client()
     except ImportError:
         return None
 
@@ -71,6 +155,9 @@ def get_langchain_handler(
     try:
         from langfuse.langchain import CallbackHandler
 
+        # The handler binds to the process client, so build it masked first.
+        if _client() is None:
+            return None
         metadata: dict[str, Any] = {}
         if session_id:
             metadata["langfuse_session_id"] = session_id

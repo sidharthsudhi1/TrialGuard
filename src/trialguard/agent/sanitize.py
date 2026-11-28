@@ -109,4 +109,97 @@ def detect_phi(text: str) -> list[str]:
     the user what to remove, and an error message that echoed the match would
     write the PHI into exactly the logs this gate exists to keep clean.
     """
-    return sorted({name for name, pattern in _PHI_COMPILED if pattern.search(text)})
+    found = {name for name, pattern in _PHI_COMPILED if pattern.search(text)}
+    if detect_names(text):
+        found.add("person_name")
+    return sorted(found)
+
+
+# Phase 40: unlabelled names, which the identifier regexes above cannot reach.
+# A clinical de-id model (obi/deid_bert_i2b2, BERT trained on i2b2 2014) finds
+# person spans; context rules (honorific, relative, a note that opens on its
+# subject) are a precise backstop. A model span or rule match followed by
+# sign/syndrome/ring/stage is an eponym, not a person. Measured in
+# data/reports/d1_name_refusal_findings.md: holdout recall 0.971, zero false
+# positives on 224 cohort notes.
+DEID_MODEL = "obi/deid_bert_i2b2"
+# Chosen on holdout 1 (0.3 to 0.5 tie on false positives; 0.3 has best recall).
+DEID_THRESHOLD = 0.3
+_PERSON_LABELS = frozenset({"PATIENT", "STAFF"})
+_NAME = r"[A-Z][a-z]+(?:[-'][A-Za-z]+)?"
+_HONORIFIC = re.compile(rf"\b(?:Mr|Mrs|Ms|Miss|Mx|Dr|Prof)\.?\s+({_NAME})")
+_RELATION = re.compile(
+    r"\b(?i:daughter|son|wife|husband|partner|mother|father|sister|brother|niece|nephew"
+    r"|aunt|uncle|grand(?:son|daughter|mother|father)|friend|neighbou?r|caregiver|carer"
+    rf"|fianc[eé]e?|named|called)\s*,?\s+({_NAME}(?:\s+{_NAME})?)"
+)
+_SUBJECT = re.compile(
+    rf"(?:^|[.!?]\s+)\W*({_NAME}(?:\s+{_NAME})?)"
+    r"(?:'s\b|,?\s+(?:is|was)\s+an?\s+\d|,\s+an?\s+\d)"
+)
+_EPONYM_NEXT = re.compile(
+    r"(?:'s\b|’s\b)?['’]?\s*(?:sign|syndrome|disease|catheter|lymphoma|test|maneuver"
+    r"|score|scale|criteria|classification|procedure|operation|tube|node|cell|phenomenon"
+    r"|reflex|palsy|sarcoma|tumou?r|grade|repair|shunt|ulcer|granulomatosis|ring|stage)\b",
+    re.I,
+)
+_REST_OF_WORD = re.compile(r"[\w'’-]*")
+_FUNCTION_WORDS = frozenset({"He", "She", "They", "Who", "Is", "Was", "Has", "Had", "And", "The"})
+_COMMON: frozenset[str] | None = None
+_PIPELINE = None
+
+
+def _common_words() -> frozenset[str]:
+    from pathlib import Path
+
+    global _COMMON
+    if _COMMON is None:
+        _COMMON = frozenset(Path(__file__).with_name("common_words.txt").read_text().split())
+    return _COMMON
+
+
+def _deid():
+    """The de-id pipeline, loaded once. Missing is an error: the refusal must not degrade."""
+    global _PIPELINE
+    if _PIPELINE is None:
+        from transformers import AutoTokenizer, pipeline
+
+        # The model ships no max length; without one a long note overflows 512 positions.
+        tokenizer = AutoTokenizer.from_pretrained(DEID_MODEL, model_max_length=512)
+        _PIPELINE = pipeline("token-classification", model=DEID_MODEL, tokenizer=tokenizer,
+                             aggregation_strategy="simple", stride=64)
+    return _PIPELINE
+
+
+def _uncommon(name: str) -> bool:
+    common = _common_words()
+    return any(t.lower() not in common for t in name.split())
+
+
+def _eponym(text: str, end: int) -> bool:
+    word = _REST_OF_WORD.match(text, end)
+    return bool(_EPONYM_NEXT.match(text, word.end() if word else end))
+
+
+def _rule_names(text: str) -> bool:
+    for m in _HONORIFIC.finditer(text):
+        if not _eponym(text, m.end(1)):
+            return True
+    for m in _RELATION.finditer(text):
+        if m.group(1).split()[0] not in _FUNCTION_WORDS and not _eponym(text, m.end(1)):
+            return True
+    return any(
+        _uncommon(m.group(1)) and not _eponym(text, m.end(1)) for m in _SUBJECT.finditer(text)
+    )
+
+
+def detect_names(text: str) -> bool:
+    """True if the text names a person without a label."""
+    if _rule_names(text):
+        return True
+    return any(
+        e["entity_group"] in _PERSON_LABELS
+        and e["score"] >= DEID_THRESHOLD
+        and not _eponym(text, e["end"])
+        for e in _deid()(text)
+    )

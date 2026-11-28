@@ -1,0 +1,51 @@
+{
+ "run": "2026-11-27",
+ "window_days": 120,
+ "note": "Gate 4 (Phase 40): served monitor rates from raw vs scrubbed served traces. Metrics only; the states are not stored.",
+ "raw": {
+  "n_trials": 2,
+  "n_criteria": 7,
+  "abstention_rate": 0.4286,
+  "unverifiable_rate": 0.0,
+  "retry_rate": 0.0,
+  "trial_verdicts": {
+   "excluded": 2
+  }
+ },
+ "scrubbed": {
+  "n_trials": 2,
+  "n_criteria": 7,
+  "abstention_rate": 0.4286,
+  "unverifiable_rate": 0.0,
+  "retry_rate": 0.0,
+  "trial_verdicts": {
+   "excluded": 2
+  }
+ },
+ "identical": true,
+ "analyst_cache_replay": {
+  "note": "Every cached analyst output as a served state; rates raw vs scrubbed, and quotes over 3 tokens surviving the scrub.",
+  "raw": {
+   "n_trials": 63956,
+   "n_criteria": 685050,
+   "abstention_rate": 0.4435,
+   "unverifiable_rate": 0.0,
+   "retry_rate": 0.0,
+   "trial_verdicts": {
+    "cannot_determine": 63956
+   }
+  },
+  "scrubbed": {
+   "n_trials": 63956,
+   "n_criteria": 685050,
+   "abstention_rate": 0.4435,
+   "unverifiable_rate": 0.0,
+   "retry_rate": 0.0,
+   "trial_verdicts": {
+    "cannot_determine": 63956
+   }
+  },
+  "identical": true,
+  "quotes_surviving": 0
+ }
+}
