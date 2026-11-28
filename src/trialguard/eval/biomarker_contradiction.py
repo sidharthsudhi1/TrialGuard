@@ -99,7 +99,8 @@ def _votes(text: str) -> dict[str, set[str]]:
                 continue
             status = NEG
         vote(_markers_in(m.group("group")), status)
-        end = m.end() + len(re.match(rf"[\s-]*(?:{_POS_WORDS})?", text[m.end():], re.I).group(0))
+        trail = re.match(rf"[\s-]*(?:{_POS_WORDS})?", text[m.end():], re.I)
+        end = m.end() + (trail.end() if trail else 0)
         masked[m.start():end] = " " * (end - m.start())
     rest = "".join(masked)
     for m in _FORWARD.finditer(rest):
@@ -210,7 +211,8 @@ def flip_text(text: str) -> str:
 def flip_keywords(keywords: list[str], flipped_note: str) -> tuple[list[str], list[str]]:
     """Flip each keyword; drop any the flipped note contradicts (an implied HR that stayed)."""
     stated = note_statuses(flipped_note)
-    kept, dropped = [], []
+    kept: list[str] = []
+    dropped: list[str] = []
     for kw in map(flip_text, keywords):
         (dropped if contradictions(stated, note_statuses(kw)) else kept).append(kw)
     return kept, dropped
